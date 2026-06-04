@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import logoImg from '../assets/logo.png';
 
 const NAV_LINKS = [
-  { label: 'Home',       path: '/' },
-  { label: 'Find Rooms', path: '/rooms' },
-  { label: 'About',      path: '/about' },
-  { label: 'Contact',    path: '/contact' },
+  { label: 'Trang chủ', path: '/' },
+  { label: 'Tìm phòng', path: '/rooms' },
+  { label: 'Giới thiệu', path: '/about' },
+  { label: 'Liên hệ', path: '/contact' },
 ];
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +19,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <nav
         className="sticky top-0 z-50"
         style={{
-          background: 'var(--canvas)',
+          background: 'rgba(249,247,243,0.92)',
+          backdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--hairline)',
           height: '64px',
         }}
@@ -26,41 +28,50 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <div className="container-wide h-full flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 no-underline">
-            <span
-              className="flex items-center justify-center rounded-full text-white text-sm font-bold"
-              style={{ width: 32, height: 32, background: 'var(--primary)', fontSize: 14 }}
-            >
-              🏠
-            </span>
-            <span className="font-bold text-base" style={{ color: 'var(--ink)', letterSpacing: '-0.3px' }}>
-              BoardingHub
+            <img
+              src={logoImg}
+              alt="KTX Manager"
+              style={{ height: 40, width: 'auto', objectFit: 'contain' }}
+            />
+            <span className="font-bold text-base" style={{ color: 'var(--ink)', letterSpacing: '-0.4px' }}>
+              <span style={{ color: 'var(--ink)' }}>Home</span><span style={{ color: '#047526' }}>Go</span>
             </span>
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-6">
-            {NAV_LINKS.map((l) => (
-              <Link
-                key={l.path}
-                to={l.path}
-                className="nav-link text-sm"
-                style={{
-                  color: location.pathname === l.path ? 'var(--primary)' : 'var(--ink)',
-                  textDecoration: 'none',
-                }}
-              >
-                {l.label}
-              </Link>
-            ))}
+          <div className="hidden md:flex items-center gap-1">
+            {NAV_LINKS.map((l) => {
+              const isActive = location.pathname === l.path;
+              return (
+                <Link
+                  key={l.path}
+                  to={l.path}
+                  className="relative nav-link text-sm px-3 py-2 rounded-lg transition-all duration-150"
+                  style={{
+                    color: isActive ? 'var(--primary)' : 'var(--charcoal)',
+                    textDecoration: 'none',
+                    background: isActive ? 'rgba(234,40,4,0.06)' : 'transparent',
+                  }}
+                >
+                  {l.label}
+                  {isActive && (
+                    <span
+                      className="absolute bottom-0 left-3 right-3 rounded-full"
+                      style={{ height: 2, background: 'var(--primary)' }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </div>
 
           {/* CTA group */}
           <div className="hidden md:flex items-center gap-3">
             <Link to="/login" className="btn-outline text-sm" style={{ height: 38, padding: '0 20px' }}>
-              Login
+              Đăng nhập
             </Link>
             <Link to="/register" className="btn-primary text-sm" style={{ height: 38, padding: '0 20px' }}>
-              Register
+              Đăng ký
             </Link>
           </div>
 
@@ -106,8 +117,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               </Link>
             ))}
             <div className="flex gap-3 pt-4">
-              <Link to="/login" className="btn-outline flex-1 text-center" style={{ height: 40 }}>Login</Link>
-              <Link to="/register" className="btn-primary flex-1 text-center" style={{ height: 40 }}>Register</Link>
+              <Link to="/login" className="btn-outline flex-1 text-center" style={{ height: 40 }}>Đăng nhập</Link>
+              <Link to="/register" className="btn-primary flex-1 text-center" style={{ height: 40 }}>Đăng ký</Link>
             </div>
           </div>
         )}
@@ -123,17 +134,20 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             style={{ borderBottom: '1px solid var(--divider-dark)' }}>
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-lg">🏠</span>
-                <span className="font-bold text-base" style={{ color: 'var(--on-dark)' }}>BoardingHub</span>
+                <span
+                  className="flex items-center justify-center rounded-xl text-white text-sm"
+                  style={{ width: 32, height: 32, background: 'var(--primary)', fontSize: 15 }}
+                >🏠</span>
+                <span className="font-bold text-base" style={{ color: 'var(--on-dark)' }}>KTX Manager</span>
               </div>
-              <p className="body-sm" style={{ color: 'var(--on-dark-mute)' }}>
-                The trusted platform for finding and managing boarding houses across Vietnam.
+              <p className="body-sm" style={{ color: 'var(--on-dark-mute)', lineHeight: 1.7 }}>
+                Nền tảng quản lý ký túc xá sinh viên — đăng ký, thanh toán và hỗ trợ trực tuyến.
               </p>
             </div>
             {[
-              { title: 'Platform', links: ['Find Rooms', 'For Landlords', 'Pricing', 'Blog'] },
-              { title: 'Support', links: ['Help Center', 'Contact Us', 'Report Issue', 'FAQ'] },
-              { title: 'Company', links: ['About', 'Privacy Policy', 'Terms of Service', 'Careers'] },
+              { title: 'Nền tảng', links: ['Tìm phòng', 'Đăng ký phòng', 'Bảng giá', 'Blog'] },
+              { title: 'Hỗ trợ', links: ['Trung tâm hỗ trợ', 'Liên hệ', 'Báo cáo sự cố', 'FAQ'] },
+              { title: 'Công ty', links: ['Giới thiệu', 'Chính sách riêng tư', 'Điều khoản', 'Tuyển dụng'] },
             ].map((col) => (
               <div key={col.title}>
                 <h4 className="label-sm mb-4" style={{ color: 'var(--on-dark)' }}>{col.title}</h4>
@@ -155,7 +169,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
           <div className="flex flex-col md:flex-row justify-between items-center pt-6 gap-4">
             <p className="caption" style={{ color: 'var(--on-dark-mute)' }}>
-              © 2025 BoardingHub. All rights reserved.
+              © 2026 KTX Manager. Bảo lưu mọi quyền.
             </p>
             <div className="flex gap-4">
               {['Privacy', 'Terms', 'Sitemap'].map((t) => (
