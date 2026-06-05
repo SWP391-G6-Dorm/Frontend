@@ -1,32 +1,51 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { authApi } from '../../api/authApi';
 
 // SCR-04 — OTP / Email Verification
 // Entity: User — updates User.status from PENDING → ACTIVE on success
 
 const OTP_LENGTH = 6;
 
+/** Extract a human-readable message from an Axios error response. */
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const e = err as { response?: { data?: { message?: string } }; message?: string };
+    return e.response?.data?.message ?? e.message ?? 'Something went wrong. Please try again.';
+  }
+  return 'Something went wrong. Please try again.';
+}
+
 export default function VerifyEmailPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const email = searchParams.get('email') || 'your email';
+  const email = searchParams.get('email') || '';
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Focus the first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+
+  // Resend countdown timer
   useEffect(() => {
     if (resendCountdown > 0) {
-      const t = setTimeout(() => setResendCountdown(c => c - 1), 1000);
+      const t = setTimeout(() => setResendCountdown((c) => c - 1), 1000);
       return () => clearTimeout(t);
     } else {
       setCanResend(true);
     }
   }, [resendCountdown]);
+
+  // ── OTP input handlers ──────────────────────────────────────────────────────
 
   function handleOtpChange(index: number, value: string) {
     const digit = value.replace(/\D/g, '').slice(-1);
@@ -54,30 +73,61 @@ export default function VerifyEmailPage() {
     inputRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
   }
 
+  // ── Verify OTP ──────────────────────────────────────────────────────────────
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const code = otp.join('');
-    if (code.length < OTP_LENGTH) { setError('Please enter all 6 digits.'); return; }
+    if (code.length < OTP_LENGTH) {
+      setError('Please enter all 6 digits.');
+      return;
+    }
+
     setLoading(true);
-    // Simulate API → User.status = ACTIVE
-    setTimeout(() => {
+    setError('');
+    try {
+      const res = await authApi.verifyOtp({ email, otp: code });
+      setSuccess(true);
+
+      // Redirect based on role returned from backend
+      setTimeout(() => {
+        if (res.data?.role === 'LANDLORD') {
+          navigate('/landlord-pending');
+        } else {
+          navigate('/login');
+        }
+      }, 2000);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+      // Clear OTP boxes on error so the user can re-enter
+      setOtp(Array(OTP_LENGTH).fill(''));
+      inputRefs.current[0]?.focus();
+    } finally {
       setLoading(false);
-      if (code === '123456') { // demo: any real code would work
-        setSuccess(true);
-        setTimeout(() => navigate('/login'), 2000);
-      } else {
-        setError('Invalid or expired code. Please try again.');
-      }
-    }, 1000);
+    }
   }
 
-  function handleResend() {
+  // ── Resend OTP ──────────────────────────────────────────────────────────────
+
+  async function handleResend() {
     if (!canResend) return;
-    setOtp(Array(OTP_LENGTH).fill(''));
+
+    setResendLoading(true);
     setError('');
-    setResendCountdown(60);
-    setCanResend(false);
+    try {
+      await authApi.resendOtp(email);
+      setOtp(Array(OTP_LENGTH).fill(''));
+      setResendCountdown(60);
+      setCanResend(false);
+      inputRefs.current[0]?.focus();
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setResendLoading(false);
+    }
   }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -103,7 +153,7 @@ export default function VerifyEmailPage() {
         }}
       >
         {success ? (
-          /* Success state */
+          /* ── Success state ──────────────────────────────────────────────── */
           <div className="text-center animate-fade-in">
             <div
               className="mx-auto mb-4 flex items-center justify-center rounded-full text-3xl"
@@ -118,6 +168,7 @@ export default function VerifyEmailPage() {
           </div>
         ) : (
           <>
+            {/* ── Header ──────────────────────────────────────────────────── */}
             <div className="text-center mb-8">
               <div
                 className="mx-auto mb-4 flex items-center justify-center rounded-full text-3xl"
@@ -129,11 +180,14 @@ export default function VerifyEmailPage() {
               <p className="body-md" style={{ color: 'var(--charcoal)' }}>
                 We sent a 6-digit code to
               </p>
-              <p className="font-semibold mt-1" style={{ color: 'var(--ink)' }}>{email}</p>
+              <p className="font-semibold mt-1" style={{ color: 'var(--ink)' }}>
+                {email || 'your email'}
+              </p>
             </div>
 
+            {/* ── Error banner ─────────────────────────────────────────────── */}
             {error && (
-              <div className="alert alert-error mb-6 animate-fade-in">
+              <div className="alert alert-error mb-6 animate-fade-in" role="alert">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
                   <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
@@ -141,13 +195,13 @@ export default function VerifyEmailPage() {
               </div>
             )}
 
+            {/* ── OTP form ─────────────────────────────────────────────────── */}
             <form onSubmit={handleSubmit}>
-              {/* OTP boxes */}
               <div className="flex justify-center gap-3 mb-6" onPaste={handlePaste}>
                 {otp.map((digit, i) => (
                   <input
                     key={i}
-                    ref={el => { inputRefs.current[i] = el; }}
+                    ref={(el) => { inputRefs.current[i] = el; }}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
@@ -187,22 +241,27 @@ export default function VerifyEmailPage() {
               </button>
             </form>
 
+            {/* ── Resend ───────────────────────────────────────────────────── */}
             <div className="text-center mt-6">
               <p className="body-sm" style={{ color: 'var(--charcoal)' }}>Didn't receive the code?</p>
               <button
                 id="otp-resend"
                 type="button"
                 onClick={handleResend}
-                disabled={!canResend}
+                disabled={!canResend || resendLoading}
                 className="body-sm font-semibold mt-1 transition-colors"
                 style={{
-                  color: canResend ? 'var(--primary)' : 'var(--ash)',
+                  color: canResend && !resendLoading ? 'var(--primary)' : 'var(--ash)',
                   background: 'none',
                   border: 'none',
-                  cursor: canResend ? 'pointer' : 'default',
+                  cursor: canResend && !resendLoading ? 'pointer' : 'default',
                 }}
               >
-                {canResend ? 'Resend code' : `Resend in ${resendCountdown}s`}
+                {resendLoading
+                  ? 'Sending…'
+                  : canResend
+                  ? 'Resend code'
+                  : `Resend in ${resendCountdown}s`}
               </button>
             </div>
           </>

@@ -32,8 +32,14 @@ export default function LoginPage() {
       setLoading(true);
       const data = await authApi.login(email, password);
       loginToStore(data);
-      // Optional: xử lý remember me nếu cần
-      navigate('/dashboard');
+      // Role-based redirect
+      if (data.role === 'LANDLORD') {
+        navigate('/landlord/dashboard');
+      } else if (data.role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/tenant/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -46,9 +52,23 @@ export default function LoginPage() {
       setLoading(true);
       setError('');
       if (credentialResponse.credential) {
-        const data = await authApi.loginWithGoogle(credentialResponse.credential);
-        loginToStore(data);
-        navigate('/dashboard');
+        const res = await authApi.loginWithGoogle(credentialResponse.credential);
+        const authData = res.data;
+        loginToStore(authData);
+
+        if (authData.role === 'LANDLORD') {
+          // Google LANDLORD without identity info → must fill in CCCD first
+          if (!authData.identityInfoSubmitted) {
+            navigate('/landlord-verify-info');
+          } else {
+            // Has identity info → go to dashboard (banner shows verification status)
+            navigate('/landlord/dashboard');
+          }
+        } else if (authData.role === 'ADMIN') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/tenant/dashboard');
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Google authentication failed.');

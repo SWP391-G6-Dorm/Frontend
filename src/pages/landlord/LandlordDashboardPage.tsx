@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import LandlordLayout from '../../layouts/LandlordLayout';
 import { KpiCard, StatusBadge, formatPrice, formatDate, relTime, MOCK_REQUESTS, MOCK_MAINTENANCE, MOCK_BILLS, MOCK_ROOMS, MOCK_PROPERTIES } from './shared';
+import { useAuthStore } from '../../store/authStore';
 
 // SCR-34 — Landlord Dashboard
 // KPIs: count(Property) · count(Room status=OCCUPIED)/total · count(RentalRequest PENDING) · count(Bill OVERDUE)
@@ -27,6 +28,7 @@ const overdueBills  = MOCK_BILLS.filter(b => b.status === 'OVERDUE').length;
 export default function LandlordDashboardPage() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const landlordVerified = useAuthStore(s => s.landlordVerified);
 
   return (
     <LandlordLayout>
@@ -38,6 +40,50 @@ export default function LandlordDashboardPage() {
             {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
+
+        {/* ── Pending Verification Banner ──────────────────────────────────── */}
+        {!landlordVerified && (
+          <div
+            className="animate-fade-in"
+            style={{
+              padding: '16px 20px',
+              borderRadius: 12,
+              background: '#fefce8',
+              border: '1px solid #fde047',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 14,
+            }}
+          >
+            <span style={{ fontSize: 22, flexShrink: 0 }}>⏳</span>
+            <div className="flex-1">
+              <p className="body-sm font-semibold" style={{ color: '#92400e', marginBottom: 4 }}>
+                Account Pending Admin Verification
+              </p>
+              <p className="caption" style={{ color: '#a16207', lineHeight: 1.6 }}>
+                Your landlord account is active but some features are restricted until our team
+                verifies your identity. Typical review time: <strong>1–2 business days</strong>.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {[
+                  '🏢 Add Properties',
+                  '🏠 Manage Rooms',
+                  '📋 Accept Requests',
+                  '💳 Billing',
+                ].map(f => (
+                  <span key={f} className="caption font-semibold"
+                    style={{
+                      padding: '3px 10px', borderRadius: 20,
+                      background: '#fde047', color: '#92400e',
+                    }}
+                  >
+                    🔒 {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
