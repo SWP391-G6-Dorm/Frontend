@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.png';
+import { useAuthStore } from '../store/authStore';
 
 const NAV_LINKS = [
   { label: 'Trang chủ', path: '/' },
@@ -12,6 +13,22 @@ const NAV_LINKS = [
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, role, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const getDashboardLink = () => {
+    switch (role) {
+      case 'ADMIN': return '/admin/dashboard';
+      case 'LANDLORD': return '/landlord/dashboard';
+      case 'TENANT': return '/tenant/dashboard';
+      default: return '/tenant/dashboard';
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--canvas)' }}>
@@ -67,12 +84,25 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
           {/* CTA group */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login" className="btn-outline text-sm" style={{ height: 38, padding: '0 20px' }}>
-              Đăng nhập
-            </Link>
-            <Link to="/register" className="btn-primary text-sm" style={{ height: 38, padding: '0 20px' }}>
-              Đăng ký
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to={getDashboardLink()} className="btn-primary text-sm" style={{ height: 38, padding: '0 20px' }}>
+                  Bảng điều khiển
+                </Link>
+                <button onClick={handleLogout} className="btn-outline text-sm" style={{ height: 38, padding: '0 20px' }}>
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="btn-outline text-sm" style={{ height: 38, padding: '0 20px' }}>
+                  Đăng nhập
+                </Link>
+                <Link to="/register" className="btn-primary text-sm" style={{ height: 38, padding: '0 20px' }}>
+                  Đăng ký
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -117,8 +147,21 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               </Link>
             ))}
             <div className="flex gap-3 pt-4">
-              <Link to="/login" className="btn-outline flex-1 text-center" style={{ height: 40 }}>Đăng nhập</Link>
-              <Link to="/register" className="btn-primary flex-1 text-center" style={{ height: 40 }}>Đăng ký</Link>
+              {isAuthenticated ? (
+                <>
+                  <Link to={getDashboardLink()} className="btn-primary flex-1 text-center" style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Bảng điều khiển
+                  </Link>
+                  <button onClick={handleLogout} className="btn-outline flex-1 text-center" style={{ height: 40 }}>
+                    Đăng xuất
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="btn-outline flex-1 text-center" style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Đăng nhập</Link>
+                  <Link to="/register" className="btn-primary flex-1 text-center" style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Đăng ký</Link>
+                </>
+              )}
             </div>
           </div>
         )}
