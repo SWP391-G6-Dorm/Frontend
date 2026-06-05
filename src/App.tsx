@@ -7,6 +7,8 @@ import RegisterPage       from './pages/public/RegisterPage';
 import VerifyEmailPage    from './pages/public/VerifyEmailPage';
 import ForgotPasswordPage from './pages/public/ForgotPasswordPage';
 import ResetPasswordPage  from './pages/public/ResetPasswordPage';
+import LandlordPendingPage from './pages/public/LandlordPendingPage';
+import LandlordVerifyInfoPage from './pages/public/LandlordVerifyInfoPage';
 import RoomListingPage    from './pages/public/RoomListingPage';
 import RoomDetailPage     from './pages/public/RoomDetailPage';
 import SearchResultPage   from './pages/public/SearchResultPage';
@@ -71,6 +73,8 @@ function App() {
         <Route path="/verify-email"    element={<VerifyEmailPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password"  element={<ResetPasswordPage />} />
+        <Route path="/landlord-pending" element={<LandlordPendingPage />} />
+        <Route path="/landlord-verify-info" element={<LandlordVerifyInfoPage />} />
         <Route path="/rooms"           element={<RoomListingPage />} />
         <Route path="/rooms/:id"       element={<RoomDetailPage />} />
         <Route path="/search"          element={<SearchResultPage />} />
