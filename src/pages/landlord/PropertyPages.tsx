@@ -124,6 +124,7 @@ export function PropertyDetailPage() {
               { label: 'Address',     value: property.address },
               { label: 'Status',      value: null, node: <StatusBadge status={property.status} /> },
               { label: 'Created',     value: formatDate(property.createdAt) },
+              { label: 'Facilities',  value: (property as any).facilities || 'None' },
               { label: 'Description', value: property.description },
             ].map(row => (
               <div key={row.label} className="py-2.5 border-b" style={{ borderColor: 'var(--hairline)' }}>
@@ -173,6 +174,7 @@ export function PropertyFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [address, setAddress]     = useState(existing?.address ?? '');
   const [description, setDesc]    = useState(existing?.description ?? '');
   const [status, setStatus]       = useState(existing?.status ?? 'DRAFT');
+  const [facilities, setFacilities] = useState((existing as any)?.facilities ?? '');
   const [loading, setLoading]     = useState(false);
   const [errors, setErrors]       = useState<Record<string, string>>({});
 
@@ -189,7 +191,36 @@ export function PropertyFormPage({ mode }: { mode: 'create' | 'edit' }) {
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     setLoading(true);
-    setTimeout(() => { setLoading(false); navigate('/landlord/properties'); }, 1000);
+    setTimeout(() => {
+      setLoading(false);
+      if (mode === 'create') {
+        const newProp = {
+          id: `p-${Math.random().toString(36).substr(2, 9)}`,
+          name,
+          address,
+          description,
+          status,
+          facilities,
+          createdAt: new Date().toISOString().split('T')[0],
+          totalRooms: 0,
+          occupiedRooms: 0
+        };
+        MOCK_PROPERTIES.push(newProp);
+      } else {
+        const idx = MOCK_PROPERTIES.findIndex(p => p.id === id);
+        if (idx !== -1) {
+          MOCK_PROPERTIES[idx] = {
+            ...MOCK_PROPERTIES[idx],
+            name,
+            address,
+            description,
+            status,
+            facilities
+          } as any;
+        }
+      }
+      navigate('/landlord/properties');
+    }, 1000);
   }
 
   return (
@@ -221,6 +252,12 @@ export function PropertyFormPage({ mode }: { mode: 'create' | 'edit' }) {
               <div>
                 <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Description</label>
                 <textarea className="textarea-field" rows={4} value={description} onChange={e => setDesc(e.target.value)} placeholder="Describe the property…" />
+              </div>
+
+              {/* Property.facilities */}
+              <div>
+                <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Facilities / Attributes (comma-separated)</label>
+                <input id="prop-facilities" type="text" className="input-field-rect" value={facilities} onChange={e => setFacilities(e.target.value)} placeholder="e.g. Elevator, Security 24/7, Swimming Pool, Parking" />
               </div>
 
               {/* Property.status */}
