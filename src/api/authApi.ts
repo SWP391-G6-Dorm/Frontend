@@ -51,7 +51,7 @@ export interface OtpVerifyResponse {
 // ── Auth API ──────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: async (email: string, password: string): Promise<AuthResponse> => {
+  login: async (email: string, password: string): Promise<ApiResponse<AuthResponse>> => {
     const res = await api.post('/api/auth/login', { email, password });
     return res.data;
   },
@@ -93,8 +93,15 @@ export const authApi = {
     return res.data;
   },
 
-  refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
+  refreshToken: async (refreshToken: string): Promise<ApiResponse<AuthResponse>> => {
     const res = await api.post('/api/auth/refresh', refreshToken, {
+      headers: { 'Content-Type': 'text/plain' },
+    });
+    return res.data;
+  },
+
+  logout: async (refreshToken: string): Promise<ApiResponse<void>> => {
+    const res = await api.post('/api/auth/logout', refreshToken, {
       headers: { 'Content-Type': 'text/plain' },
     });
     return res.data;

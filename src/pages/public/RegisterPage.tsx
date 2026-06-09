@@ -62,8 +62,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const loginToStore = useAuthStore(s => s.login);
 
-  const googleClientId =
-    import.meta.env.VITE_GOOGLE_CLIENT_ID || '1234567890-demo-client-id.apps.googleusercontent.com';
+  const googleClientId = import.meta.env.GOOGLE_CLIENT_ID || '';
 
   // Form state
   const [role, setRole] = useState<Role>('TENANT');
@@ -147,23 +146,27 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const res = await authApi.loginWithGoogle(cr.credential, role);
-      const authData = res.data;
+      if (res.success && res.data) {
+        const authData = res.data;
 
-      // ⚠️ Always save token to store FIRST so subsequent API calls have JWT
-      loginToStore(authData);
+        // ⚠️ Always save token to store FIRST so subsequent API calls have JWT
+        loginToStore(authData);
 
-      if (authData.role === 'LANDLORD') {
-        if (!authData.identityInfoSubmitted) {
-          // New Google LANDLORD — needs to fill in CCCD first
-          navigate('/landlord-verify-info');
-        } else if (!authData.landlordVerified) {
-          // CCCD submitted, waiting for admin approval
-          navigate('/landlord-pending');
+        if (authData.role === 'LANDLORD') {
+          if (!authData.identityInfoSubmitted) {
+            // New Google LANDLORD — needs to fill in CCCD first
+            navigate('/landlord-verify-info');
+          } else if (!authData.landlordVerified) {
+            // CCCD submitted, waiting for admin approval
+            navigate('/landlord-pending');
+          } else {
+            navigate('/landlord/dashboard');
+          }
         } else {
-          navigate('/landlord/dashboard');
+          navigate('/tenant/dashboard');
         }
       } else {
-        navigate('/tenant/dashboard');
+        setServerError(res.message || 'Google authentication failed.');
       }
     } catch (err: unknown) {
       setServerError(

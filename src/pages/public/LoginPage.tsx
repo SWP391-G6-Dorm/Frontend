@@ -11,7 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 export default function LoginPage() {
   const navigate = useNavigate();
   const loginToStore = useAuthStore((state) => state.login);
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -19,8 +19,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Lấy clientId từ file .env, fallback để dev test
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1234567890-demo-client-id.apps.googleusercontent.com';
+  // Lấy clientId từ file .env
+  const googleClientId = import.meta.env.GOOGLE_CLIENT_ID || '';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,15 +30,20 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const data = await authApi.login(email, password);
-      loginToStore(data);
-      // Role-based redirect
-      if (data.role === 'LANDLORD') {
-        navigate('/landlord/dashboard');
-      } else if (data.role === 'ADMIN') {
-        navigate('/admin/dashboard');
+      const res = await authApi.login(email, password);
+      if (res.success && res.data) {
+        const data = res.data;
+        loginToStore(data);
+        // Role-based redirect
+        if (data.role === 'LANDLORD') {
+          navigate('/landlord/dashboard');
+        } else if (data.role === 'ADMIN') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/tenant/dashboard');
+        }
       } else {
-        navigate('/tenant/dashboard');
+        setError(res.message || 'Login failed.');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -53,21 +58,25 @@ export default function LoginPage() {
       setError('');
       if (credentialResponse.credential) {
         const res = await authApi.loginWithGoogle(credentialResponse.credential);
-        const authData = res.data;
-        loginToStore(authData);
+        if (res.success && res.data) {
+          const authData = res.data;
+          loginToStore(authData);
 
-        if (authData.role === 'LANDLORD') {
-          // Google LANDLORD without identity info → must fill in CCCD first
-          if (!authData.identityInfoSubmitted) {
-            navigate('/landlord-verify-info');
+          if (authData.role === 'LANDLORD') {
+            // Google LANDLORD without identity info → must fill in CCCD first
+            if (!authData.identityInfoSubmitted) {
+              navigate('/landlord-verify-info');
+            } else {
+              // Has identity info → go to dashboard (banner shows verification status)
+              navigate('/landlord/dashboard');
+            }
+          } else if (authData.role === 'ADMIN') {
+            navigate('/admin/dashboard');
           } else {
-            // Has identity info → go to dashboard (banner shows verification status)
-            navigate('/landlord/dashboard');
+            navigate('/tenant/dashboard');
           }
-        } else if (authData.role === 'ADMIN') {
-          navigate('/admin/dashboard');
         } else {
-          navigate('/tenant/dashboard');
+          setError(res.message || 'Google authentication failed.');
         }
       }
     } catch (err: any) {
