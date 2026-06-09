@@ -75,14 +75,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const SidebarContent = () => (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)', flexShrink: 0 }}>
+      <Link to="/" className="flex items-center gap-2.5 px-4 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)', flexShrink: 0, textDecoration: 'none' }}>
         <span className="flex items-center justify-center rounded-lg text-white font-bold text-sm"
           style={{ width: 32, height: 32, background: 'linear-gradient(135deg,#dc2626,#ef4444)', flexShrink: 0 }}>🛡️</span>
         <div>
           <p className="font-bold text-sm" style={{ color: '#f8fafc', letterSpacing: '-0.2px' }}>BoardingHub</p>
           <p className="text-xs" style={{ color: 'rgba(248,250,252,0.45)' }}>Admin Console</p>
         </div>
-      </div>
+      </Link>
 
       {/* User chip */}
       <div className="flex items-center gap-3 px-4 py-3 mx-3 mt-3 rounded-lg"

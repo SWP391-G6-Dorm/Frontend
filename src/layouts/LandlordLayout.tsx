@@ -5,45 +5,45 @@ const NAV_SECTIONS = [
   {
     label: 'OVERVIEW',
     items: [
-      { icon: '⊞', label: 'Dashboard',     path: '/landlord/dashboard' },
+      { icon: '⊞', label: 'Dashboard', path: '/landlord/dashboard' },
     ],
   },
   {
     label: 'PROPERTY',
     items: [
-      { icon: '🏢', label: 'Properties',   path: '/landlord/properties' },
-      { icon: '🏠', label: 'Rooms',        path: '/landlord/rooms' },
+      { icon: '🏢', label: 'Properties', path: '/landlord/properties' },
+      { icon: '🏠', label: 'Rooms', path: '/landlord/rooms' },
       { icon: '🔑', label: 'Block / Floor', path: '/landlord/blocks' },
     ],
   },
   {
     label: 'TENANTS',
     items: [
-      { icon: '👥', label: 'Tenants',      path: '/landlord/tenants' },
-      { icon: '📋', label: 'Requests',     path: '/landlord/requests' },
-      { icon: '📄', label: 'Contracts',    path: '/landlord/contracts' },
+      { icon: '👥', label: 'Tenants', path: '/landlord/tenants' },
+      { icon: '📋', label: 'Requests', path: '/landlord/requests' },
+      { icon: '📄', label: 'Contracts', path: '/landlord/contracts' },
     ],
   },
   {
     label: 'FINANCE',
     items: [
-      { icon: '💳', label: 'Billing',      path: '/landlord/billing' },
-      { icon: '💰', label: 'Payments',     path: '/landlord/payments' },
-      { icon: '⚡', label: 'Utilities',    path: '/landlord/utilities' },
+      { icon: '💳', label: 'Billing', path: '/landlord/billing' },
+      { icon: '💰', label: 'Payments', path: '/landlord/payments' },
+      { icon: '⚡', label: 'Utilities', path: '/landlord/utilities' },
     ],
   },
   {
     label: 'MAINTENANCE',
     items: [
-      { icon: '🔧', label: 'Maintenance',  path: '/landlord/maintenance' },
+      { icon: '🔧', label: 'Maintenance', path: '/landlord/maintenance' },
     ],
   },
   {
     label: 'REPORTS',
     items: [
-      { icon: '📊', label: 'Revenue',      path: '/landlord/reports/revenue' },
-      { icon: '📈', label: 'Occupancy',    path: '/landlord/reports/occupancy' },
-      { icon: '⚠️', label: 'Debt Report',  path: '/landlord/reports/debt' },
+      { icon: '📊', label: 'Revenue', path: '/landlord/reports/revenue' },
+      { icon: '📈', label: 'Occupancy', path: '/landlord/reports/occupancy' },
+      { icon: '⚠️', label: 'Debt Report', path: '/landlord/reports/debt' },
     ],
   },
 ];
@@ -87,14 +87,14 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
   const SidebarContent = () => (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)', flexShrink: 0 }}>
+      <Link to="/" className="flex items-center gap-2.5 px-4 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)', flexShrink: 0, textDecoration: 'none' }}>
         <span className="flex items-center justify-center rounded-lg text-white font-bold text-sm"
           style={{ width: 32, height: 32, background: 'linear-gradient(135deg,#ea2804,#ff6a3d)', flexShrink: 0 }}>🏠</span>
         <div>
-          <p className="font-bold text-sm" style={{ color: '#f8fafc', letterSpacing: '-0.2px' }}>BoardingHub</p>
+          <p className="font-bold text-sm" style={{ color: '#f8fafc', letterSpacing: '-0.2px' }}>Home Go</p>
           <p className="text-xs" style={{ color: 'rgba(248,250,252,0.45)' }}>Landlord</p>
         </div>
-      </div>
+      </Link>
 
       {/* User chip */}
       <div className="flex items-center gap-3 px-4 py-3 mx-3 mt-3 rounded-lg"

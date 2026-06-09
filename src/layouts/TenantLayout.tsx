@@ -41,11 +41,11 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
         }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2 px-6 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <Link to="/" className="flex items-center gap-2 px-6 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', textDecoration: 'none' }}>
           <span className="flex items-center justify-center rounded-full text-white font-bold text-sm"
             style={{ width: 32, height: 32, background: 'var(--primary)', flexShrink: 0 }}>🏠</span>
           <span className="font-bold text-sm" style={{ color: 'var(--on-dark)', letterSpacing: '-0.2px' }}>BoardingHub</span>
-        </div>
+        </Link>
 
         {/* User card */}
         <div className="flex items-center gap-3 px-4 py-4 mx-3 mt-3 rounded-lg"
@@ -115,11 +115,11 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-              <div className="flex items-center gap-2">
+              <Link to="/" className="flex items-center gap-2" style={{ textDecoration: 'none' }}>
                 <span className="flex items-center justify-center rounded-full text-white font-bold text-xs"
                   style={{ width: 28, height: 28, background: 'var(--primary)' }}>🏠</span>
                 <span className="font-bold text-sm" style={{ color: 'var(--on-dark)' }}>BoardingHub</span>
-              </div>
+              </Link>
               <button onClick={() => setSidebarOpen(false)} style={{ color: 'var(--on-dark-mute)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
             </div>
             <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
