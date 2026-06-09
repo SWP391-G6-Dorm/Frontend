@@ -3,62 +3,80 @@
 // SCR-74 — Edit User (Admin)
 // Entity: User · AuditLog
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../layouts/AdminLayout';
+import { adminApi, AdminUser } from '../../api/adminApi';
 import {
   KpiCard, StatusBadge, RoleBadge, PageHeader, FilterBar,
   formatDate, formatDateTime, relTime,
-  MOCK_ADMIN_USERS, MOCK_AUDIT_LOGS, actionBadgeStyle, actionBorderColor,
+  MOCK_AUDIT_LOGS, actionBadgeStyle, actionBorderColor,
 } from './shared';
 
 // ─── SCR-72: User Management ─────────────────────────────────────────────────
 
 export function UserManagementPage() {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [showAddModal, setShowAddModal] = useState(false);
 
-  const filtered = MOCK_ADMIN_USERS.filter(u => {
-    const matchSearch = search === '' ||
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchRole   = roleFilter === 'ALL' || u.role === roleFilter;
-    const matchStatus = statusFilter === 'ALL' || u.status === statusFilter;
-    return matchSearch && matchRole && matchStatus;
-  });
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminApi.searchUsers({
+        page,
+        size: 10,
+        role: roleFilter !== 'ALL' ? roleFilter : undefined,
+        status: statusFilter !== 'ALL' ? statusFilter : undefined,
+        keyword: search || undefined,
+      });
+      if (res.success) {
+        setUsers(res.data.content);
+        setTotalElements(res.data.totalElements);
+        setTotalPages(res.data.totalPages);
+      } else {
+        setError(res.message);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [page, roleFilter, statusFilter, search]);
 
   const toggleSelect = (id: string) =>
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  const allSelected = filtered.length > 0 && filtered.every(u => selectedIds.includes(u.id));
-  const toggleAll = () => setSelectedIds(allSelected ? [] : filtered.map(u => u.id));
+  const allSelected = users.length > 0 && users.every(u => selectedIds.includes(u.id));
+  const toggleAll = () => setSelectedIds(allSelected ? [] : users.map(u => u.id));
 
   return (
     <AdminLayout>
       <div className="flex flex-col gap-5 animate-fade-up">
         <PageHeader
           title="User Management"
-          sub={`${MOCK_ADMIN_USERS.length} total users · ${MOCK_ADMIN_USERS.filter(u => u.status === 'ACTIVE').length} active`}
-          action={
-            <button
-              className="btn-primary"
-              onClick={() => setShowAddModal(true)}
-              style={{ borderRadius: 9999, fontSize: 14 }}
-            >
-              + Add User
-            </button>
-          }
+          sub={`${totalElements} total users`}
         />
 
         {/* Toolbar */}
-        <FilterBar search={search} onSearch={setSearch}>
+        <FilterBar search={search} onSearch={(val) => { setSearch(val); setPage(0); }}>
           <select
             className="input-field-rect"
             style={{ height: 38, minWidth: 130 }}
             value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value)}
+            onChange={e => { setRoleFilter(e.target.value); setPage(0); }}
           >
             <option value="ALL">All Roles</option>
             <option value="TENANT">Tenant</option>
@@ -69,7 +87,7 @@ export function UserManagementPage() {
             className="input-field-rect"
             style={{ height: 38, minWidth: 140 }}
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
           >
             <option value="ALL">All Statuses</option>
             <option value="PENDING">Pending</option>
@@ -77,32 +95,12 @@ export function UserManagementPage() {
             <option value="SUSPENDED">Suspended</option>
             <option value="DELETED">Deleted</option>
           </select>
-          {/* Export */}
-          <button
-            className="btn-outline"
-            style={{ height: 38, borderRadius: 9999, fontSize: 13, padding: '0 16px' }}
-          >
-            ⬇ Export
-          </button>
         </FilterBar>
 
-        {/* Bulk action bar */}
-        {selectedIds.length > 0 && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg"
-            style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
-            <span className="body-sm font-semibold" style={{ color: '#1D4ED8' }}>
-              {selectedIds.length} selected
-            </span>
-            <button className="body-sm font-semibold" style={{ color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer' }}>
-              Suspend Selected
-            </button>
-            <button className="body-sm font-semibold" style={{ color: '#0891B2', background: 'none', border: 'none', cursor: 'pointer' }}>
-              Export Selected
-            </button>
-            <button onClick={() => setSelectedIds([])}
-              className="body-sm" style={{ color: 'var(--ash)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto' }}>
-              Clear
-            </button>
+        {error && (
+          <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
+            <span className="font-medium">Error!</span> {error}
+            <button className="ml-4 underline" onClick={fetchUsers}>Retry</button>
           </div>
         )}
 
@@ -121,18 +119,22 @@ export function UserManagementPage() {
             <div style={{ flex: 1, color: 'var(--charcoal)' }} className="label-sm">Actions</div>
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+             <div className="flex flex-col items-center justify-center py-16" style={{ color: 'var(--ash)' }}>
+               <p className="body-lg font-semibold mt-3">Loading users...</p>
+             </div>
+          ) : users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16" style={{ color: 'var(--ash)' }}>
               <span style={{ fontSize: 48 }}>👤</span>
               <p className="body-lg font-semibold mt-3" style={{ color: 'var(--charcoal)' }}>No users found.</p>
               <p className="body-sm mt-1">Try adjusting your search or filters.</p>
             </div>
           ) : (
-            filtered.map((user, i) => (
+            users.map((user, i) => (
               <div
                 key={user.id}
                 className="flex items-center gap-3 px-4 py-3.5 border-b transition-colors"
-                style={{ borderColor: i < filtered.length - 1 ? 'var(--hairline)' : 'transparent' }}
+                style={{ borderColor: i < users.length - 1 ? 'var(--hairline)' : 'transparent' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-bone)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
@@ -145,7 +147,7 @@ export function UserManagementPage() {
                 />
                 {/* User col */}
                 <div style={{ flex: 3 }} className="flex items-center gap-3 min-w-0">
-                  <img src={user.avatarUrl} alt={user.name}
+                  <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`} alt={user.name}
                     className="rounded-full flex-shrink-0" style={{ width: 36, height: 36 }} />
                   <div className="min-w-0">
                     <p className="body-sm font-semibold truncate" style={{ color: 'var(--ink)' }}>{user.name}</p>
@@ -162,11 +164,11 @@ export function UserManagementPage() {
                 </div>
                 {/* Role */}
                 <div style={{ flex: 1 }}>
-                  <RoleBadge role={user.role} />
+                  <RoleBadge role={user.role || 'UNKNOWN'} />
                 </div>
                 {/* Status */}
                 <div style={{ flex: 1 }}>
-                  <StatusBadge status={user.status} />
+                  <StatusBadge status={user.status || 'UNKNOWN'} />
                 </div>
                 {/* Joined */}
                 <div style={{ flex: 1 }} className="hidden lg:block">
@@ -180,44 +182,28 @@ export function UserManagementPage() {
             ))
           )}
         </div>
-
-        {/* Add User Modal */}
-        {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.45)' }}
-            onClick={() => setShowAddModal(false)}>
-            <div className="card" style={{ padding: 32, width: 480, maxWidth: '90vw' }}
-              onClick={e => e.stopPropagation()}>
-              <h2 className="heading-sm mb-5" style={{ color: 'var(--ink)' }}>Add New User</h2>
-              <div className="flex flex-col gap-4">
-                <div>
-                  <label className="label-sm mb-1 block" style={{ color: 'var(--charcoal)' }}>Full Name</label>
-                  <input className="input-field-rect w-full" placeholder="User.name" />
-                </div>
-                <div>
-                  <label className="label-sm mb-1 block" style={{ color: 'var(--charcoal)' }}>Email</label>
-                  <input className="input-field-rect w-full" type="email" placeholder="User.email" />
-                </div>
-                <div>
-                  <label className="label-sm mb-1 block" style={{ color: 'var(--charcoal)' }}>Role</label>
-                  <select className="input-field-rect w-full">
-                    <option value="TENANT">Tenant</option>
-                    <option value="LANDLORD">Landlord</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label-sm mb-1 block" style={{ color: 'var(--charcoal)' }}>Status</label>
-                  <select className="input-field-rect w-full">
-                    <option value="ACTIVE">Active</option>
-                    <option value="PENDING">Pending</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-6">
-                <button className="btn-primary flex-1" style={{ borderRadius: 9999 }}>Create User</button>
-                <button className="btn-outline flex-1" style={{ borderRadius: 9999 }} onClick={() => setShowAddModal(false)}>Cancel</button>
-              </div>
+        
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="flex justify-between items-center mt-4">
+            <span className="text-sm text-gray-700">
+              Showing page {page + 1} of {totalPages}
+            </span>
+            <div className="inline-flex mt-2 xs:mt-0 gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 rounded-s hover:bg-gray-900 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 border-0 border-s border-gray-700 rounded-e hover:bg-gray-900 disabled:opacity-50"
+              >
+                Next
+              </button>
             </div>
           </div>
         )}
@@ -228,6 +214,7 @@ export function UserManagementPage() {
 
 function ActionMenu({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   return (
     <div className="relative" style={{ display: 'inline-block' }}>
       <button
@@ -243,20 +230,11 @@ function ActionMenu({ userId }: { userId: string }) {
           {[
             { label: '👁 View Details', to: `/admin/users/${userId}` },
             { label: '✏️ Edit User',    to: `/admin/users/${userId}/edit` },
-            { label: '🚫 Suspend',      to: null, danger: false },
-            { label: '🔑 Reset Password', to: null, danger: false },
-            { label: '🗑 Delete',       to: null, danger: true },
           ].map(item => (
-            item.to
-              ? <Link key={item.label} to={item.to}
-                  className="flex items-center px-4 py-2 body-sm"
-                  style={{ color: 'var(--ink)', textDecoration: 'none' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-bone)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >{item.label}</Link>
-              : <button key={item.label}
+             <button key={item.label}
+                  onClick={() => navigate(item.to)}
                   className="flex items-center w-full px-4 py-2 body-sm text-left"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: item.danger ? 'var(--error)' : 'var(--ink)' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-bone)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >{item.label}</button>
@@ -272,11 +250,79 @@ function ActionMenu({ userId }: { userId: string }) {
 export function UserDetailAdminPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const user = MOCK_ADMIN_USERS.find(u => u.id === id) ?? MOCK_ADMIN_USERS[0];
-  const userLogs = MOCK_AUDIT_LOGS.filter(l => l.actorId === user.id);
+  const [user, setUser] = useState<AdminUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const [showConfirm, setShowConfirm] = useState(false);
-  const [changeRole, setChangeRole] = useState(user.role);
+  const [changeRole, setChangeRole] = useState('');
   const [roleConfirmNeeded, setRoleConfirmNeeded] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // MOCK for now since we don't have audit log API
+  const userLogs = MOCK_AUDIT_LOGS.filter(l => l.actorId === id);
+
+  const fetchUser = async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const res = await adminApi.getUserById(id);
+      if (res.success) {
+        setUser(res.data);
+        setChangeRole(res.data.role);
+      } else {
+        setError(res.message);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, [id]);
+
+  const handleSuspend = async () => {
+    if (!user || !id) return;
+    setActionLoading(true);
+    try {
+      const res = await adminApi.updateUser(id, { role: user.role, status: 'SUSPENDED' });
+      if (res.success) {
+        setUser(res.data);
+        setShowConfirm(false);
+      } else {
+        alert("Error: " + res.message);
+      }
+    } catch (err: any) {
+      alert("Error: " + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveRole = async () => {
+    if (!user || !id) return;
+    setActionLoading(true);
+    try {
+      const res = await adminApi.updateUser(id, { role: changeRole, status: user.status });
+      if (res.success) {
+        setUser(res.data);
+        setRoleConfirmNeeded(false);
+        alert("Role updated successfully");
+      } else {
+        alert("Error: " + res.message);
+      }
+    } catch (err: any) {
+      alert("Error: " + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) return <AdminLayout><div className="p-8">Loading user details...</div></AdminLayout>;
+  if (error || !user) return <AdminLayout><div className="p-8 text-red-500">Error: {error || 'User not found'}</div></AdminLayout>;
 
   return (
     <AdminLayout>
@@ -292,13 +338,13 @@ export function UserDetailAdminPage() {
         <div className="card" style={{ padding: 32 }}>
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
-              <img src={user.avatarUrl} alt={user.name}
+              <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`} alt={user.name}
                 className="rounded-full" style={{ width: 80, height: 80, objectFit: 'cover', border: '3px solid var(--hairline)' }} />
               <div>
                 <h1 className="heading-lg" style={{ color: 'var(--ink)' }}>{user.name}</h1>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <RoleBadge role={user.role} />
-                  <StatusBadge status={user.status} />
+                  <RoleBadge role={user.role || 'UNKNOWN'} />
+                  <StatusBadge status={user.status || 'UNKNOWN'} />
                 </div>
                 <p className="caption mt-2" style={{ color: 'var(--ash)' }}>Member since {formatDate(user.createdAt)}</p>
               </div>
@@ -319,7 +365,7 @@ export function UserDetailAdminPage() {
                 {[
                   { label: 'Full Name',  value: user.name },
                   { label: 'Email',      value: user.email },
-                  { label: 'Phone',      value: user.phone },
+                  { label: 'Phone',      value: user.phone || 'N/A' },
                   { label: 'Avatar URL', value: user.avatarUrl ? 'Uploaded' : 'Not set' },
                 ].map(row => (
                   <div key={row.label}>
@@ -336,11 +382,11 @@ export function UserDetailAdminPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="caption mb-1" style={{ color: 'var(--ash)' }}>Role</p>
-                  <RoleBadge role={user.role} />
+                  <RoleBadge role={user.role || 'UNKNOWN'} />
                 </div>
                 <div>
                   <p className="caption mb-1" style={{ color: 'var(--ash)' }}>Status</p>
-                  <StatusBadge status={user.status} />
+                  <StatusBadge status={user.status || 'UNKNOWN'} />
                 </div>
                 <div>
                   <p className="caption mb-1" style={{ color: 'var(--ash)' }}>Member Since</p>
@@ -349,12 +395,6 @@ export function UserDetailAdminPage() {
                 <div>
                   <p className="caption mb-1" style={{ color: 'var(--ash)' }}>Last Updated</p>
                   <p className="body-sm font-medium" style={{ color: 'var(--ink)', fontFamily: 'monospace' }}>{formatDate(user.updatedAt)}</p>
-                </div>
-                <div>
-                  <p className="caption mb-1" style={{ color: 'var(--ash)' }}>Google ID</p>
-                  <p className="body-sm" style={{ color: user.googleId ? 'var(--success)' : 'var(--ash)', fontFamily: 'monospace', fontSize: 12 }}>
-                    {user.googleId ?? 'Not linked'}
-                  </p>
                 </div>
               </div>
             </div>
@@ -406,11 +446,12 @@ export function UserDetailAdminPage() {
               <h2 className="heading-sm mb-4" style={{ color: 'var(--ink)' }}>Admin Actions</h2>
               <div className="flex flex-col gap-3">
                 <button
-                  className="w-full py-2.5 rounded-lg body-sm font-semibold"
+                  className="w-full py-2.5 rounded-lg body-sm font-semibold disabled:opacity-50"
                   style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA', cursor: 'pointer', borderRadius: 9999 }}
                   onClick={() => setShowConfirm(true)}
+                  disabled={user.status === 'SUSPENDED' || actionLoading}
                 >
-                  🚫 Suspend Account
+                  {user.status === 'SUSPENDED' ? '🚫 Account Suspended' : '🚫 Suspend Account'}
                 </button>
                 <button
                   className="btn-outline w-full"
@@ -428,12 +469,18 @@ export function UserDetailAdminPage() {
                         setChangeRole(e.target.value);
                         if (e.target.value === 'ADMIN') setRoleConfirmNeeded(true);
                       }}
+                      disabled={actionLoading}
                     >
                       <option value="TENANT">Tenant</option>
                       <option value="LANDLORD">Landlord</option>
                       <option value="ADMIN">Admin</option>
                     </select>
-                    <button className="btn-outline" style={{ borderRadius: 9999, fontSize: 13, padding: '0 12px' }}>
+                    <button 
+                      className="btn-outline" 
+                      style={{ borderRadius: 9999, fontSize: 13, padding: '0 12px' }}
+                      onClick={handleSaveRole}
+                      disabled={actionLoading || changeRole === user.role}
+                    >
                       Save
                     </button>
                   </div>
@@ -450,8 +497,8 @@ export function UserDetailAdminPage() {
             <div className="card" style={{ padding: 24 }}>
               <h2 className="heading-sm mb-3" style={{ color: 'var(--ink)' }}>User Stats</h2>
               {[
-                { label: 'Audit Entries', value: MOCK_AUDIT_LOGS.filter(l => l.actorId === user.id).length },
-                { label: 'Login Events', value: MOCK_AUDIT_LOGS.filter(l => l.actorId === user.id && l.action === 'LOGIN').length },
+                { label: 'Audit Entries', value: userLogs.length },
+                { label: 'Login Events', value: userLogs.filter(l => l.action === 'LOGIN').length },
               ].map(s => (
                 <div key={s.label} className="flex justify-between py-2 border-b" style={{ borderColor: 'var(--hairline)' }}>
                   <span className="body-sm" style={{ color: 'var(--charcoal)' }}>{s.label}</span>
@@ -478,16 +525,18 @@ export function UserDetailAdminPage() {
             </p>
             <div className="flex gap-3">
               <button
-                className="flex-1 py-2.5 rounded-full body-sm font-semibold"
+                className="flex-1 py-2.5 rounded-full body-sm font-semibold disabled:opacity-50"
                 style={{ background: '#DC2626', color: 'white', border: 'none', cursor: 'pointer' }}
-                onClick={() => setShowConfirm(false)}
+                onClick={handleSuspend}
+                disabled={actionLoading}
               >
-                Suspend Account
+                {actionLoading ? 'Suspending...' : 'Suspend Account'}
               </button>
               <button
                 className="btn-outline flex-1"
                 style={{ borderRadius: 9999 }}
                 onClick={() => setShowConfirm(false)}
+                disabled={actionLoading}
               >
                 Cancel
               </button>
@@ -504,18 +553,62 @@ export function UserDetailAdminPage() {
 export function EditUserAdminPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const user = MOCK_ADMIN_USERS.find(u => u.id === id) ?? MOCK_ADMIN_USERS[0];
+  
+  const [user, setUser] = useState<AdminUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const [name, setName]     = useState(user.name);
-  const [role, setRole]     = useState(user.role);
-  const [status, setStatus] = useState(user.status);
+  const [role, setRole]     = useState('');
+  const [status, setStatus] = useState('');
   const [adminConfirm, setAdminConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchUser = async () => {
+      try {
+        const res = await adminApi.getUserById(id);
+        if (res.success) {
+          setUser(res.data);
+          setRole(res.data.role);
+          setStatus(res.data.status);
+        } else {
+          setError(res.message);
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to load user');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, [id]);
 
   const handleRoleChange = (val: string) => {
     setRole(val);
     if (val === 'ADMIN') setAdminConfirm(true);
     else setAdminConfirm(false);
   };
+
+  const handleSave = async () => {
+    if (!id) return;
+    setActionLoading(true);
+    try {
+      const res = await adminApi.updateUser(id, { role, status });
+      if (res.success) {
+        navigate(`/admin/users/${id}`);
+      } else {
+        alert("Error: " + res.message);
+      }
+    } catch (err: any) {
+      alert("Error: " + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) return <AdminLayout><div className="p-8">Loading user details...</div></AdminLayout>;
+  if (error || !user) return <AdminLayout><div className="p-8 text-red-500">Error: {error || 'User not found'}</div></AdminLayout>;
 
   return (
     <AdminLayout>
@@ -536,13 +629,14 @@ export function EditUserAdminPage() {
           <div className="flex flex-col gap-5">
             {/* Full Name */}
             <div>
-              <label className="label-sm mb-1.5 block" style={{ color: 'var(--charcoal)' }}>Full Name <span style={{ color: 'var(--error)' }}>*</span></label>
+              <label className="label-sm mb-1.5 block" style={{ color: 'var(--charcoal)' }}>Full Name</label>
               <input
-                className="input-field-rect w-full"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="User.name"
+                className="input-field-rect w-full opacity-70 bg-gray-50"
+                value={user.name}
+                disabled
+                readOnly
               />
+              <p className="caption mt-1" style={{ color: 'var(--ash)' }}>Name cannot be changed by admin.</p>
             </div>
 
             {/* Role select */}
@@ -552,6 +646,7 @@ export function EditUserAdminPage() {
                 className="input-field-rect w-full"
                 value={role}
                 onChange={e => handleRoleChange(e.target.value)}
+                disabled={actionLoading}
               >
                 <option value="TENANT">Tenant</option>
                 <option value="LANDLORD">Landlord</option>
@@ -575,6 +670,7 @@ export function EditUserAdminPage() {
                 className="input-field-rect w-full"
                 value={status}
                 onChange={e => setStatus(e.target.value)}
+                disabled={actionLoading}
               >
                 <option value="PENDING">Pending</option>
                 <option value="ACTIVE">Active</option>
@@ -593,7 +689,7 @@ export function EditUserAdminPage() {
                 </div>
                 <div>
                   <p className="caption" style={{ color: 'var(--ash)' }}>Phone</p>
-                  <p className="body-sm" style={{ color: 'var(--ink)', fontFamily: 'monospace', fontSize: 12 }}>{user.phone}</p>
+                  <p className="body-sm" style={{ color: 'var(--ink)', fontFamily: 'monospace', fontSize: 12 }}>{user.phone || 'N/A'}</p>
                   <p className="caption mt-0.5" style={{ color: 'var(--ash)', fontSize: 10 }}>Ask user to change from profile</p>
                 </div>
               </div>
@@ -608,13 +704,19 @@ export function EditUserAdminPage() {
 
         {/* Action Bar */}
         <div className="flex gap-3">
-          <button className="btn-primary flex-1" style={{ borderRadius: 9999, fontSize: 15 }}>
-            Save Changes
+          <button 
+            className="btn-primary flex-1 disabled:opacity-50" 
+            style={{ borderRadius: 9999, fontSize: 15 }}
+            onClick={handleSave}
+            disabled={actionLoading}
+          >
+            {actionLoading ? 'Saving...' : 'Save Changes'}
           </button>
           <button
-            className="btn-outline flex-1"
+            className="btn-outline flex-1 disabled:opacity-50"
             style={{ borderRadius: 9999, fontSize: 15 }}
             onClick={() => navigate(`/admin/users/${user.id}`)}
+            disabled={actionLoading}
           >
             Cancel
           </button>
