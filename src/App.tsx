@@ -1,231 +1,236 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-// ── Public Portal (SCR-01 → SCR-10) ──
-import LandingPage        from './pages/public/LandingPage';
-import LoginPage          from './pages/public/LoginPage';
-import RegisterPage       from './pages/public/RegisterPage';
-import VerifyEmailPage    from './pages/public/VerifyEmailPage';
-import ForgotPasswordPage from './pages/public/ForgotPasswordPage';
-import ResetPasswordPage  from './pages/public/ResetPasswordPage';
-import LandlordPendingPage from './pages/public/LandlordPendingPage';
-import LandlordVerifyInfoPage from './pages/public/LandlordVerifyInfoPage';
-import RoomListingPage    from './pages/public/RoomListingPage';
-import RoomDetailPage     from './pages/public/RoomDetailPage';
-import SearchResultPage   from './pages/public/SearchResultPage';
-import AboutPage          from './pages/public/AboutPage';
+// ── Route Guards ─────────────────────────────────────────────────────────────
+import ProtectedRoute  from './components/ProtectedRoute';
+import GuestRoute      from './components/GuestRoute';
 
-// ── Tenant Portal (SCR-11 → SCR-33) ──
-import UserProfilePage        from './pages/tenant/UserProfilePage';
-import EditProfilePage        from './pages/tenant/EditProfilePage';
-import ChangePasswordPage     from './pages/tenant/ChangePasswordPage';
-import NotificationCenterPage from './pages/tenant/NotificationCenterPage';
-import NotificationDetailPage from './pages/tenant/NotificationDetailPage';
-import TenantDashboardPage    from './pages/tenant/TenantDashboardPage';
-import MyRoomPage             from './pages/tenant/MyRoomPage';
-import { RentalRequestListPage, RentalRequestFormPage, RentalRequestDetailPage } from './pages/tenant/RentalRequestPages';
-import ViewingAppointmentPage from './pages/tenant/ViewingAppointmentPage';
-import { ContractListPage, ContractDetailPage } from './pages/tenant/ContractPages';
-import { BillListPage, BillDetailPage, PaymentPage, PaymentHistoryPage, ReceiptUploadPage } from './pages/tenant/BillingPages';
-import { MaintenanceListPage, CreateMaintenanceTicketPage, MaintenanceTicketDetailPage } from './pages/tenant/MaintenancePages';
-import ReviewPage             from './pages/tenant/ReviewPage';
+// ── Public (SCR-01 → SCR-10) ─────────────────────────────────────────────────
+import LandingPage                from './pages/public/LandingPage';
+import LoginPage                  from './pages/public/LoginPage';
+import RegisterPage               from './pages/public/RegisterPage';
+import VerifyEmailPage            from './pages/public/VerifyEmailPage';
+import ForgotPasswordPage         from './pages/public/ForgotPasswordPage';
+import ResetPasswordPage          from './pages/public/ResetPasswordPage';
+import RoomListingPage            from './pages/public/RoomListingPage';
+import RoomDetailPage             from './pages/public/RoomDetailPage';
+import AvailabilityCalendarPage   from './pages/public/AvailabilityCalendarPage';
+import UnauthorizedPage           from './pages/public/UnauthorizedPage';
 
-// ── Admin Portal (SCR-71 → SCR-80) ──
-import AdminDashboardPage                from './pages/admin/AdminDashboardPage';
-import { UserManagementPage, UserDetailAdminPage, EditUserAdminPage } from './pages/admin/UserManagementPages';
-import ContentModerationPage            from './pages/admin/ContentModerationPage';
-import { ComplaintManagementPage, ComplaintDetailPage } from './pages/admin/ComplaintPages';
-import SystemAnalyticsPage             from './pages/admin/SystemAnalyticsPage';
-import ActivityLogsPage                from './pages/admin/ActivityLogsPage';
-import SystemSettingsPage              from './pages/admin/SystemSettingsPage';
+// ── Customer Portal ───────────────────────────────────────────────────────────
+import CustomerDashboardPage      from './pages/customer/CustomerDashboardPage';
+import { UserProfilePage, EditProfilePage, ChangePasswordPage }
+                                  from './pages/customer/ProfilePages';
+import { NotificationCenterPage, NotificationDetailPage }
+                                  from './pages/customer/NotificationPages';
+import { BookingFormPage, BookingListPage, BookingDetailPage, BookingCancellationPage }
+                                  from './pages/customer/BookingPages';
+import { ContractListPage, ContractDetailPage }
+                                  from './pages/customer/ContractPages';
+import { DepositPaymentPage, RemainingPaymentPage, PaymentHistoryPage, ReceiptUploadPage }
+                                  from './pages/customer/PaymentPages';
+import { MaintenanceListPage, CreateMaintenancePage, MaintenanceDetailPage }
+                                  from './pages/customer/MaintenancePages';
+import { ReviewRatingPage, MyReviewsPage }
+                                  from './pages/customer/ReviewPages';
 
-// ── Landlord Portal (SCR-34 → SCR-70) ──
-import LandlordDashboardPage from './pages/landlord/LandlordDashboardPage';
-
-// Property (SCR-35 → SCR-39)
-import { PropertyListPage, PropertyDetailPage, PropertyFormPage, BlockFloorPage } from './pages/landlord/PropertyPages';
-
-// Room (SCR-40 → SCR-44)
-import { RoomListPage, RoomDetailManagementPage, RoomFormPage, RoomMediaPage } from './pages/landlord/RoomPages';
-
-// Tenant / Request (SCR-45 → SCR-49)
-import { RequestManagementPage, RequestDetailPage, TenantListPage, TenantDetailPage, RentalHistoryPage } from './pages/landlord/TenantRequestPages';
-
-// Contract (SCR-50 → SCR-54)
-import { ContractManagementListPage, CreateContractPage, ContractManagementDetailPage, RenewContractPage, TerminateContractPage } from './pages/landlord/ContractManagementPages';
-
-// Billing & Payments (SCR-55 → SCR-61)
-import { BillingDashboardPage, BillListManagementPage, CreateBillPage, BillDetailManagementPage, PaymentVerificationPage, PaymentDetailPage } from './pages/landlord/BillingManagementPages';
-
-// Utilities (SCR-62 → SCR-65)
-import { UtilityDashboardPage, MeterEntryPage, UtilityPricingPage } from './pages/landlord/UtilityPages';
-
-// Maintenance & Reports (SCR-66 → SCR-70)
-import { MaintenanceManagementPage, MaintenanceTicketManagementPage, RevenueReportPage, OccupancyReportPage, DebtReportPage } from './pages/landlord/ReportPages';
+// ── Manager Portal ────────────────────────────────────────────────────────────
+import ManagerDashboardPage       from './pages/manager/ManagerDashboardPage';
+import { PropertyListPage, PropertyDetailPage, AddPropertyPage, EditPropertyPage }
+                                  from './pages/manager/PropertyPages';
+import {
+  StructureTreePage, FloorManagementPage,
+  RoomListPage, RoomDetailMgmtPage, AddRoomPage, EditRoomPage,
+  RoomGalleryPage, RoomStatusPage,
+}                                 from './pages/manager/RoomManagementPages';
+import {
+  BookingMgmtListPage, BookingMgmtDetailPage,
+  PaymentListPage, PaymentVerificationPage, PaymentDetailPage,
+  ContractMgmtListPage, ContractMgmtDetailPage, ResendContractPage,
+}                                 from './pages/manager/BookingContractPaymentPages';
+import {
+  CustomerListPage, CustomerDetailPage,
+  ComplaintListPage, ComplaintDetailPage,
+  MaintenanceMgmtListPage, MaintenanceMgmtDetailPage,
+  ReportsDashboardPage, RevenueReportPage, OccupancyReportPage,
+  ActivityLogPage, ReviewMgmtPage,
+}                                 from './pages/manager/AdminPages';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ──────────────────── PUBLIC PORTAL ──────────────────── */}
-        <Route path="/"                element={<LandingPage />} />
-        <Route path="/login"           element={<LoginPage />} />
-        <Route path="/register"        element={<RegisterPage />} />
-        <Route path="/verify-email"    element={<VerifyEmailPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password"  element={<ResetPasswordPage />} />
-        <Route path="/landlord-pending" element={<LandlordPendingPage />} />
-        <Route path="/landlord-verify-info" element={<LandlordVerifyInfoPage />} />
-        <Route path="/rooms"           element={<RoomListingPage />} />
-        <Route path="/rooms/:id"       element={<RoomDetailPage />} />
-        <Route path="/search"          element={<SearchResultPage />} />
-        <Route path="/about"           element={<AboutPage />} />
-        <Route path="/contact"         element={<AboutPage />} />
 
-        {/* ──────────────────── TENANT PORTAL ──────────────────── */}
-        <Route path="/tenant/dashboard"               element={<TenantDashboardPage />} />
-        <Route path="/tenant/room"                    element={<MyRoomPage />} />
-        <Route path="/tenant/requests"                element={<RentalRequestListPage />} />
-        <Route path="/tenant/requests/new"            element={<RentalRequestFormPage />} />
-        <Route path="/request-rental/:roomId"         element={<RentalRequestFormPage />} />
-        <Route path="/tenant/requests/:id"            element={<RentalRequestDetailPage />} />
-        <Route path="/tenant/viewing/:roomId"         element={<ViewingAppointmentPage />} />
-        <Route path="/viewing/:roomId"                element={<ViewingAppointmentPage />} />
-        <Route path="/tenant/contracts"               element={<ContractListPage />} />
-        <Route path="/tenant/contracts/:id"           element={<ContractDetailPage />} />
-        <Route path="/tenant/bills"                   element={<BillListPage />} />
-        <Route path="/tenant/bills/history"           element={<PaymentHistoryPage />} />
-        <Route path="/tenant/bills/:id"               element={<BillDetailPage />} />
-        <Route path="/tenant/bills/:id/pay"           element={<PaymentPage />} />
-        <Route path="/tenant/bills/:id/receipt"       element={<ReceiptUploadPage />} />
-        <Route path="/tenant/maintenance"             element={<MaintenanceListPage />} />
-        <Route path="/tenant/maintenance/create"      element={<CreateMaintenanceTicketPage />} />
-        <Route path="/tenant/maintenance/:id"         element={<MaintenanceTicketDetailPage />} />
-        <Route path="/tenant/reviews"                 element={<ReviewPage />} />
-        <Route path="/tenant/reviews/create"          element={<ReviewPage />} />
-        <Route path="/tenant/profile"                 element={<UserProfilePage />} />
-        <Route path="/tenant/profile/edit"            element={<EditProfilePage />} />
-        <Route path="/tenant/change-password"         element={<ChangePasswordPage />} />
-        <Route path="/tenant/notifications"           element={<NotificationCenterPage />} />
-        <Route path="/tenant/notifications/:id"       element={<NotificationDetailPage />} />
+        {/* ─────────────── PUBLIC — Ai cũng vào được ─────────────── */}
+        <Route path="/"                       element={<LandingPage />} />
+        <Route path="/rooms"                  element={<RoomListingPage />} />
+        <Route path="/rooms/:id"              element={<RoomDetailPage />} />
+        <Route path="/rooms/:id/calendar"     element={<AvailabilityCalendarPage />} />
+        <Route path="/unauthorized"           element={<UnauthorizedPage />} />
 
-        {/* ──────────────────── LANDLORD PORTAL ──────────────────── */}
-        {/* SCR-34: Dashboard */}
-        <Route path="/landlord/dashboard"             element={<LandlordDashboardPage />} />
-        <Route path="/landlord"                       element={<Navigate to="/landlord/dashboard" replace />} />
+        {/* ─────────────── GUEST ONLY — Redirect nếu đã login ─────────────── */}
+        <Route path="/login"           element={<GuestRoute><LoginPage /></GuestRoute>} />
+        <Route path="/register"        element={<GuestRoute><RegisterPage /></GuestRoute>} />
+        <Route path="/verify-email"    element={<GuestRoute><VerifyEmailPage /></GuestRoute>} />
+        <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
+        <Route path="/reset-password"  element={<GuestRoute><ResetPasswordPage /></GuestRoute>} />
 
-        {/* SCR-35: Property List */}
-        <Route path="/landlord/properties"            element={<PropertyListPage />} />
-        {/* SCR-36: Property Detail */}
-        <Route path="/landlord/properties/:id"        element={<PropertyDetailPage />} />
-        {/* SCR-37: Add Property */}
-        <Route path="/landlord/properties/create"     element={<PropertyFormPage mode="create" />} />
-        {/* SCR-38: Edit Property */}
-        <Route path="/landlord/properties/:id/edit"   element={<PropertyFormPage mode="edit" />} />
-        {/* SCR-39: Block/Floor Management */}
-        <Route path="/landlord/blocks"                element={<BlockFloorPage />} />
-        <Route path="/landlord/blocks/:propertyId"    element={<BlockFloorPage />} />
+        {/* ─────────────── CUSTOMER (SCR-11 to SCR-31) ─────────────── */}
+        <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
 
-        {/* SCR-40: Room List */}
-        <Route path="/landlord/rooms"                 element={<RoomListPage />} />
-        {/* SCR-41: Room Detail */}
-        <Route path="/landlord/rooms/:id"             element={<RoomDetailManagementPage />} />
-        {/* SCR-42: Add Room */}
-        <Route path="/landlord/rooms/create"          element={<RoomFormPage mode="create" />} />
-        {/* SCR-43: Edit Room */}
-        <Route path="/landlord/rooms/:id/edit"        element={<RoomFormPage mode="edit" />} />
-        {/* SCR-44: Room Media */}
-        <Route path="/landlord/rooms/:id/media"       element={<RoomMediaPage />} />
+        <Route path="/customer/dashboard"
+          element={<ProtectedRoute role="CUSTOMER"><CustomerDashboardPage /></ProtectedRoute>} />
 
-        {/* SCR-45: Rental Request List */}
-        <Route path="/landlord/requests"              element={<RequestManagementPage />} />
-        {/* SCR-46: Rental Request Detail */}
-        <Route path="/landlord/requests/:id"          element={<RequestDetailPage />} />
-        {/* SCR-47: Tenant List */}
-        <Route path="/landlord/tenants"               element={<TenantListPage />} />
-        {/* SCR-48: Tenant Detail */}
-        <Route path="/landlord/tenants/:id"           element={<TenantDetailPage />} />
-        {/* SCR-49: Rental History */}
-        <Route path="/landlord/tenants/:tenantId/history" element={<RentalHistoryPage />} />
-        <Route path="/landlord/history"               element={<RentalHistoryPage />} />
+        {/* Profile (SCR-11,12,13) */}
+        <Route path="/customer/profile"
+          element={<ProtectedRoute role="CUSTOMER"><UserProfilePage /></ProtectedRoute>} />
+        <Route path="/customer/profile/edit"
+          element={<ProtectedRoute role="CUSTOMER"><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/customer/profile/change-password"
+          element={<ProtectedRoute role="CUSTOMER"><ChangePasswordPage /></ProtectedRoute>} />
 
-        {/* SCR-50: Contract List */}
-        <Route path="/landlord/contracts"             element={<ContractManagementListPage />} />
-        {/* SCR-51: Create Contract */}
-        <Route path="/landlord/contracts/create"      element={<CreateContractPage />} />
-        {/* SCR-52: Contract Detail */}
-        <Route path="/landlord/contracts/:id"         element={<ContractManagementDetailPage />} />
-        {/* SCR-53: Renew Contract */}
-        <Route path="/landlord/contracts/:id/renew"   element={<RenewContractPage />} />
-        {/* SCR-54: Terminate Contract */}
-        <Route path="/landlord/contracts/:id/terminate" element={<TerminateContractPage />} />
+        {/* Notifications (SCR-14,15) */}
+        <Route path="/customer/notifications"
+          element={<ProtectedRoute role="CUSTOMER"><NotificationCenterPage /></ProtectedRoute>} />
+        <Route path="/customer/notifications/:id"
+          element={<ProtectedRoute role="CUSTOMER"><NotificationDetailPage /></ProtectedRoute>} />
 
-        {/* SCR-55: Billing Dashboard */}
-        <Route path="/landlord/billing"               element={<BillingDashboardPage />} />
-        {/* SCR-56: Bill List */}
-        <Route path="/landlord/billing/list"          element={<BillListManagementPage />} />
-        {/* SCR-57: Create Bill */}
-        <Route path="/landlord/billing/create"        element={<CreateBillPage />} />
-        {/* SCR-58: Bill Detail */}
-        <Route path="/landlord/billing/:id"           element={<BillDetailManagementPage mode="view" />} />
-        {/* SCR-59: Edit Bill */}
-        <Route path="/landlord/billing/:id/edit"      element={<BillDetailManagementPage mode="edit" />} />
-        {/* SCR-60: Payment Verification */}
-        <Route path="/landlord/payments"              element={<PaymentVerificationPage />} />
-        {/* SCR-61: Payment Detail */}
-        <Route path="/landlord/payments/:id"          element={<PaymentDetailPage />} />
+        {/* Bookings (SCR-17,18,19,20) */}
+        <Route path="/customer/bookings"
+          element={<ProtectedRoute role="CUSTOMER"><BookingListPage /></ProtectedRoute>} />
+        <Route path="/request-booking/:roomId"
+          element={<ProtectedRoute role="CUSTOMER"><BookingFormPage /></ProtectedRoute>} />
+        <Route path="/customer/bookings/:id"
+          element={<ProtectedRoute role="CUSTOMER"><BookingDetailPage /></ProtectedRoute>} />
+        <Route path="/customer/bookings/:id/cancel"
+          element={<ProtectedRoute role="CUSTOMER"><BookingCancellationPage /></ProtectedRoute>} />
 
-        {/* SCR-62: Utility Dashboard */}
-        <Route path="/landlord/utilities"             element={<UtilityDashboardPage />} />
-        {/* SCR-63: Electricity Meter Entry */}
-        <Route path="/landlord/utilities/electricity" element={<MeterEntryPage utilityType="ELECTRICITY" />} />
-        {/* SCR-64: Water Meter Entry */}
-        <Route path="/landlord/utilities/water"       element={<MeterEntryPage utilityType="WATER" />} />
-        {/* SCR-65: Utility Pricing */}
-        <Route path="/landlord/utilities/pricing"     element={<UtilityPricingPage />} />
+        {/* Contracts (SCR-25,26) */}
+        <Route path="/customer/contracts"
+          element={<ProtectedRoute role="CUSTOMER"><ContractListPage /></ProtectedRoute>} />
+        <Route path="/customer/contracts/:id"
+          element={<ProtectedRoute role="CUSTOMER"><ContractDetailPage /></ProtectedRoute>} />
 
-        {/* SCR-66: Maintenance Management */}
-        <Route path="/landlord/maintenance"           element={<MaintenanceManagementPage />} />
-        {/* SCR-67: Maintenance Ticket Detail */}
-        <Route path="/landlord/maintenance/:id"       element={<MaintenanceTicketManagementPage />} />
+        {/* Payments (SCR-21,22,23,24) */}
+        <Route path="/customer/payments"
+          element={<ProtectedRoute role="CUSTOMER"><PaymentHistoryPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/:id/pay/deposit"
+          element={<ProtectedRoute role="CUSTOMER"><DepositPaymentPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/:id/pay"
+          element={<ProtectedRoute role="CUSTOMER"><DepositPaymentPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/:id/remaining"
+          element={<ProtectedRoute role="CUSTOMER"><RemainingPaymentPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/:id/receipt"
+          element={<ProtectedRoute role="CUSTOMER"><ReceiptUploadPage /></ProtectedRoute>} />
 
-        {/* SCR-68: Revenue Report */}
-        <Route path="/landlord/reports/revenue"       element={<RevenueReportPage />} />
-        {/* SCR-69: Occupancy Report */}
-        <Route path="/landlord/reports/occupancy"     element={<OccupancyReportPage />} />
-        {/* SCR-70: Debt Report */}
-        <Route path="/landlord/reports/debt"          element={<DebtReportPage />} />
+        {/* Maintenance (SCR-27,28,29) */}
+        <Route path="/customer/maintenance"
+          element={<ProtectedRoute role="CUSTOMER"><MaintenanceListPage /></ProtectedRoute>} />
+        <Route path="/customer/maintenance/create"
+          element={<ProtectedRoute role="CUSTOMER"><CreateMaintenancePage /></ProtectedRoute>} />
+        <Route path="/customer/maintenance/:id"
+          element={<ProtectedRoute role="CUSTOMER"><MaintenanceDetailPage /></ProtectedRoute>} />
 
-        {/* ──────────────────── ADMIN PORTAL ──────────────────── */}
-        {/* SCR-71: Admin Dashboard */}
-        <Route path="/admin/dashboard"              element={<AdminDashboardPage />} />
-        <Route path="/admin"                        element={<Navigate to="/admin/dashboard" replace />} />
+        {/* Reviews (SCR-30,31) */}
+        <Route path="/customer/reviews"
+          element={<ProtectedRoute role="CUSTOMER"><MyReviewsPage /></ProtectedRoute>} />
+        <Route path="/customer/reviews/create"
+          element={<ProtectedRoute role="CUSTOMER"><ReviewRatingPage /></ProtectedRoute>} />
 
-        {/* SCR-72: User Management */}
-        <Route path="/admin/users"                  element={<UserManagementPage />} />
-        {/* SCR-73: User Detail */}
-        <Route path="/admin/users/:id"              element={<UserDetailAdminPage />} />
-        {/* SCR-74: Edit User */}
-        <Route path="/admin/users/:id/edit"         element={<EditUserAdminPage />} />
+        {/* ─────────────── MANAGER (SCR-32 to SCR-65) ─────────────── */}
+        <Route path="/manager" element={<Navigate to="/manager/dashboard" replace />} />
 
-        {/* SCR-75: Content Moderation */}
-        <Route path="/admin/moderation"             element={<ContentModerationPage />} />
+        <Route path="/manager/dashboard"
+          element={<ProtectedRoute role="MANAGER"><ManagerDashboardPage /></ProtectedRoute>} />
 
-        {/* SCR-76: Complaint Management */}
-        <Route path="/admin/complaints"             element={<ComplaintManagementPage />} />
-        {/* SCR-77: Complaint Detail */}
-        <Route path="/admin/complaints/:id"         element={<ComplaintDetailPage />} />
+        {/* Properties (SCR-33,34,35,36) */}
+        <Route path="/manager/properties"
+          element={<ProtectedRoute role="MANAGER"><PropertyListPage /></ProtectedRoute>} />
+        <Route path="/manager/properties/add"
+          element={<ProtectedRoute role="MANAGER"><AddPropertyPage /></ProtectedRoute>} />
+        <Route path="/manager/properties/:id"
+          element={<ProtectedRoute role="MANAGER"><PropertyDetailPage /></ProtectedRoute>} />
+        <Route path="/manager/properties/:id/edit"
+          element={<ProtectedRoute role="MANAGER"><EditPropertyPage /></ProtectedRoute>} />
 
-        {/* SCR-78: System Analytics */}
-        <Route path="/admin/analytics"              element={<SystemAnalyticsPage />} />
+        {/* Structure (SCR-37,38) */}
+        <Route path="/manager/structure"
+          element={<ProtectedRoute role="MANAGER"><StructureTreePage /></ProtectedRoute>} />
+        <Route path="/manager/floors"
+          element={<ProtectedRoute role="MANAGER"><FloorManagementPage /></ProtectedRoute>} />
 
-        {/* SCR-79: Activity Logs */}
-        <Route path="/admin/logs"                   element={<ActivityLogsPage />} />
+        {/* Rooms (SCR-39 to 44) */}
+        <Route path="/manager/rooms"
+          element={<ProtectedRoute role="MANAGER"><RoomListPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/add"
+          element={<ProtectedRoute role="MANAGER"><AddRoomPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/:id"
+          element={<ProtectedRoute role="MANAGER"><RoomDetailMgmtPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/:id/edit"
+          element={<ProtectedRoute role="MANAGER"><EditRoomPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/:id/gallery"
+          element={<ProtectedRoute role="MANAGER"><RoomGalleryPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/:id/status"
+          element={<ProtectedRoute role="MANAGER"><RoomStatusPage /></ProtectedRoute>} />
 
-        {/* SCR-80: System Settings */}
-        <Route path="/admin/settings"               element={<SystemSettingsPage />} />
+        {/* Bookings (SCR-45,46) */}
+        <Route path="/manager/bookings"
+          element={<ProtectedRoute role="MANAGER"><BookingMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id"
+          element={<ProtectedRoute role="MANAGER"><BookingMgmtDetailPage /></ProtectedRoute>} />
+
+        {/* Payments (SCR-47,48,49) */}
+        <Route path="/manager/payments"
+          element={<ProtectedRoute role="MANAGER"><PaymentListPage /></ProtectedRoute>} />
+        <Route path="/manager/payments/:id/verify"
+          element={<ProtectedRoute role="MANAGER"><PaymentVerificationPage /></ProtectedRoute>} />
+        <Route path="/manager/payments/:id"
+          element={<ProtectedRoute role="MANAGER"><PaymentDetailPage /></ProtectedRoute>} />
+
+        {/* Contracts (SCR-50,51,52) */}
+        <Route path="/manager/contracts"
+          element={<ProtectedRoute role="MANAGER"><ContractMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/contracts/:id"
+          element={<ProtectedRoute role="MANAGER"><ContractMgmtDetailPage /></ProtectedRoute>} />
+        <Route path="/manager/contracts/:id/resend"
+          element={<ProtectedRoute role="MANAGER"><ResendContractPage /></ProtectedRoute>} />
+
+        {/* Customers (SCR-53,54) */}
+        <Route path="/manager/customers"
+          element={<ProtectedRoute role="MANAGER"><CustomerListPage /></ProtectedRoute>} />
+        <Route path="/manager/customers/:id"
+          element={<ProtectedRoute role="MANAGER"><CustomerDetailPage /></ProtectedRoute>} />
+
+        {/* Complaints (SCR-55,56) */}
+        <Route path="/manager/complaints"
+          element={<ProtectedRoute role="MANAGER"><ComplaintListPage /></ProtectedRoute>} />
+        <Route path="/manager/complaints/:id"
+          element={<ProtectedRoute role="MANAGER"><ComplaintDetailPage /></ProtectedRoute>} />
+
+        {/* Maintenance (SCR-57,58) */}
+        <Route path="/manager/maintenance"
+          element={<ProtectedRoute role="MANAGER"><MaintenanceMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/maintenance/:id"
+          element={<ProtectedRoute role="MANAGER"><MaintenanceMgmtDetailPage /></ProtectedRoute>} />
+
+        {/* Reports (SCR-59,60,61) */}
+        <Route path="/manager/reports"
+          element={<ProtectedRoute role="MANAGER"><ReportsDashboardPage /></ProtectedRoute>} />
+        <Route path="/manager/reports/revenue"
+          element={<ProtectedRoute role="MANAGER"><RevenueReportPage /></ProtectedRoute>} />
+        <Route path="/manager/reports/occupancy"
+          element={<ProtectedRoute role="MANAGER"><OccupancyReportPage /></ProtectedRoute>} />
+        <Route path="/manager/reports/bookings"
+          element={<ProtectedRoute role="MANAGER"><ReportsDashboardPage /></ProtectedRoute>} />
+
+        {/* Audit & Reviews (SCR-62,63) */}
+        <Route path="/manager/activity-log"
+          element={<ProtectedRoute role="MANAGER"><ActivityLogPage /></ProtectedRoute>} />
+        <Route path="/manager/reviews"
+          element={<ProtectedRoute role="MANAGER"><ReviewMgmtPage /></ProtectedRoute>} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
     </BrowserRouter>
   );

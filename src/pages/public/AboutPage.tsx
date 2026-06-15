@@ -45,15 +45,16 @@ export default function AboutPage() {
   return (
     <PublicLayout>
       {/* ── HERO ── */}
-      <section style={{ background: 'var(--primary)', padding: '80px 32px' }}>
-        <div className="container-wide">
+      <section style={{ background: 'var(--primary)', padding: '80px 32px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '-30%', right: '-5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,106,61,0.45) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div className="container-wide" style={{ textAlign: 'center' }}>
           <p className="label-sm mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>ABOUT US</p>
-          <h1 className="display-xl mb-4" style={{ color: 'var(--on-dark)', lineHeight: 1 }}>
-            We connect tenants<br />with great homes
+          <h1 className="display-xl mb-4" style={{ color: 'var(--on-dark)', lineHeight: 1, margin: '0 auto 16px', maxWidth: 700 }}>
+            We connect guests<br />with great stays
           </h1>
-          <p className="body-lg" style={{ color: 'rgba(255,255,255,0.85)', maxWidth: 520 }}>
-            BoardingHub is Vietnam's most trusted boarding house management platform,
-            built to make renting simple, transparent, and stress-free for everyone.
+          <p className="body-lg" style={{ color: 'rgba(255,255,255,0.85)', maxWidth: 540, margin: '0 auto' }}>
+            Homestay&amp;Resort is Vietnam's trusted platform for discovering and booking
+            premium homestay and resort rooms — simple, transparent, and secure.
           </p>
         </div>
       </section>
@@ -65,21 +66,25 @@ export default function AboutPage() {
             <div>
               <p className="label-sm mb-3" style={{ color: 'var(--ash)' }}>OUR STORY</p>
               <h2 className="display-md mb-5" style={{ color: 'var(--ink)' }}>
-                Born from a tenant's frustration
+                Born from a traveler's frustration
               </h2>
               <p className="body-lg mb-4" style={{ color: 'var(--body)' }}>
-                Founded in 2023, BoardingHub was created after our founders experienced firsthand how difficult and opaque the boarding house rental process was in Vietnam — unclear pricing, no digital contracts, and unreliable landlords.
+                Founded in 2023, Homestay&amp;Resort was built after our founders struggled to find
+                reliable, transparent homestay bookings in Vietnam — scattered listings, no digital
+                contracts, and unclear pricing.
               </p>
               <p className="body-lg mb-6" style={{ color: 'var(--body)' }}>
-                Today we serve over 12,000 tenants and 850 verified landlords across Ho Chi Minh City, Hanoi, and Da Nang. Our platform handles everything from room discovery to monthly billing, all in one place.
+                Today we serve thousands of guests and verified property owners across Đà Nẵng,
+                Đà Lạt, Hội An, Phú Quốc and Nha Trang — from room discovery to payment and
+                contract generation, all in one place.
               </p>
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { val: '2023', label: 'Founded' },
-                  { val: '3 cities', label: 'Coverage' },
-                  { val: '98%', label: 'Satisfaction' },
+                  { val: '2023',    label: 'Founded' },
+                  { val: '5 cities', label: 'Coverage' },
+                  { val: '98%',     label: 'Satisfaction' },
                 ].map((s) => (
                   <div key={s.label} className="card p-4 text-center">
                     <div className="heading-md" style={{ color: 'var(--primary)' }}>{s.val}</div>
@@ -91,17 +96,17 @@ export default function AboutPage() {
 
             <div className="relative">
               <img
-                src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=700&q=80"
-                alt="About BoardingHub"
+                src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=700&q=80"
+                alt="About Homestay&Resort"
                 className="w-full object-cover"
                 style={{ borderRadius: 16, height: 440 }}
               />
               <div
-                className="absolute -bottom-4 -left-4 card p-5 shadow-modal"
-                style={{ background: 'var(--surface-card)', maxWidth: 200 }}
+                className="absolute -bottom-4 -left-4 card p-5"
+                style={{ background: 'var(--surface-card)', maxWidth: 200, boxShadow: '0 8px 32px rgba(32,32,32,0.12)' }}
               >
-                <div className="heading-md mb-1" style={{ color: 'var(--primary)' }}>12,000+</div>
-                <div className="body-sm" style={{ color: 'var(--charcoal)' }}>Happy tenants across Vietnam 🇻🇳</div>
+                <div className="heading-md mb-1" style={{ color: 'var(--primary)' }}>5,000+</div>
+                <div className="body-sm" style={{ color: 'var(--charcoal)' }}>Happy guests across Vietnam 🇻🇳</div>
               </div>
             </div>
           </div>
@@ -117,10 +122,10 @@ export default function AboutPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { icon: '🛡️', title: 'Trust', desc: 'Every landlord is verified. Every room is inspected.' },
+              { icon: '🛡️', title: 'Trust',        desc: 'Every property is verified. Every listing is accurate.' },
               { icon: '💡', title: 'Transparency', desc: 'No hidden fees. All pricing is clear from day one.' },
-              { icon: '⚡', title: 'Efficiency', desc: 'From search to move-in in as little as 3 days.' },
-              { icon: '🤝', title: 'Fairness', desc: 'Disputes are resolved professionally and impartially.' },
+              { icon: '⚡', title: 'Efficiency',   desc: 'From search to check-in in as little as 24 hours.' },
+              { icon: '🤝', title: 'Fairness',     desc: 'Disputes and complaints are handled professionally.' },
             ].map((v) => (
               <div key={v.title} className="card p-6">
                 <div className="text-3xl mb-3">{v.icon}</div>
@@ -147,10 +152,10 @@ export default function AboutPage() {
 
               <div className="flex flex-col gap-5">
                 {[
-                  { icon: '📍', label: 'Address', val: '125 Nguyen Hue, District 1, Ho Chi Minh City' },
-                  { icon: '📧', label: 'Email', val: 'support@boardinghub.vn' },
-                  { icon: '📞', label: 'Phone', val: '+84 28 1234 5678' },
-                  { icon: '🕐', label: 'Hours', val: 'Mon–Fri: 8:00 – 17:30 ICT' },
+                  { icon: '📍', label: 'Address', val: '125 Nguyễn Huệ, Quận 1, Hồ Chí Minh' },
+                  { icon: '📧', label: 'Email',   val: 'support@homestay-resort.vn' },
+                  { icon: '📞', label: 'Phone',   val: '+84 28 1234 5678' },
+                  { icon: '🕐', label: 'Hours',   val: 'T2–T6: 8:00 – 17:30 ICT' },
                 ].map((c) => (
                   <div key={c.label} className="flex items-start gap-4">
                     <div
@@ -199,27 +204,25 @@ export default function AboutPage() {
                   </div>
 
                   <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                    {/* User.name (if logged in: pre-filled) */}
                     <div>
-                      <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Full Name</label>
+                      <label className="form-label" htmlFor="contact-name">Full Name</label>
                       <input
                         id="contact-name"
                         type="text"
-                        className="input-field-rect"
-                        placeholder="Nguyen Van A"
+                        className="input"
+                        placeholder="Nguyễn Văn A"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                       />
                       <FieldError field="name" />
                     </div>
 
-                    {/* User.email */}
                     <div>
-                      <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Email Address</label>
+                      <label className="form-label" htmlFor="contact-email">Email Address</label>
                       <input
                         id="contact-email"
                         type="email"
-                        className="input-field-rect"
+                        className="input"
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -227,13 +230,12 @@ export default function AboutPage() {
                       <FieldError field="email" />
                     </div>
 
-                    {/* Complaint.subject */}
                     <div>
-                      <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Subject</label>
+                      <label className="form-label" htmlFor="contact-subject">Subject</label>
                       <input
                         id="contact-subject"
                         type="text"
-                        className="input-field-rect"
+                        className="input"
                         placeholder="What is your inquiry about?"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
@@ -242,12 +244,11 @@ export default function AboutPage() {
                       <FieldError field="subject" />
                     </div>
 
-                    {/* Complaint.description */}
                     <div>
-                      <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Message</label>
+                      <label className="form-label" htmlFor="contact-message">Message</label>
                       <textarea
                         id="contact-message"
-                        className="textarea-field"
+                        className="textarea"
                         rows={5}
                         placeholder="Tell us how we can help you…"
                         value={message}

@@ -1,122 +1,99 @@
 import api from './axiosInstance';
 
-// ── Auth response types ───────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
+export type Role = 'CUSTOMER' | 'MANAGER';
+
+/** Thông tin user trong response đăng nhập — khớp với backend AuthResponse.UserInfo */
+export interface UserInfo {
+  id:        string;
+  fullName:  string;
+  email:     string;
+  phone?:    string;
+  avatarUrl?: string;
+  role:      string;   // 'CUSTOMER' | 'MANAGER'
+  status:    string;   // 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
+}
+
+/** Response đăng nhập / refresh token — khớp với backend AuthResponse */
 export interface AuthResponse {
-  accessToken: string;
+  accessToken:  string;
   refreshToken: string;
-  tokenType: string;
-  expiresIn: number;
-  role: string;
-  /** False for new LANDLORD accounts until admin verifies them */
-  landlordVerified: boolean;
-  /** True if LANDLORD has already submitted CCCD/identity info */
-  identityInfoSubmitted: boolean;
+  user:         UserInfo;
 }
 
 export interface ApiResponse<T = null> {
   success: boolean;
   message: string;
-  data: T;
+  data:    T;
 }
 
-// ── Request types ─────────────────────────────────────────────────────────────
-
-export type Role = 'TENANT' | 'LANDLORD';
-
 export interface RegisterRequest {
-  name: string;
-  email: string;
+  fullName: string;
+  email:    string;
   password: string;
-  phone: string;
-  role: Role;
-  // LANDLORD-specific (optional for TENANT)
-  identityNumber?: string;
-  taxCode?: string;
-  businessLicense?: string;
+  phone:    string;
 }
 
 export interface OtpVerifyRequest {
-  email: string;
-  otp: string;
-}
-
-/** Returned by POST /api/auth/verify-otp */
-export interface OtpVerifyResponse {
-  role: string;
-  landlordVerified: boolean;
-  message: string;
+  email:   string;
+  otpCode: string;
 }
 
 // ── Auth API ──────────────────────────────────────────────────────────────────
 
 export const authApi = {
+  // Đăng nhập email/password
   login: async (email: string, password: string): Promise<ApiResponse<AuthResponse>> => {
     const res = await api.post('/api/auth/login', { email, password });
     return res.data;
   },
 
-  /**
-   * Register a new account.
-   * On success, backend creates a PENDING user and logs the OTP to console (dev mode).
-   */
+  // Đăng ký tài khoản mới (mặc định role CUSTOMER)
   register: async (payload: RegisterRequest): Promise<ApiResponse> => {
     const res = await api.post('/api/auth/register', payload);
     return res.data;
   },
 
-  /**
-   * Verify the 6-digit OTP received after registration.
-   * Returns role + landlordVerified for redirect logic.
-   */
-  verifyOtp: async (req: OtpVerifyRequest): Promise<ApiResponse<OtpVerifyResponse>> => {
+  // Xác thực OTP sau khi đăng ký
+  verifyOtp: async (req: OtpVerifyRequest): Promise<ApiResponse> => {
     const res = await api.post('/api/auth/verify-otp', req);
     return res.data;
   },
 
-  /**
-   * Resend a new OTP for a PENDING account.
-   */
+  // Gửi lại OTP
   resendOtp: async (email: string): Promise<ApiResponse> => {
     const res = await api.post('/api/auth/resend-otp', { email });
     return res.data;
   },
 
-  /**
-   * Sign in / register via Google OAuth.
-   * @param idToken  - Google ID token from the OAuth popup
-   * @param role     - Selected role (TENANT | LANDLORD); used only when creating a new account
-   * Returns ApiResponse<AuthResponse> so landlordVerified is accessible for redirect logic.
-   */
-  loginWithGoogle: async (idToken: string, role: Role = 'TENANT'): Promise<ApiResponse<AuthResponse>> => {
-    const res = await api.post('/api/auth/google', { idToken, role });
+  // Đăng nhập bằng Google (ID Token từ frontend)
+  loginWithGoogle: async (idToken: string): Promise<ApiResponse<AuthResponse>> => {
+    const res = await api.post('/api/auth/google', { idToken });
     return res.data;
   },
 
+  // Refresh access token — gửi JSON object { refreshToken } theo backend RefreshTokenRequest
   refreshToken: async (refreshToken: string): Promise<ApiResponse<AuthResponse>> => {
-    const res = await api.post('/api/auth/refresh', refreshToken, {
-      headers: { 'Content-Type': 'text/plain' },
-    });
+    const res = await api.post('/api/auth/refresh', { refreshToken });
     return res.data;
   },
 
+  // Đăng xuất — gửi JSON object { refreshToken } theo backend RefreshTokenRequest
   logout: async (refreshToken: string): Promise<ApiResponse<void>> => {
-    const res = await api.post('/api/auth/logout', refreshToken, {
-      headers: { 'Content-Type': 'text/plain' },
-    });
+    const res = await api.post('/api/auth/logout', { refreshToken });
     return res.data;
   },
 
-  /**
-   * LANDLORD submits CCCD / identity info after Google OAuth registration.
-   * Requires valid JWT in Authorization header.
-   */
-  submitLandlordVerifyInfo: async (payload: {
-    identityNumber: string;
-    taxCode?: string;
-    businessLicense?: string;
-  }): Promise<ApiResponse> => {
-    const res = await api.put('/api/landlords/me/verify-info', payload);
+  // Quên mật khẩu
+  forgotPassword: async (email: string): Promise<ApiResponse> => {
+    const res = await api.post('/api/auth/forgot-password', { email });
+    return res.data;
+  },
+
+  // Đặt lại mật khẩu — backend ResetPasswordRequest cần email + otpCode + newPassword
+  resetPassword: async (email: string, otpCode: string, newPassword: string): Promise<ApiResponse> => {
+    const res = await api.post('/api/auth/reset-password', { email, otpCode, newPassword });
     return res.data;
   },
 };
