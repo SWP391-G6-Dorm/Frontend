@@ -1,371 +1,295 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
 
-// SCR-08 — Room Detail
-// Entity: Room · Property · BlockFloor · RoomImage · Review · UtilityPrice
-
-const MOCK_ROOM = {
+// Mock data
+const ROOM = {
   id: '1',
-  roomNumber: 'A-301',
-  roomType: 'Studio',
-  code: 'SS-A301',
-  pricePerMonth: 3500000,
-  capacity: 2,
-  area: 25,
-  genderType: 'Mixed',
+  roomNumber: 'Villa 01',
+  roomType: 'Villa',
+  pricePerNight: 2500000,
+  capacity: 4,
+  area: 80,
+  description: 'A stunning beachfront villa with panoramic ocean views. Features a private pool, sundecks, and a fully equipped kitchen. Ideal for families or groups seeking a luxurious escape.',
   status: 'AVAILABLE',
-  description: 'A bright and modern studio apartment on the 3rd floor with great cross-ventilation. Fully furnished with built-in wardrobe, air conditioning, and a kitchenette. The room receives abundant natural light in the morning and offers a pleasant view of the courtyard. Utilities are separately metered and billed monthly based on actual usage.',
-  amenities: ['WiFi', 'Air Conditioning', 'Kitchen', 'Parking', 'Security', 'Laundry', 'Balcony'],
-  propertyName: 'Sunset Apartments',
-  address: '125 Nguyen Hue, Ben Nghe Ward, District 1, Ho Chi Minh City',
-  blockName: 'Block A',
-  floorNumber: 3,
+  floorNumber: 2,
+  propertyName: 'Sunset Resort Đà Nẵng',
+  propertyAddress: '123 Nguyễn Tất Thành, Đà Nẵng',
   images: [
-    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',
-    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80',
-    'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80',
-    'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-    'https://images.unsplash.com/photo-1556912173-3bb406ef7e97?w=800&q=80',
+    'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=900&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1560185007-5f0bb1866cab?w=400&h=280&fit=crop',
+    'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&h=280&fit=crop',
+    'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=400&h=280&fit=crop',
   ],
+  reviews: [
+    { id: '1', fullName: 'Nguyễn Thị Lan', rating: 5, comment: 'Absolutely stunning villa! The view was breathtaking and the pool was perfect. Will definitely come back.', createdAt: '2026-05-20', avatarUrl: '' },
+    { id: '2', fullName: 'Trần Văn Bình', rating: 4, comment: 'Great location and facilities. The staff was very helpful. Highly recommend for couples.', createdAt: '2026-05-10', avatarUrl: '' },
+    { id: '3', fullName: 'Lê Minh Hoàng', rating: 5, comment: 'One of the best stays we ever had. The beachfront access is incredible. Perfect for a family getaway.', createdAt: '2026-04-28', avatarUrl: '' },
+  ],
+  avgRating: 4.8,
+  totalReviews: 124,
 };
 
-const UTILITY_PRICES = [
-  { utilityType: 'ELECTRICITY', unitPrice: 3500, unitLabel: 'kWh' },
-  { utilityType: 'WATER',       unitPrice: 10000, unitLabel: 'm³' },
-];
+// Mock availability data (occupied date ranges)
+const OCCUPIED_DATES = new Set(['2026-06-20', '2026-06-21', '2026-06-22', '2026-06-28', '2026-06-29', '2026-07-04', '2026-07-05', '2026-07-06', '2026-07-07']);
+const PENDING_DATES   = new Set(['2026-06-17', '2026-06-18']);
 
-const REVIEWS = [
-  { id: '1', rating: 5, comment: 'Excellent room! Very clean and the landlord is very responsive. The AC works perfectly and WiFi speed is great. Highly recommended.', createdAt: '2025-04-12', tenantName: 'Nguyen Thi B', avatarUrl: 'https://i.pravatar.cc/40?img=1' },
-  { id: '2', rating: 4, comment: 'Good value for the location. The room is as described. The building has good security. Would suggest improving the hot water pressure.', createdAt: '2025-03-08', tenantName: 'Tran Van C', avatarUrl: 'https://i.pravatar.cc/40?img=2' },
-  { id: '3', rating: 5, comment: 'Stayed here for 8 months. Very comfortable and the price is fair. Close to bus stops and convenience stores.', createdAt: '2025-01-20', tenantName: 'Le Thi D', avatarUrl: 'https://i.pravatar.cc/40?img=3' },
-];
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { cls: string; label: string }> = {
+    AVAILABLE: { cls: 'badge-success', label: 'Available' },
+    RESERVED:  { cls: 'badge-info',    label: 'Reserved' },
+    OCCUPIED:  { cls: 'badge-neutral', label: 'Occupied' },
+    MAINTENANCE: { cls: 'badge-neutral', label: 'Maintenance' },
+    PENDING_DEPOSIT: { cls: 'badge-warning', label: 'Pending' },
+  };
+  const s = map[status] || { cls: 'badge-neutral', label: status };
+  return <span className={`badge ${s.cls}`}>{s.label}</span>;
+}
 
-function StarRating({ rating, max = 5 }: { rating: number; max?: number }) {
+function StarRating({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: max }).map((_, i) => (
-        <span key={i} style={{ color: i < rating ? '#ea2804' : 'var(--stone)', fontSize: 14 }}>★</span>
+    <div style={{ display: 'flex', gap: 2 }}>
+      {[1,2,3,4,5].map(i => (
+        <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill={i <= Math.round(rating) ? '#ea2804' : '#e5e7eb'}>
+          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+        </svg>
       ))}
     </div>
   );
 }
 
-function formatPrice(p: number) { return '₫' + p.toLocaleString('vi-VN'); }
+function MiniCalendar({ year, month }: { year: number; month: number }) {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function getCellColor(day: number | null) {
+    if (!day) return 'transparent';
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (OCCUPIED_DATES.has(key)) return '#fee2e2';
+    if (PENDING_DATES.has(key))  return '#fef3c7';
+    const d = new Date(key);
+    if (d < new Date()) return 'transparent';
+    return '#dcfce7';
+  }
+  function getTextColor(day: number | null) {
+    if (!day) return 'transparent';
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (OCCUPIED_DATES.has(key)) return '#dc2626';
+    if (PENDING_DATES.has(key))  return '#d97706';
+    const d = new Date(key);
+    if (d < new Date()) return 'var(--stone)';
+    return '#2b9a66';
+  }
+
+  return (
+    <div>
+      <p style={{ textAlign: 'center', fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{monthNames[month]} {year}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2 }}>
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--ash)', padding: '4px 0' }}>{d}</div>
+        ))}
+        {cells.map((day, i) => (
+          <div key={i} style={{
+            textAlign: 'center', fontSize: 12, padding: '5px 2px', borderRadius: 6,
+            background: getCellColor(day), color: getTextColor(day), fontWeight: day ? 500 : 400,
+          }}>
+            {day || ''}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function RoomDetailPage() {
   const { id } = useParams();
-  const room = MOCK_ROOM; // In real app: fetch by id
+  const navigate = useNavigate();
   const [mainImg, setMainImg] = useState(0);
-  const [saved, setSaved] = useState(false);
-  const [moveInDate, setMoveInDate] = useState('');
-  const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
+  const [guests, setGuests] = useState(1);
 
-  const avgRating = REVIEWS.reduce((sum, r) => sum + r.rating, 0) / REVIEWS.length;
+  const nights = checkIn && checkOut
+    ? Math.max(0, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
+    : 0;
+  const totalAmount = nights * ROOM.pricePerNight;
+  const depositAmount = Math.round(totalAmount * 0.4);
+
+  const today = new Date();
+  const thisYear = today.getFullYear();
+  const thisMonth = today.getMonth();
 
   return (
     <PublicLayout>
-      <div className="container-wide" style={{ paddingTop: 32, paddingBottom: 80 }}>
-        {/* ── Breadcrumb ── */}
-        <nav className="flex items-center gap-2 mb-6 body-sm" style={{ color: 'var(--muted)' }}>
-          <Link to="/" style={{ color: 'var(--muted)', textDecoration: 'none' }}>Home</Link>
-          <span>/</span>
-          <Link to="/rooms" style={{ color: 'var(--muted)', textDecoration: 'none' }}>Rooms</Link>
-          <span>/</span>
-          <Link to={`/rooms?property=${room.propertyName}`} style={{ color: 'var(--muted)', textDecoration: 'none' }}>{room.propertyName}</Link>
-          <span>/</span>
-          <span style={{ color: 'var(--ink)' }}>{room.roomNumber}</span>
-        </nav>
-
-        {/* ── Image Gallery ── */}
-        <div className="rounded-xl overflow-hidden mb-8" style={{ background: 'var(--surface-dark)' }}>
-          {!showAllPhotos ? (
-            <div className="flex gap-2" style={{ height: 420 }}>
-              {/* Main image */}
-              <div className="relative flex-1 overflow-hidden">
-                <img
-                  src={room.images[mainImg]}
-                  alt={`${room.roomNumber} main`}
-                  className="w-full h-full object-cover transition-all duration-300"
-                />
-                <button
-                  onClick={() => setSaved(!saved)}
-                  className="absolute top-4 right-4 flex items-center justify-center rounded-full transition-all"
-                  style={{
-                    width: 40, height: 40,
-                    background: 'rgba(255,255,255,0.92)',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  <span style={{ color: saved ? 'var(--primary)' : 'var(--ash)', fontSize: 18 }}>{saved ? '❤️' : '🤍'}</span>
-                </button>
-              </div>
-              {/* Thumbnail strip (right 30%) */}
-              <div className="flex flex-col gap-2" style={{ width: '28%' }}>
-                {room.images.slice(1, 5).map((img, i) => (
-                  <div
-                    key={i}
-                    className="relative flex-1 overflow-hidden cursor-pointer"
-                    onClick={() => setMainImg(i + 1)}
-                    style={{ opacity: mainImg === i + 1 ? 1 : 0.8 }}
-                  >
-                    <img src={img} alt={`Room photo ${i + 2}`} className="w-full h-full object-cover" />
-                    {i === 3 && room.images.length > 5 && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setShowAllPhotos(true); }}
-                        className="absolute inset-0 flex items-center justify-center font-semibold text-white"
-                        style={{ background: 'rgba(0,0,0,0.55)', border: 'none', cursor: 'pointer', fontSize: 14 }}
-                      >
-                        +{room.images.length - 5} photos
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-2" style={{ maxHeight: 600, overflowY: 'auto' }}>
-              {room.images.map((img, i) => (
-                <img key={i} src={img} alt={`Photo ${i + 1}`} className="w-full rounded-lg object-cover" style={{ height: 200, cursor: 'pointer' }} onClick={() => { setMainImg(i); setShowAllPhotos(false); }} />
-              ))}
-              <button onClick={() => setShowAllPhotos(false)} className="btn-dark col-span-full mt-2" style={{ justifyContent: 'center' }}>Show Less</button>
-            </div>
-          )}
+      <div className="container-wide" style={{ paddingTop: 32, paddingBottom: 64 }}>
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 24 }}>
+          <Link to="/" className="text-primary" style={{ textDecoration: 'none' }}>Home</Link>
+          <span>›</span>
+          <Link to="/rooms" className="text-primary" style={{ textDecoration: 'none' }}>Rooms</Link>
+          <span>›</span>
+          <span className="text-ink" style={{ fontWeight: 600 }}>{ROOM.propertyName}</span>
+          <span>›</span>
+          <span className="text-ink" style={{ fontWeight: 600 }}>{ROOM.roomNumber}</span>
         </div>
 
-        {/* ── Two-Column Content ── */}
-        <div className="flex gap-8" style={{ alignItems: 'flex-start' }}>
+        {/* Gallery */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8, marginBottom: 36, borderRadius: 12, overflow: 'hidden' }}>
+          <img src={ROOM.images[mainImg]} alt={ROOM.roomNumber} style={{ width: '100%', height: 420, objectFit: 'cover', cursor: 'pointer' }} />
+          <div style={{ display: 'grid', gridTemplateRows: 'repeat(3,1fr)', gap: 8 }}>
+            {ROOM.images.slice(1).map((img, i) => (
+              <img key={i} src={img} alt={`Room ${i+2}`} onClick={() => setMainImg(i + 1)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer', opacity: mainImg === i + 1 ? 1 : 0.85, transition: 'opacity 0.15s' }} />
+            ))}
+          </div>
+        </div>
 
-          {/* LEFT 60% */}
-          <div className="flex-1 min-w-0">
-            {/* Room title + status */}
-            <div className="flex items-start justify-between mb-2 flex-wrap gap-3">
-              <div>
-                <h1 className="display-md" style={{ color: 'var(--ink)' }}>
-                  {room.roomNumber} — {room.roomType}
-                </h1>
-                <p className="body-md mt-1 flex items-center gap-1" style={{ color: 'var(--charcoal)' }}>
-                  📍 {room.address}
-                </p>
-              </div>
-              <span className="badge badge-success text-sm px-3 py-1.5">{room.status}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32, alignItems: 'flex-start' }}>
+          {/* LEFT */}
+          <div>
+            {/* Title */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <h1 className="display-md">{ROOM.roomNumber} — {ROOM.roomType}</h1>
+              <StatusBadge status={ROOM.status} />
             </div>
-
-            {/* Block/Floor */}
-            <p className="body-sm mb-5" style={{ color: 'var(--muted)' }}>
-              {room.blockName} · Floor {room.floorNumber} · Code: <span className="code-md">{room.code}</span>
+            <p className="body-md text-charcoal" style={{ marginBottom: 4 }}>
+              📍 {ROOM.propertyAddress}
+            </p>
+            <p className="body-sm text-charcoal" style={{ marginBottom: 16 }}>
+              {ROOM.propertyName} · Floor {ROOM.floorNumber}
             </p>
 
             {/* Stats */}
-            <div className="flex flex-wrap gap-4 pb-6 mb-6 border-b" style={{ borderColor: 'var(--hairline)' }}>
+            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', padding: '16px 0', borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)', marginBottom: 24 }}>
               {[
-                { icon: '👥', label: 'Capacity', val: `${room.capacity} ${room.capacity === 1 ? 'person' : 'people'}` },
-                { icon: '📐', label: 'Area', val: `${room.area} m²` },
-                { icon: '⚤', label: 'Gender', val: room.genderType },
-              ].map((s) => (
-                <div key={s.label} className="card px-4 py-3 flex items-center gap-2">
-                  <span className="text-xl">{s.icon}</span>
-                  <div>
-                    <div className="caption" style={{ color: 'var(--ash)' }}>{s.label}</div>
-                    <div className="label-sm" style={{ color: 'var(--ink)' }}>{s.val}</div>
-                  </div>
+                { label: 'Capacity', value: `${ROOM.capacity} guests` },
+                { label: 'Area', value: `${ROOM.area} m²` },
+                { label: 'Floor', value: `Floor ${ROOM.floorNumber}` },
+                { label: 'Room type', value: ROOM.roomType },
+              ].map(stat => (
+                <div key={stat.label}>
+                  <p className="body-sm text-charcoal">{stat.label}</p>
+                  <p style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginTop: 2 }}>{stat.value}</p>
                 </div>
               ))}
             </div>
 
-            {/* Amenities → Room.amenities */}
-            <div className="mb-6 pb-6 border-b" style={{ borderColor: 'var(--hairline)' }}>
-              <h2 className="heading-sm mb-3" style={{ color: 'var(--ink)' }}>Amenities</h2>
-              <div className="flex flex-wrap gap-2">
-                {room.amenities.map((a) => (
-                  <span key={a} className="badge badge-neutral px-3 py-1.5 text-sm">{a}</span>
-                ))}
+            {/* Description */}
+            <h2 className="heading-sm" style={{ marginBottom: 10 }}>About this room</h2>
+            <p className="body-lg text-body" style={{ marginBottom: 32 }}>{ROOM.description}</p>
+
+            {/* Availability Calendar */}
+            <h2 className="heading-sm" style={{ marginBottom: 16 }}>Availability Calendar</h2>
+            <div className="card" style={{ padding: 20, marginBottom: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                <MiniCalendar year={thisYear} month={thisMonth} />
+                <MiniCalendar year={thisYear} month={(thisMonth + 1) % 12} />
               </div>
-            </div>
-
-            {/* Description → Room.description */}
-            <div className="mb-6 pb-6 border-b" style={{ borderColor: 'var(--hairline)' }}>
-              <h2 className="heading-sm mb-3" style={{ color: 'var(--ink)' }}>About this room</h2>
-              <p className="body-lg" style={{ color: 'var(--body)' }}>{room.description}</p>
-            </div>
-
-            {/* Utility Rates → UtilityPrice entity */}
-            <div className="mb-6 pb-6 border-b" style={{ borderColor: 'var(--hairline)' }}>
-              <h2 className="heading-sm mb-3" style={{ color: 'var(--ink)' }}>Utility Charges</h2>
-              <div className="card overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ background: 'var(--surface-bone)' }}>
-                      <th className="text-left px-4 py-3 label-sm" style={{ color: 'var(--charcoal)' }}>Type</th>
-                      <th className="text-right px-4 py-3 label-sm" style={{ color: 'var(--charcoal)' }}>Unit Price</th>
-                      <th className="text-right px-4 py-3 label-sm" style={{ color: 'var(--charcoal)' }}>Unit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {UTILITY_PRICES.map((u, i) => (
-                      <tr key={u.utilityType} style={{ borderTop: i > 0 ? '1px solid var(--hairline)' : 'none' }}>
-                        <td className="px-4 py-3 body-sm" style={{ color: 'var(--ink)' }}>
-                          {u.utilityType === 'ELECTRICITY' ? '⚡ Electricity' : '💧 Water'}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold" style={{ color: 'var(--ink)' }}>
-                          {formatPrice(u.unitPrice)}
-                        </td>
-                        <td className="px-4 py-3 text-right" style={{ color: 'var(--charcoal)' }}>
-                          / {u.unitLabel}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Reviews → Review entity (moderationStatus=VISIBLE) */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="heading-sm" style={{ color: 'var(--ink)' }}>
-                  Reviews ({REVIEWS.length})
-                </h2>
-                <div className="flex items-center gap-2">
-                  <StarRating rating={Math.round(avgRating)} />
-                  <span className="font-semibold" style={{ color: 'var(--ink)' }}>{avgRating.toFixed(1)}</span>
-                </div>
-              </div>
-
-              {/* Rating distribution */}
-              <div className="mb-5">
-                {[5, 4, 3, 2, 1].map((star) => {
-                  const count = REVIEWS.filter(r => r.rating === star).length;
-                  const pct = (count / REVIEWS.length) * 100;
-                  return (
-                    <div key={star} className="flex items-center gap-2 mb-1">
-                      <span className="body-sm w-4" style={{ color: 'var(--charcoal)' }}>{star}</span>
-                      <span style={{ color: 'var(--primary)', fontSize: 11 }}>★</span>
-                      <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: 'var(--surface-bone)' }}>
-                        <div className="rounded-full transition-all" style={{ width: `${pct}%`, height: '100%', background: 'var(--primary)' }} />
-                      </div>
-                      <span className="caption w-4 text-right" style={{ color: 'var(--ash)' }}>{count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Review cards */}
-              <div className="flex flex-col gap-4">
-                {REVIEWS.map((review) => (
-                  <div key={review.id} className="card p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <img src={review.avatarUrl} alt={review.tenantName} className="rounded-full" style={{ width: 40, height: 40, objectFit: 'cover' }} />
-                      <div>
-                        <p className="label-sm" style={{ color: 'var(--ink)' }}>{review.tenantName}</p>
-                        <p className="caption" style={{ color: 'var(--ash)' }}>{review.createdAt}</p>
-                      </div>
-                      <div className="ml-auto">
-                        <StarRating rating={review.rating} />
-                      </div>
-                    </div>
-                    <p className="body-md" style={{ color: 'var(--body)' }}>{review.comment}</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--hairline)' }}>
+                {[
+                  { color: '#dcfce7', text: 'Available' },
+                  { color: '#fef3c7', text: 'Pending Deposit' },
+                  { color: '#fee2e2', text: 'Occupied / Reserved' },
+                  { color: 'var(--surface-bone)', text: 'Past' },
+                ].map(l => (
+                  <div key={l.text} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: 3, background: l.color, border: '1px solid var(--hairline)' }} />
+                    <span className="body-sm text-charcoal">{l.text}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* RIGHT 40% — Sticky Booking Sidebar */}
-          <div className="hidden lg:block flex-shrink-0" style={{ width: 320 }}>
-            <div
-              className="sticky"
-              style={{ top: 88 }}
-            >
-              <div
-                className="card-lg p-6"
-                style={{ boxShadow: '0 8px 32px rgba(32,32,32,0.10)' }}
-              >
-                <div className="mb-4">
-                  <span className="display-md" style={{ color: 'var(--primary)', fontSize: 28 }}>
-                    {formatPrice(room.pricePerMonth)}
-                  </span>
-                  <span className="body-md" style={{ color: 'var(--ash)' }}> / month</span>
-                </div>
+            <Link to={`/rooms/${ROOM.id}/calendar`} className="btn-ghost btn-sm" style={{ marginBottom: 32 }}>View full calendar →</Link>
 
-                <div className="flex gap-3 mb-4">
-                  <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'var(--surface-bone)' }}>
-                    <p className="caption" style={{ color: 'var(--ash)' }}>Area</p>
-                    <p className="label-sm" style={{ color: 'var(--ink)' }}>{room.area} m²</p>
-                  </div>
-                  <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'var(--surface-bone)' }}>
-                    <p className="caption" style={{ color: 'var(--ash)' }}>Capacity</p>
-                    <p className="label-sm" style={{ color: 'var(--ink)' }}>{room.capacity} ppl</p>
-                  </div>
-                  <div className="flex-1 text-center py-2 rounded-lg" style={{ background: 'var(--surface-bone)' }}>
-                    <p className="caption" style={{ color: 'var(--ash)' }}>Gender</p>
-                    <p className="label-sm" style={{ color: 'var(--ink)' }}>{room.genderType}</p>
-                  </div>
-                </div>
-
-                <div className="mb-1">
-                  <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Preferred Move-in Date</label>
-                  <input
-                    type="date"
-                    className="input-field-rect w-full"
-                    value={moveInDate}
-                    onChange={(e) => setMoveInDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-
-                <div className="border-t mt-5 pt-5 flex flex-col gap-3" style={{ borderColor: 'var(--hairline)' }}>
-                  <Link
-                    to={`/request-rental/${room.id}`}
-                    className="btn-primary w-full"
-                    style={{ height: 48, justifyContent: 'center', textDecoration: 'none', display: 'flex', fontSize: 15 }}
-                  >
-                    🏠 Request Rental
-                  </Link>
-                  <Link
-                    to={`/viewing/${room.id}`}
-                    className="btn-outline w-full"
-                    style={{ height: 44, justifyContent: 'center', textDecoration: 'none', display: 'flex' }}
-                  >
-                    📅 Schedule Viewing
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setSaved(!saved)}
-                    className="btn-ghost w-full"
-                    style={{ height: 40, justifyContent: 'center', color: saved ? 'var(--primary)' : 'var(--charcoal)' }}
-                  >
-                    {saved ? '❤️ Saved' : '🤍 Save to Favorites'}
-                  </button>
-                </div>
-
-                <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--surface-bone)' }}>
-                  <p className="caption text-center" style={{ color: 'var(--muted)' }}>
-                    💬 Usually responds within 4 hours
-                  </p>
-                </div>
+            {/* Reviews */}
+            <h2 className="heading-sm" style={{ marginBottom: 16 }}>Guest Reviews</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+              <span className="display-md text-primary">{ROOM.avgRating}</span>
+              <div>
+                <StarRating rating={ROOM.avgRating} size={18} />
+                <p className="body-sm text-charcoal">{ROOM.totalReviews} reviews</p>
               </div>
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {ROOM.reviews.map(r => (
+                <div key={r.id} className="card" style={{ padding: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                      {r.fullName[0]}
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{r.fullName}</p>
+                      <p className="body-sm text-charcoal">{new Date(r.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+                    <div style={{ marginLeft: 'auto' }}><StarRating rating={r.rating} /></div>
+                  </div>
+                  <p className="body-md text-body">{r.comment}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Mobile CTA bar (fixed bottom) */}
-        <div
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex gap-3"
-          style={{
-            background: 'var(--surface-card)',
-            borderTop: '1px solid var(--hairline)',
-            padding: '12px 20px',
-            paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-          }}
-        >
-          <div className="flex-1">
-            <div className="font-bold" style={{ color: 'var(--primary)', fontSize: 18 }}>{formatPrice(room.pricePerMonth)}</div>
-            <div className="caption" style={{ color: 'var(--ash)' }}>/month</div>
+          {/* RIGHT — Booking Panel (sticky) */}
+          <div style={{ position: 'sticky', top: 80 }}>
+            <div className="card-lg" style={{ padding: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 20 }}>
+                <span className="display-md text-primary">₫{ROOM.pricePerNight.toLocaleString()}</span>
+                <span className="body-md text-charcoal">/night</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontSize: 12 }}>Check-in</label>
+                  <input type="date" className="input" value={checkIn} onChange={e => setCheckIn(e.target.value)} style={{ borderRadius: 10, height: 40, fontSize: 14 }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontSize: 12 }}>Check-out</label>
+                  <input type="date" className="input" value={checkOut} onChange={e => setCheckOut(e.target.value)} style={{ borderRadius: 10, height: 40, fontSize: 14 }} />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label className="form-label" style={{ fontSize: 12 }}>Guests</label>
+                <input type="number" min={1} max={ROOM.capacity} className="input" value={guests} onChange={e => setGuests(+e.target.value)} style={{ borderRadius: 10, height: 40, fontSize: 14 }} />
+              </div>
+
+              {nights > 0 && (
+                <div style={{ background: 'var(--surface-bone)', borderRadius: 10, padding: 16, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span className="body-sm text-charcoal">₫{ROOM.pricePerNight.toLocaleString()} × {nights} nights</span>
+                    <span className="body-sm" style={{ fontWeight: 600 }}>₫{totalAmount.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--hairline)' }}>
+                    <span className="body-sm" style={{ fontWeight: 600 }}>Total</span>
+                    <span style={{ fontWeight: 700, fontSize: 16 }}>₫{totalAmount.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                    <span className="body-sm text-charcoal">Deposit required (40%)</span>
+                    <span className="body-sm text-primary" style={{ fontWeight: 600 }}>₫{depositAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
+              {ROOM.status !== 'AVAILABLE' ? (
+                <div className="alert alert-warning">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  This room is currently unavailable for booking.
+                </div>
+              ) : (
+                <button className="btn-primary" style={{ width: '100%' }}
+                  onClick={() => navigate(`/request-booking/${ROOM.id}?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`)}>
+                  Book Now
+                </button>
+              )}
+
+              <p className="body-sm text-charcoal" style={{ textAlign: 'center', marginTop: 12 }}>
+                40% deposit required to confirm your booking
+              </p>
+            </div>
           </div>
-          <Link to={`/request-rental/${room.id}`} className="btn-primary" style={{ height: 44, padding: '0 24px', textDecoration: 'none' }}>
-            Request Rental
-          </Link>
         </div>
       </div>
     </PublicLayout>

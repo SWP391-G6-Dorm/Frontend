@@ -1,562 +1,317 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
-import RoomCard, { type Room } from '../../components/ui/RoomCard';
-import { fetchFeaturedRooms, fetchPlatformStats } from '../../api/publicApi';
 
-// ── SEO ───────────────────────────────────────────────────────────────────────
-const PAGE_TITLE = 'KTX Manager — Hệ thống quản lý ký túc xá sinh viên';
-const PAGE_DESC = 'Tìm phòng ký túc xá, đăng ký trực tuyến, thanh toán VNPay và quản lý hợp đồng — nhanh chóng, minh bạch, tiện lợi.';
+// ── Mock data (will be replaced by API calls) ──────────────────────────────
+const FEATURED_ROOMS = [
+  { id: '1', roomNumber: 'Villa 01', roomType: 'Villa', pricePerNight: 2500000, capacity: 4, area: 80, status: 'AVAILABLE', primaryImageUrl: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=400&fit=crop', propertyName: 'Sunset Resort Đà Nẵng', rating: 4.8, reviews: 124 },
+  { id: '2', roomNumber: 'Deluxe 05', roomType: 'Deluxe', pricePerNight: 1200000, capacity: 2, area: 35, status: 'AVAILABLE', primaryImageUrl: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&h=400&fit=crop', propertyName: 'Mountain View Homestay', rating: 4.6, reviews: 89 },
+  { id: '3', roomNumber: 'Suite 03', roomType: 'Suite', pricePerNight: 1800000, capacity: 3, area: 55, status: 'AVAILABLE', primaryImageUrl: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=400&h=400&fit=crop', propertyName: 'Hội An Garden Villa', rating: 4.9, reviews: 210 },
+  { id: '4', roomNumber: 'Standard 12', roomType: 'Standard', pricePerNight: 750000, capacity: 2, area: 28, status: 'AVAILABLE', primaryImageUrl: 'https://images.unsplash.com/photo-1560185007-5f0bb1866cab?w=400&h=400&fit=crop', propertyName: 'Phú Quốc Beach House', rating: 4.4, reviews: 67 },
+];
 
-const ROOM_TYPE_TABS = ['Tất cả', 'Studio', 'Phòng đơn', 'Phòng đôi', 'Phòng tập thể'] as const;
+const FEATURED_PROPERTIES = [
+  { id: '1', name: 'Sunset Resort Đà Nẵng', address: '123 Nguyễn Tất Thành, Đà Nẵng', roomCount: 15, availableCount: 8, image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&h=400&fit=crop' },
+  { id: '2', name: 'Mountain View Homestay', address: '456 Trần Phú, Đà Lạt', roomCount: 8, availableCount: 5, image: 'https://images.unsplash.com/photo-1587874522487-fe10e954d035?w=600&h=400&fit=crop' },
+  { id: '3', name: 'Hội An Garden Villa', address: '78 Phan Bội Châu, Hội An', roomCount: 12, availableCount: 9, image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop' },
+];
 
 const HOW_IT_WORKS = [
-  {
-    step: '01',
-    icon: '🔍',
-    title: 'Tìm kiếm & Lọc',
-    desc: 'Duyệt phòng theo vị trí, mức giá, loại phòng và tiện ích. Tìm đúng nơi phù hợp với bạn.',
-  },
-  {
-    step: '02',
-    icon: '📝',
-    title: 'Đăng ký trực tuyến',
-    desc: 'Điền form đăng ký ký túc xá theo học kỳ. Không cần xếp hàng, xử lý nhanh chóng.',
-  },
-  {
-    step: '03',
-    icon: '💳',
-    title: 'Thanh toán & Nhận phòng',
-    desc: 'Thanh toán hóa đơn qua VNPay. Ký hợp đồng điện tử và nhận phòng ngay.',
-  },
+  { step: '01', title: 'Search & Browse', desc: 'Find your perfect room by location, dates, type and capacity with real-time availability.' },
+  { step: '02', title: 'Book & Deposit', desc: 'Confirm your booking with a 40% deposit. Receive your contract instantly via email.' },
+  { step: '03', title: 'Check In & Enjoy', desc: 'Pay the remaining balance at check-in and enjoy your premium homestay experience.' },
 ];
 
-const FEATURES = [
-  {
-    icon: '🏢',
-    title: 'Đăng ký ký túc xá trực tuyến',
-    desc: 'Sinh viên đăng ký phòng theo học kỳ hoàn toàn trực tuyến. Theo dõi trạng thái đăng ký theo thời gian thực, không cần đến trực tiếp.',
-    color: '#fde8e3',
-    accent: 'var(--primary)',
-  },
-  {
-    icon: '💳',
-    title: 'Thanh toán VNPay tiện lợi',
-    desc: 'Thanh toán hóa đơn tiền phòng, điện, nước qua VNPay. Lịch sử thanh toán minh bạch, nhận xác nhận ngay lập tức.',
-    color: '#e0f2fe',
-    accent: '#0369a1',
-  },
-  {
-    icon: '🎫',
-    title: 'Hỗ trợ & Báo cáo sự cố',
-    desc: 'Gửi ticket hỗ trợ khi gặp sự cố. Theo dõi tiến trình xử lý và nhận thông báo khi được giải quyết.',
-    color: '#dcfce7',
-    accent: '#16a34a',
-  },
-];
-
-const TESTIMONIALS = [
-  {
-    id: '1',
-    name: 'Nguyễn Thị Mai',
-    school: 'Sinh viên năm 2 — FPT University',
-    rating: 5,
-    avatar: 'NM',
-    avatarBg: '#fde8e3',
-    avatarColor: 'var(--primary)',
-    text: 'Đăng ký phòng KTX cực kỳ nhanh, chỉ mất 5 phút. Thanh toán VNPay rất tiện. Nhân viên hỗ trợ nhiệt tình và phản hồi nhanh.',
-  },
-  {
-    id: '2',
-    name: 'Trần Văn Khoa',
-    school: 'Sinh viên năm 3 — FPT University',
-    rating: 5,
-    avatar: 'TK',
-    avatarBg: '#e0f2fe',
-    avatarColor: '#0369a1',
-    text: 'Hệ thống dễ dùng, giao diện đẹp. Tôi theo dõi hóa đơn và thanh toán trực tiếp trên app mà không cần đến phòng quản lý.',
-  },
-  {
-    id: '3',
-    name: 'Phạm Hương Giang',
-    school: 'Sinh viên năm 1 — FPT University',
-    rating: 4,
-    avatar: 'PG',
-    avatarBg: '#dcfce7',
-    avatarColor: '#16a34a',
-    text: 'Là sinh viên năm nhất, tôi lo lắng về việc tìm phòng. KTX Manager giúp tôi tìm được phòng phù hợp và đăng ký ngay trong buổi.',
-  },
-];
-
-// ── Animated stat counter ─────────────────────────────────────────────────────
-function useCountUp(target: number, duration = 1500, start = false) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (!start) return;
-    let startTime: number | null = null;
-    const step = (ts: number) => {
-      if (!startTime) startTime = ts;
-      const progress = Math.min((ts - startTime) / duration, 1);
-      setCount(Math.floor(progress * target));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [target, duration, start]);
-  return count;
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { cls: string; label: string }> = {
+    AVAILABLE:       { cls: 'badge-success', label: 'Available' },
+    PENDING_DEPOSIT: { cls: 'badge-warning', label: 'Pending Deposit' },
+    RESERVED:        { cls: 'badge-info',    label: 'Reserved' },
+    OCCUPIED:        { cls: 'badge-neutral', label: 'Occupied' },
+    MAINTENANCE:     { cls: 'badge-neutral', label: 'Maintenance' },
+  };
+  const s = map[status] || { cls: 'badge-neutral', label: status };
+  return <span className={`badge ${s.cls}`}>{s.label}</span>;
 }
 
-function StatItem({ value, suffix, label }: { value: number; suffix: string; label: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  const count = useCountUp(value, 1400, visible);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.5 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
+function StarRating({ rating }: { rating: number }) {
   return (
-    <div ref={ref} className="text-center">
-      <div className="font-bold" style={{ fontSize: 36, color: 'var(--primary)', letterSpacing: '-1px', lineHeight: 1.1 }}>
-        {count.toLocaleString('vi-VN')}{suffix}
-      </div>
-      <div className="body-sm mt-1" style={{ color: 'var(--charcoal)' }}>{label}</div>
+    <div className="flex items-center gap-1">
+      {[1,2,3,4,5].map(i => (
+        <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i <= Math.round(rating) ? '#ea2804' : '#e5e7eb'} stroke="none">
+          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+        </svg>
+      ))}
     </div>
   );
 }
 
-// ── Skeleton card ─────────────────────────────────────────────────────────────
-function RoomCardSkeleton() {
+function RoomCard({ room }: { room: typeof FEATURED_ROOMS[0] }) {
   return (
-    <div className="card overflow-hidden flex flex-col" style={{ opacity: 0.7 }}>
-      <div className="skeleton" style={{ height: 200 }} />
-      <div className="flex flex-col gap-3 p-4">
-        <div className="skeleton" style={{ height: 12, width: '40%', borderRadius: 6 }} />
-        <div className="skeleton" style={{ height: 18, width: '70%', borderRadius: 6 }} />
-        <div className="skeleton" style={{ height: 12, width: '90%', borderRadius: 6 }} />
-        <div className="flex gap-2">
-          <div className="skeleton" style={{ height: 24, width: 60, borderRadius: 9999 }} />
-          <div className="skeleton" style={{ height: 24, width: 50, borderRadius: 9999 }} />
-          <div className="skeleton" style={{ height: 24, width: 55, borderRadius: 9999 }} />
+    <div className="card" style={{ overflow: 'hidden', transition: 'transform 0.2s, box-shadow 0.2s' }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(32,32,32,0.15)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}>
+      {/* Image */}
+      <div style={{ position: 'relative', paddingBottom: '66%', overflow: 'hidden' }}>
+        <img src={room.primaryImageUrl} alt={room.roomNumber}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', bottom: 8, left: 8 }}>
+          <StatusBadge status={room.status} />
         </div>
-        <div className="flex justify-between items-center pt-2" style={{ borderTop: '1px solid var(--hairline)' }}>
-          <div className="skeleton" style={{ height: 28, width: '45%', borderRadius: 6 }} />
-          <div className="skeleton" style={{ height: 34, width: 100, borderRadius: 9999 }} />
+      </div>
+      {/* Info */}
+      <div style={{ padding: 16 }}>
+        <p className="body-sm text-charcoal mb-1">{room.propertyName}</p>
+        <h3 className="heading-sm" style={{ marginBottom: 4 }}>{room.roomNumber} — {room.roomType}</h3>
+        <div className="flex items-center gap-3 body-sm text-charcoal mb-3">
+          <span>👥 {room.capacity} guests</span>
+          <span>📐 {room.area}m²</span>
+        </div>
+        <div className="flex items-center gap-2 mb-4">
+          <StarRating rating={room.rating} />
+          <span className="body-sm text-charcoal">{room.rating} ({room.reviews})</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="heading-sm text-primary">₫{room.pricePerNight.toLocaleString()}</span>
+            <span className="body-sm text-charcoal">/night</span>
+          </div>
+          <Link to={`/rooms/${room.id}`} className="btn-outline btn-sm">View Detail</Link>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// All searchable suggestions: locations + property names
+const SUGGESTIONS = [
+  { type: 'location', label: 'Đà Lạt',      icon: '📍' },
+  { type: 'location', label: 'Hội An',      icon: '📍' },
+  { type: 'location', label: 'Đà Nẵng',      icon: '📍' },
+  { type: 'location', label: 'Phú Quốc',    icon: '📍' },
+  { type: 'location', label: 'Nha Trang',    icon: '📍' },
+  { type: 'location', label: 'Hà Nội',       icon: '📍' },
+  { type: 'property', label: 'Sunset Resort Đà Nẵng', icon: '🏨' },
+  { type: 'property', label: 'Mountain View Homestay', icon: '🏡' },
+  { type: 'property', label: 'Hội An Garden Villa',  icon: '🏡' },
+  { type: 'property', label: 'Phú Quốc Beach House', icon: '🏡' },
+];
+
 export default function LandingPage() {
-  const [activeTab, setActiveTab] = useState<typeof ROOM_TYPE_TABS[number]>('Tất cả');
+  const navigate = useNavigate();
+  const [search, setSearch] = useState({ location: '', checkIn: '', checkOut: '', guests: 1 });
+  const [dateError, setDateError] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const locationRef = useRef<HTMLDivElement>(null);
 
-  // React Query calls
-  const { data: rooms = [], isLoading: loadingRooms } = useQuery({
-    queryKey: ['featured-rooms'],
-    queryFn: () => fetchFeaturedRooms(6),
-    staleTime: 5 * 60 * 1000, // cache 5 mins
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ['platform-stats'],
-    queryFn: fetchPlatformStats,
-    staleTime: 10 * 60 * 1000,
-  });
-
-  // SEO
+  // Close dropdown when clicking outside
   useEffect(() => {
-    document.title = PAGE_TITLE;
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.name = 'description';
-      document.head.appendChild(meta);
+    function handleClick(e: MouseEvent) {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
     }
-    meta.content = PAGE_DESC;
-    return () => { document.title = 'KTX Manager'; };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const filteredRooms =
-    activeTab === 'Tất cả'
-      ? rooms
-      : rooms.filter((r) => r.roomType === activeTab);
+  const filteredSuggestions = search.location.trim()
+    ? SUGGESTIONS.filter(s => s.label.toLowerCase().includes(search.location.toLowerCase()))
+    : SUGGESTIONS;
 
-  const statsData = [
-    { value: stats?.totalAvailableRooms || 2400, suffix: '+', label: 'Phòng đang trống' },
-    { value: stats?.totalProperties || 850, suffix: '+', label: 'Cơ sở tin cậy' },
-    { value: stats?.totalTenants || 12000, suffix: '+', label: 'Sinh viên hài lòng' },
-    { value: stats?.satisfactionPercent || 98, suffix: '%', label: 'Tỷ lệ hài lòng' },
-  ];
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    // Validate date range
+    if (search.checkIn && search.checkOut && search.checkIn >= search.checkOut) {
+      setDateError('Check-out must be after check-in');
+      return;
+    }
+    setDateError('');
+    const params = new URLSearchParams();
+    if (search.location)   params.set('location', search.location);
+    if (search.checkIn)    params.set('checkIn', search.checkIn);
+    if (search.checkOut)   params.set('checkOut', search.checkOut);
+    if (search.guests > 1) params.set('guests', String(search.guests));
+    navigate('/rooms?' + params.toString());
+  }
 
   return (
     <PublicLayout>
-      {/* ══════════════════ HERO ══════════════════ */}
-      <section
-        className="relative overflow-hidden"
-        style={{ background: 'var(--primary)', minHeight: 560, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      >
-        {/* Mesh background */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 80% 70% at 50% 20%, rgba(255,106,61,0.4) 0%, transparent 65%),' +
-              'radial-gradient(ellipse 50% 60% at 10% 90%, rgba(244,168,160,0.25) 0%, transparent 55%),' +
-              'radial-gradient(ellipse 40% 50% at 90% 80%, rgba(255,255,255,0.06) 0%, transparent 50%)',
-          }}
-        />
-        {/* Dot grid pattern */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px)',
-            backgroundSize: '28px 28px',
-          }}
-        />
+      {/* ── Hero Band ── */}
+      <section style={{ background: 'var(--primary)', padding: '96px 32px', position: 'relative', overflow: 'hidden' }}>
+        {/* Atmospheric glow */}
+        <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,106,61,0.5) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-30%', left: '5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(244,168,160,0.3) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-        <div className="container-wide relative z-10 py-24">
-          <div className="flex flex-col items-center text-center max-w-3xl mx-auto animate-fade-up">
-            {/* Trust badge */}
-            <div
-              className="inline-flex items-center gap-2 rounded-full px-4 py-2 mb-8"
-              style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.22)' }}
-            >
-              <span style={{ fontSize: 14 }}>✨</span>
-              <span className="label-sm" style={{ color: 'rgba(255,255,255,0.95)', fontSize: 13 }}>
-                Tin tưởng bởi 12,000+ sinh viên FPT
-              </span>
+        <div className="container-wide" style={{ position: 'relative', textAlign: 'center' }}>
+          <h1 className="display-xl" style={{ color: 'var(--on-dark)', marginBottom: 20, maxWidth: 700, margin: '0 auto 20px' }}>
+            Find Your Perfect Stay
+          </h1>
+          <p className="body-lg" style={{ color: 'rgba(252,252,252,0.85)', marginBottom: 40, maxWidth: 560, margin: '0 auto 40px' }}>
+            Discover and book premium homestay &amp; resort rooms across Vietnam — simple, fast and secure.
+          </p>
+
+          {/* Search Bar */}
+          <form onSubmit={handleSearch}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 8, background: 'var(--surface-card)', borderRadius: 9999, padding: '6px 6px 6px 20px', maxWidth: 860, margin: '0 auto', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', alignItems: 'center' }}>
+
+            {/* Location / Property autocomplete */}
+            <div ref={locationRef} style={{ flex: 1, minWidth: 180, position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <input
+                  placeholder="Location or property..."
+                  value={search.location}
+                  autoComplete="off"
+                  onFocus={() => setShowSuggestions(true)}
+                  onChange={e => { setSearch(p => ({ ...p, location: e.target.value })); setShowSuggestions(true); }}
+                  style={{ border: 'none', outline: 'none', fontSize: 14, background: 'transparent', color: 'var(--ink)', width: '100%', padding: '6px 0' }}
+                />
+              </div>
+
+              {/* Dropdown */}
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 14px)', left: -20, right: -8,
+                  background: 'var(--surface-card)',
+                  borderRadius: 12,
+                  boxShadow: '0 8px 32px rgba(32,32,32,0.16)',
+                  border: '1px solid var(--hairline)',
+                  zIndex: 100,
+                  overflow: 'hidden',
+                  animation: 'fadeInUp 150ms ease-out',
+                  minWidth: 260,
+                }}>
+                  {/* Group: Locations */}
+                  {filteredSuggestions.some(s => s.type === 'location') && (
+                    <>
+                      <div style={{ padding: '8px 14px 4px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ash)' }}>Locations</div>
+                      {filteredSuggestions.filter(s => s.type === 'location').map(s => (
+                        <button
+                          key={s.label}
+                          type="button"
+                          onClick={() => { setSearch(p => ({ ...p, location: s.label })); setShowSuggestions(false); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 14px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink)', textAlign: 'left', transition: 'background 0.1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-bone)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <span>{s.icon}</span>
+                          <span>{s.label}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {/* Group: Properties */}
+                  {filteredSuggestions.some(s => s.type === 'property') && (
+                    <>
+                      <div style={{ padding: '8px 14px 4px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ash)', borderTop: filteredSuggestions.some(s => s.type === 'location') ? '1px solid var(--hairline)' : 'none', marginTop: 4 }}>Properties</div>
+                      {filteredSuggestions.filter(s => s.type === 'property').map(s => (
+                        <button
+                          key={s.label}
+                          type="button"
+                          onClick={() => { setSearch(p => ({ ...p, location: s.label })); setShowSuggestions(false); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 14px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink)', textAlign: 'left', transition: 'background 0.1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-bone)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <span>{s.icon}</span>
+                          <span>{s.label}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-
-            <h1
-              className="display-xl mb-6"
-              style={{ color: '#fff', lineHeight: 1.0, letterSpacing: '-2.5px' }}
-            >
-              Chạm là thấy nhà<br />
-              <span style={{ color: 'rgba(255,255,255,0.72)' }}>thuê là yên tâm</span>
-            </h1>
-
-            <p className="body-lg mb-10" style={{ color: 'rgba(255,255,255,0.82)', maxWidth: 520 }}>
-              Đăng ký phòng trực tuyến, thanh toán qua VNPay, theo dõi hợp đồng và gửi yêu cầu hỗ trợ — tất cả trong một nền tảng.
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-12">
-              <Link
-                to="/rooms"
-                className="btn-dark"
-                style={{ height: 52, padding: '0 36px', fontSize: 16, fontWeight: 700 }}
-              >
-                🏠 Tìm phòng ngay
-              </Link>
-              <Link
-                to="/register"
-                className="btn-outline"
-                style={{
-                  height: 52,
-                  padding: '0 32px',
-                  fontSize: 16,
-                  background: 'rgba(255,255,255,0.12)',
-                  color: '#fff',
-                  border: '1.5px solid rgba(255,255,255,0.4)',
-                }}
-              >
-                Đăng ký tài khoản →
-              </Link>
+            <div style={{ width: 1, height: 28, background: 'var(--hairline)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <input type="date" value={search.checkIn} onChange={e => setSearch(p => ({ ...p, checkIn: e.target.value }))}
+                style={{ border: 'none', outline: 'none', fontSize: 14, background: 'transparent', color: search.checkIn ? 'var(--ink)' : 'var(--ash)' }} placeholder="Check-in" />
             </div>
-
-            {/* Trust badges row */}
-            <div className="flex flex-wrap items-center justify-center gap-6">
-              {[
-                { icon: '✅', text: 'Phòng đã xác thực' },
-                { icon: '🔒', text: 'Thanh toán bảo mật' },
-                { icon: '⭐', text: '4.8/5 đánh giá' },
-                { icon: '⚡', text: 'Duyệt trong 2 giờ' },
-              ].map((b) => (
-                <span key={b.text} className="caption flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                  {b.icon} {b.text}
-                </span>
-              ))}
+            <div style={{ width: 1, height: 28, background: 'var(--hairline)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <input type="date" value={search.checkOut} onChange={e => setSearch(p => ({ ...p, checkOut: e.target.value }))}
+                style={{ border: 'none', outline: 'none', fontSize: 14, background: 'transparent', color: search.checkOut ? 'var(--ink)' : 'var(--ash)' }} placeholder="Check-out" />
             </div>
-          </div>
-        </div>
-
-        {/* Bottom wave divider */}
-        <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ lineHeight: 0 }}>
-          <svg viewBox="0 0 1440 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', width: '100%' }}>
-            <path d="M0 48h1440V24C1200 4 960 0 720 8 480 16 240 44 0 24v24z" fill="var(--surface-bone)" />
-          </svg>
-        </div>
-      </section>
-
-      {/* ══════════════════ STATS ══════════════════ */}
-      <section style={{ background: 'var(--surface-bone)', padding: '48px 32px' }}>
-        <div className="container-wide">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {statsData.map((s) => (
-              <StatItem key={s.label} value={s.value} suffix={s.suffix} label={s.label} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ FEATURED ROOMS ══════════════════ */}
-      <section className="section-pad" style={{ background: 'var(--canvas)' }}>
-        <div className="container-wide">
-          {/* Header */}
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <p className="label-sm mb-2" style={{ color: 'var(--ash)', letterSpacing: '0.08em' }}>
-                PHÒNG NỔI BẬT
-              </p>
-              <h2 className="heading-lg" style={{ color: 'var(--ink)' }}>Phòng đang có sẵn</h2>
+            <div style={{ width: 1, height: 28, background: 'var(--hairline)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <input type="number" min={1} max={20} value={search.guests} onChange={e => setSearch(p => ({ ...p, guests: +e.target.value }))}
+                style={{ border: 'none', outline: 'none', fontSize: 14, background: 'transparent', color: 'var(--ink)', width: 50 }} />
+              <span style={{ fontSize: 13, color: 'var(--ash)' }}>guests</span>
             </div>
-            <Link to="/rooms" className="btn-outline hidden md:inline-flex" style={{ fontSize: 14 }}>
-              Xem tất cả phòng →
-            </Link>
-          </div>
+            <button type="submit" className="btn-dark btn-sm" style={{ borderRadius: 9999, whiteSpace: 'nowrap' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Search
+            </button>
+          </form>
 
-          {/* Filter tabs */}
-          <div className="flex gap-2 mb-8 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-            {ROOM_TYPE_TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className="transition-all duration-150"
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: 9999,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  border: activeTab === tab ? 'none' : '1px solid var(--hairline)',
-                  background: activeTab === tab ? 'var(--ink)' : 'transparent',
-                  color: activeTab === tab ? '#fff' : 'var(--charcoal)',
-                }}
-              >
-                {tab}
+          {/* Date validation error */}
+          {dateError && (
+            <p style={{ color: '#ff6b6b', fontSize: 13, marginTop: 8, textAlign: 'center' }}>⚠ {dateError}</p>
+          )}
+
+          {/* Quick tags — use encodeURIComponent to handle Vietnamese chars */}
+          <div className="flex flex-wrap gap-2 mt-5" style={{ justifyContent: 'center' }}>
+            {['Đà Lạt', 'Hội An', 'Đà Nẵng', 'Phú Quốc', 'Nha Trang'].map(loc => (
+              <button key={loc} onClick={() => {
+                setSearch(p => ({ ...p, location: loc }));
+                navigate(`/rooms?location=${encodeURIComponent(loc)}`);
+              }}
+                style={{ fontSize: 13, padding: '4px 12px', borderRadius: 9999, background: 'rgba(252,252,252,0.15)', color: 'rgba(252,252,252,0.85)', border: '1px solid rgba(252,252,252,0.25)', cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(252,252,252,0.25)'; }}
+                onMouseLeave={e => { (e.currentTarget).style.background = 'rgba(252,252,252,0.15)'; }}>
+                {loc}
               </button>
             ))}
           </div>
-
-          {/* Room grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loadingRooms
-              ? Array.from({ length: 6 }).map((_, i) => <RoomCardSkeleton key={i} />)
-              : filteredRooms.length > 0
-                ? filteredRooms.map((room) => <RoomCard key={room.id} room={room} />)
-                : (
-                  <div className="col-span-3 text-center py-16">
-                    <div className="text-4xl mb-3">🏠</div>
-                    <p className="body-md" style={{ color: 'var(--muted)' }}>Không có phòng nào trong danh mục này.</p>
-                  </div>
-                )
-            }
-          </div>
-
-          <div className="text-center mt-8 md:hidden">
-            <Link to="/rooms" className="btn-outline">Xem tất cả phòng →</Link>
-          </div>
         </div>
       </section>
 
-      {/* ══════════════════ FEATURE HIGHLIGHTS ══════════════════ */}
-      <section className="section-pad" style={{ background: 'var(--surface-bone)' }}>
-        <div className="container-wide">
-          <div className="text-center mb-12">
-            <p className="label-sm mb-3" style={{ color: 'var(--ash)', letterSpacing: '0.08em' }}>TẠI SAO CHỌN CHÚNG TÔI</p>
-            <h2 className="heading-lg" style={{ color: 'var(--ink)' }}>Quản lý ký túc xá<br />chưa bao giờ dễ hơn</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {FEATURES.map((f) => (
-              <div
-                key={f.title}
-                className="card-lg p-7 flex flex-col gap-4 transition-all duration-200"
-                style={{ background: 'var(--surface-card)' }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(32,32,32,0.10)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '';
-                }}
-              >
-                <div
-                  className="flex items-center justify-center rounded-2xl text-3xl"
-                  style={{ width: 60, height: 60, background: f.color }}
-                >
-                  {f.icon}
-                </div>
-                <div>
-                  <h3 className="heading-sm mb-2" style={{ color: 'var(--ink)', fontSize: 18 }}>{f.title}</h3>
-                  <p className="body-sm" style={{ color: 'var(--charcoal)', lineHeight: 1.7 }}>{f.desc}</p>
-                </div>
-                <div className="mt-auto">
-                  <Link to="/rooms" className="label-sm flex items-center gap-1 transition-all duration-150"
-                    style={{ color: f.accent, textDecoration: 'none' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.gap = '6px')}
-                    onMouseLeave={(e) => (e.currentTarget.style.gap = '4px')}
-                  >
-                    Tìm hiểu thêm →
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ ROOM TYPES ══════════════════ */}
-      <section className="section-pad-sm" style={{ background: 'var(--canvas)' }}>
-        <div className="container-wide">
-          <div className="text-center mb-8">
-            <p className="label-sm mb-2" style={{ color: 'var(--ash)', letterSpacing: '0.08em' }}>TÌM THEO LOẠI PHÒNG</p>
-            <h2 className="heading-md" style={{ color: 'var(--ink)' }}>Chọn loại phù hợp</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { type: 'Studio', icon: '🏠', count: 284, desc: 'Căn hộ khép kín' },
-              { type: 'Phòng đơn', icon: '🛏️', count: 612, desc: 'Phòng riêng, tiện ích chung' },
-              { type: 'Phòng đôi', icon: '🛋️', count: 198, desc: 'Phòng rộng dành cho 2 người' },
-              { type: 'Phòng tập thể', icon: '🏘️', count: 145, desc: 'Tiết kiệm, tiện nghi đủ dùng' },
-            ].map((cat) => (
-              <Link
-                key={cat.type}
-                to={`/rooms?type=${encodeURIComponent(cat.type)}`}
-                className="card flex flex-col items-center text-center p-6 transition-all duration-200 no-underline"
-                style={{ textDecoration: 'none' }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 2px rgba(234,40,4,0.12)';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--hairline)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                }}
-              >
-                <div className="text-4xl mb-3">{cat.icon}</div>
-                <h3 className="heading-sm mb-1" style={{ color: 'var(--ink)', fontSize: 17 }}>{cat.type}</h3>
-                <p className="body-sm mb-3" style={{ color: 'var(--charcoal)' }}>{cat.desc}</p>
-                <span className="badge badge-neutral">{cat.count} phòng</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ HOW IT WORKS ══════════════════ */}
-      <section className="section-pad" style={{ background: 'var(--surface-dark)' }}>
-        <div className="container-wide">
-          <div className="text-center mb-14">
-            <p className="label-sm mb-3" style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em' }}>QUY TRÌNH ĐƠN GIẢN</p>
-            <h2 className="display-lg" style={{ color: 'var(--on-dark)', lineHeight: 1 }}>Cách hoạt động</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative">
-            {/* Connector line (desktop) */}
-            <div
-              className="hidden md:block absolute top-8 left-1/6 right-1/6 h-px"
-              style={{ background: 'rgba(255,255,255,0.1)', zIndex: 0 }}
-            />
-            {HOW_IT_WORKS.map((step, i) => (
-              <div key={step.step} className="flex flex-col gap-5 relative z-10">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="flex items-center justify-center rounded-2xl text-2xl flex-shrink-0"
-                    style={{
-                      width: 60,
-                      height: 60,
-                      background: i === 0 ? 'var(--primary)' : 'rgba(255,255,255,0.08)',
-                      border: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.12)',
-                    }}
-                  >
-                    {step.icon}
-                  </div>
-                  <span
-                    className="font-bold"
-                    style={{ fontSize: 48, color: 'rgba(255,255,255,0.06)', lineHeight: 1, letterSpacing: '-2px', userSelect: 'none' }}
-                  >
-                    {step.step}
-                  </span>
-                </div>
-                <div>
-                  <span className="caption" style={{ color: 'var(--primary)' }}>BƯỚC {step.step}</span>
-                  <h3 className="heading-sm mt-1 mb-2" style={{ color: 'var(--on-dark)', fontSize: 20 }}>{step.title}</h3>
-                  <p className="body-md" style={{ color: 'var(--on-dark-mute)', lineHeight: 1.7 }}>{step.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ TESTIMONIALS ══════════════════ */}
+      {/* ── Featured Rooms ── */}
       <section className="section-pad" style={{ background: 'var(--canvas)' }}>
         <div className="container-wide">
-          <div className="text-center mb-12">
-            <p className="label-sm mb-3" style={{ color: 'var(--ash)', letterSpacing: '0.08em' }}>ĐÁNH GIÁ TỪ SINH VIÊN</p>
-            <h2 className="heading-lg" style={{ color: 'var(--ink)' }}>Sinh viên nói gì về chúng tôi?</h2>
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="heading-md" style={{ marginBottom: 6 }}>Featured Rooms</h2>
+              <p className="body-md text-charcoal">Hand-picked premium rooms across Vietnam's top destinations</p>
+            </div>
+            <Link to="/rooms" className="btn-ghost">View all rooms →</Link>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {FEATURED_ROOMS.map(room => <RoomCard key={room.id} room={room} />)}
+          </div>
+        </div>
+      </section>
 
+      {/* ── Featured Properties ── */}
+      <section className="section-pad-sm" style={{ background: 'var(--surface-bone)' }}>
+        <div className="container-wide">
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="heading-md" style={{ marginBottom: 6 }}>Our Properties</h2>
+              <p className="body-md text-charcoal">Premium homestays and resorts in Vietnam's top destinations</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t) => (
-              <div
-                key={t.id}
-                className="card-lg p-6 flex flex-col gap-4 transition-all duration-200"
-                style={{ background: 'var(--surface-card)' }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 10px 28px rgba(32,32,32,0.09)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '';
-                }}
-              >
-                {/* Stars */}
-                <div className="flex gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <svg key={i} width="16" height="16" viewBox="0 0 24 24"
-                      fill={i < t.rating ? '#f59e0b' : 'var(--hairline)'}
-                      stroke="none">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  ))}
-                </div>
-
-                {/* Quote */}
-                <p className="body-md flex-1" style={{ color: 'var(--charcoal)', lineHeight: 1.75, fontStyle: 'italic' }}>
-                  "{t.text}"
-                </p>
-
-                {/* Author */}
-                <div className="flex items-center gap-3 pt-4" style={{ borderTop: '1px solid var(--hairline)' }}>
-                  <div
-                    className="flex items-center justify-center rounded-full font-bold text-sm flex-shrink-0"
-                    style={{
-                      width: 42,
-                      height: 42,
-                      background: t.avatarBg,
-                      color: t.avatarColor,
-                    }}
-                  >
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>{t.name}</p>
-                    <p className="caption" style={{ color: 'var(--ash)' }}>{t.school}</p>
+            {FEATURED_PROPERTIES.map(prop => (
+              <div key={prop.id} className="card" style={{ overflow: 'hidden', cursor: 'pointer' }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = '')}>
+                <img src={prop.image} alt={prop.name} style={{ width: '100%', height: 180, objectFit: 'cover' }} />
+                <div style={{ padding: 20 }}>
+                  <h3 className="heading-sm" style={{ marginBottom: 4 }}>{prop.name}</h3>
+                  <p className="body-sm text-charcoal" style={{ marginBottom: 12 }}>📍 {prop.address}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-3">
+                      <span className="badge badge-neutral">{prop.roomCount} rooms</span>
+                      <span className="badge badge-success">{prop.availableCount} available</span>
+                    </div>
+                    <Link to={`/search?location=${encodeURIComponent(prop.name)}`} className="btn-ghost btn-sm">Explore →</Link>
                   </div>
                 </div>
               </div>
@@ -565,44 +320,42 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════ CTA ══════════════════ */}
-      <section
-        className="section-pad-sm relative overflow-hidden"
-        style={{ background: 'var(--primary)' }}
-      >
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 60% 80% at 30% 50%, rgba(255,255,255,0.08) 0%, transparent 60%),' +
-              'radial-gradient(ellipse 40% 60% at 80% 30%, rgba(255,106,61,0.3) 0%, transparent 50%)',
-          }}
-        />
-        <div className="container-wide text-center relative z-10">
-          <h2
-            className="display-md mb-4"
-            style={{ color: '#fff', letterSpacing: '-0.5px' }}
-          >
-            Sẵn sàng tìm phòng ký túc xá?
-          </h2>
-          <p className="body-lg mb-10" style={{ color: 'rgba(255,255,255,0.82)', maxWidth: 460, margin: '0 auto 40px' }}>
-            Tham gia cùng hàng nghìn sinh viên đã đăng ký phòng qua KTX Manager.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/rooms"
-              className="btn-dark"
-              style={{ height: 52, padding: '0 36px', fontSize: 16 }}
-            >
-              Tìm phòng ngay
-            </Link>
-            <Link
-              to="/register"
-              className="btn-outline"
-              style={{ height: 52, padding: '0 36px', fontSize: 16, background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}
-            >
-              Tạo tài khoản
-            </Link>
+      {/* ── How it Works ── */}
+      <section className="section-pad" style={{ background: 'var(--surface-dark)' }}>
+        <div className="container-wide">
+          <h2 className="display-md text-on-dark" style={{ marginBottom: 12 }}>How It Works</h2>
+          <p className="body-lg" style={{ color: 'var(--on-dark-mute)', marginBottom: 56 }}>Book your perfect stay in 3 simple steps</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {HOW_IT_WORKS.map((step) => (
+              <div key={step.step}>
+                <div className="display-lg text-primary" style={{ marginBottom: 16 }}>{step.step}</div>
+                <h3 className="heading-sm text-on-dark" style={{ marginBottom: 10 }}>{step.title}</h3>
+                <p className="body-md" style={{ color: 'var(--on-dark-mute)', lineHeight: 1.7 }}>{step.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 56, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Link to="/rooms" className="btn-primary">Browse Rooms</Link>
+            <Link to="/register" className="btn-outline" style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--on-dark)', background: 'transparent' }}>Create Account</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stats Band ── */}
+      <section className="section-pad-sm" style={{ background: 'var(--canvas)' }}>
+        <div className="container-wide">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {[
+              { value: '50+',  label: 'Properties' },
+              { value: '300+', label: 'Rooms' },
+              { value: '5K+',  label: 'Happy Guests' },
+              { value: '4.8',  label: 'Average Rating' },
+            ].map(stat => (
+              <div key={stat.label}>
+                <div className="display-md text-primary" style={{ marginBottom: 6 }}>{stat.value}</div>
+                <p className="body-sm text-charcoal">{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

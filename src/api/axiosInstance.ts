@@ -7,6 +7,7 @@ const api = axios.create({
   timeout: 10000,
 });
 
+// Gắn Access Token vào mọi request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token) {
@@ -15,28 +16,47 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Xử lý 401 — tự động refresh token rồi retry request gốc
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== '/api/auth/login' && originalRequest.url !== '/api/auth/refresh') {
+
+    const isUnauthorized = error.response?.status === 401;
+    const isNotRetried   = !originalRequest._retry;
+    const isNotAuthRoute = !originalRequest.url?.includes('/api/auth/login')
+                        && !originalRequest.url?.includes('/api/auth/refresh');
+
+    if (isUnauthorized && isNotRetried && isNotAuthRoute) {
       originalRequest._retry = true;
-      try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
+
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
           const res = await authApi.refreshToken(refreshToken);
+
           if (res.success && res.data) {
-             localStorage.setItem('accessToken', res.data.accessToken);
-             localStorage.setItem('refreshToken', res.data.refreshToken);
-             originalRequest.headers.Authorization = `Bearer ${res.data.accessToken}`;
-             return api(originalRequest);
+            // Cập nhật tokens trong localStorage
+            localStorage.setItem('accessToken',  res.data.accessToken);
+            localStorage.setItem('refreshToken', res.data.refreshToken);
+
+            // Đồng bộ Zustand store với data mới
+            useAuthStore.getState().login(res.data);
+
+            // Retry request gốc với token mới
+            originalRequest.headers.Authorization = `Bearer ${res.data.accessToken}`;
+            return api(originalRequest);
           }
+        } catch {
+          // Refresh thất bại — đăng xuất và redirect
         }
-      } catch (refreshError) {
-        useAuthStore.getState().logout();
-        window.location.href = '/login';
       }
+
+      // Không có refresh token hoặc refresh thất bại → logout
+      useAuthStore.getState().logout();
+      window.location.href = '/login';
     }
+
     return Promise.reject(error);
   }
 );
