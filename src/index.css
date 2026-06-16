@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,21 +6,21 @@
 
 @layer base {
   :root {
-    /* ── Brand & Accent ── */
+    /* ΓöÇΓöÇ Brand & Accent ΓöÇΓöÇ */
     --primary:          #ea2804;
     --primary-deep:     #c01f00;
     --on-primary:       #ffffff;
     --hero-glow:        #ff6a3d;
     --hero-pink:        #f4a8a0;
 
-    /* ── Surfaces ── */
+    /* ΓöÇΓöÇ Surfaces ΓöÇΓöÇ */
     --canvas:           #f9f7f3;
     --surface-bone:     #f3f0e8;
     --surface-card:     #ffffff;
     --surface-dark:     #202020;
     --surface-deep:     #000000;
 
-    /* ── Text ── */
+    /* ΓöÇΓöÇ Text ΓöÇΓöÇ */
     --ink:              #202020;
     --body:             #3a3a3a;
     --charcoal:         #575757;
@@ -30,12 +30,12 @@
     --on-dark:          #fcfcfc;
     --on-dark-mute:     rgba(252,252,252,0.72);
 
-    /* ── Borders ── */
+    /* ΓöÇΓöÇ Borders ΓöÇΓöÇ */
     --hairline:         rgba(32,32,32,0.12);
     --hairline-strong:  #202020;
     --divider-dark:     rgba(255,255,255,0.2);
 
-    /* ── Semantic Status ── */
+    /* ΓöÇΓöÇ Semantic Status ΓöÇΓöÇ */
     --success:          #2b9a66;
     --warning:          #F59E0B;
     --error:            #DC2626;
@@ -43,7 +43,7 @@
     --neutral:          #6B7280;
     --purple:           #7C3AED;
 
-    /* ── Focus ── */
+    /* ΓöÇΓöÇ Focus ΓöÇΓöÇ */
     --focus-ring:       rgba(59,130,246,0.5);
     --link:             #ea2804;
   }
@@ -76,9 +76,9 @@
 }
 
 @layer components {
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      BUTTONS
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-all duration-150 select-none cursor-pointer whitespace-nowrap;
     font-size: 16px;
@@ -146,9 +146,9 @@
   .btn-sm { height: 36px; padding: 0 16px; font-size: 14px; }
   .btn-lg { height: 48px; padding: 0 28px; }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      INPUTS
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .input {
     @apply w-full transition-all duration-150 outline-none;
     font-family: 'Inter', sans-serif;
@@ -190,9 +190,9 @@
     padding-right: 44px;
   }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      BADGES
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .badge {
     @apply inline-flex items-center gap-1 rounded-full font-semibold whitespace-nowrap select-none;
     font-size: 12px;
@@ -208,9 +208,9 @@
   .badge-tag     { background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); }
   .badge-primary { background: #fff1ee; color: var(--primary); }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      CARDS
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .card {
     background: var(--surface-card);
     border-radius: 10px;
@@ -231,9 +231,9 @@
     border-radius: 10px;
   }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      ALERTS
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .alert {
     @apply flex items-start gap-3 rounded-xl p-4 text-sm;
     border-left: 3px solid transparent;
@@ -243,9 +243,9 @@
   .alert-error   { background: #fef2f2; color: #991b1b; border-left-color: #DC2626; }
   .alert-info    { background: #eff6ff; color: #1e40af; border-left-color: #2563EB; }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      FORM ELEMENTS
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .form-label {
     @apply block text-sm font-semibold mb-1.5;
     color: var(--ink);
@@ -254,9 +254,9 @@
   .form-hint { @apply block text-xs mt-1; color: var(--ash); }
   .form-error { @apply block text-xs mt-1 font-medium; color: var(--error); }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      NAV & LAYOUT
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .nav-link {
     @apply text-sm font-semibold transition-colors duration-150;
     color: var(--charcoal);
@@ -273,9 +273,9 @@
   .sidebar-item:hover { background: rgba(255,255,255,0.07); color: var(--on-dark); }
   .sidebar-item.active { background: rgba(234,40,4,0.15); color: var(--primary); }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      TABLES
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .table-wrap {
     @apply w-full overflow-x-auto;
     background: var(--surface-card);
@@ -293,18 +293,18 @@
   .data-table tbody tr:last-child td { border-bottom: none; }
   .data-table tbody tr:hover td { background: var(--surface-bone); }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      CONTAINERS
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .container-wide   { max-width: 1280px; margin-left: auto; margin-right: auto; padding-left: 32px; padding-right: 32px; }
   .container-narrow { max-width: 480px;  margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; }
   .container-md     { max-width: 720px;  margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; }
   .section-pad      { padding-top: 96px; padding-bottom: 96px; }
   .section-pad-sm   { padding-top: 64px; padding-bottom: 64px; }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      TAB PILLS
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .tab-pill {
     @apply inline-flex items-center rounded-full font-semibold transition-all duration-150 cursor-pointer select-none;
     font-size: 14px;
@@ -316,18 +316,18 @@
   .tab-pill:hover { color: var(--ink); background: var(--surface-bone); }
   .tab-pill.active { background: var(--primary); color: #ffffff; }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      KPI CARD
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .kpi-card {
     @apply card-lg p-6 flex flex-col gap-3;
   }
   .kpi-value { font-family: 'Bricolage Grotesque', sans-serif; font-size: 36px; font-weight: 700; line-height: 1.0; letter-spacing: -1px; color: var(--ink); }
   .kpi-label { font-size: 14px; font-weight: 400; color: var(--charcoal); }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      SKELETON
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .skeleton {
     background: linear-gradient(90deg, var(--surface-bone) 25%, #ede8dc 50%, var(--surface-bone) 75%);
     background-size: 1000px 100%;
@@ -335,15 +335,15 @@
     border-radius: 8px;
   }
 
-  /* ─────────────────────────────────────
+  /* ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
      DIVIDERS
-  ───────────────────────────────────── */
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
   .divider { border: none; border-top: 1px solid var(--hairline); }
   .divider-dark { border: none; border-top: 1px solid var(--divider-dark); }
 }
 
 @layer utilities {
-  /* ── Typography Scale ── */
+  /* ΓöÇΓöÇ Typography Scale ΓöÇΓöÇ */
   .display-xxl { font-family: 'Bricolage Grotesque', sans-serif; font-size: 120px; font-weight: 800; line-height: 1.0; letter-spacing: -3px; }
   .display-xl  { font-family: 'Bricolage Grotesque', sans-serif; font-size: 72px;  font-weight: 700; line-height: 1.0; letter-spacing: -1.8px; }
   .display-lg  { font-family: 'Bricolage Grotesque', sans-serif; font-size: 48px;  font-weight: 700; line-height: 1.0; letter-spacing: -1px; }
@@ -380,7 +380,7 @@
     .display-xl  { font-size: 30px; letter-spacing: -0.5px; }
   }
 
-  /* ── Color Utilities ── */
+  /* ΓöÇΓöÇ Color Utilities ΓöÇΓöÇ */
   .bg-canvas        { background-color: var(--canvas); }
   .bg-bone          { background-color: var(--surface-bone); }
   .bg-card          { background-color: var(--surface-card); }
@@ -402,7 +402,7 @@
   .border-hairline  { border-color: var(--hairline); }
   .border-hairline-strong { border-color: var(--hairline-strong); }
 
-  /* ── Shadows ── */
+  /* ΓöÇΓöÇ Shadows ΓöÇΓöÇ */
   .shadow-xs    { box-shadow: 0 1px 2px rgba(32,32,32,0.06); }
   .shadow-sm    { box-shadow: 0 2px 8px rgba(32,32,32,0.08); }
   .shadow-md    { box-shadow: 0 4px 16px rgba(32,32,32,0.10); }
@@ -410,13 +410,13 @@
   .shadow-float { box-shadow: 0 8px 24px rgba(32,32,32,0.08); }
   .shadow-primary { box-shadow: 0 4px 16px rgba(234,40,4,0.30); }
 
-  /* ── Animations ── */
+  /* ΓöÇΓöÇ Animations ΓöÇΓöÇ */
   .animate-fade-in  { animation: fadeIn 200ms ease-out; }
   .animate-fade-up  { animation: fadeInUp 350ms ease-out; }
   .animate-scale-in { animation: scaleIn 250ms ease-out; }
 }
 
-/* ── Keyframes ── */
+/* ΓöÇΓöÇ Keyframes ΓöÇΓöÇ */
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -436,4 +436,8 @@
 @keyframes slideInRight {
   from { transform: translateX(100%); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
