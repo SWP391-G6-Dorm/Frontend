@@ -1,333 +1,287 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
 
-// SCR-07 — Room Listing
-// Entity: Room · Property · BlockFloor · RoomImage
-// Filter fields map to: Room.pricePerMonth · Room.roomType · Room.genderType · Room.capacity · Property.address
-
-const ALL_ROOMS = [
-  { id: '1', roomNumber: 'A-301', roomType: 'Studio', pricePerMonth: 3500000, capacity: 2, area: 25, genderType: 'Mixed', status: 'AVAILABLE', propertyName: 'Sunset Apartments', address: '125 Nguyen Hue, District 1, HCMC', imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80', amenities: ['WiFi', 'AC', 'Kitchen'], blockName: 'A', floorNumber: 3 },
-  { id: '2', roomNumber: 'B-102', roomType: 'Single Room', pricePerMonth: 2200000, capacity: 1, area: 18, genderType: 'Female', status: 'AVAILABLE', propertyName: 'Green House', address: '88 Le Van Viet, Thu Duc', imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80', amenities: ['WiFi', 'Laundry', 'Security'], blockName: 'B', floorNumber: 1 },
-  { id: '3', roomNumber: 'C-203', roomType: 'Double Room', pricePerMonth: 4800000, capacity: 2, area: 32, genderType: 'Mixed', status: 'AVAILABLE', propertyName: 'City Center', address: '45 Tran Hung Dao, District 5', imageUrl: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80', amenities: ['WiFi', 'AC', 'Parking', 'Gym'], blockName: 'C', floorNumber: 2 },
-  { id: '4', roomNumber: 'D-401', roomType: 'Studio', pricePerMonth: 3000000, capacity: 1, area: 22, genderType: 'Male', status: 'AVAILABLE', propertyName: 'Riverside View', address: '210 Vo Thi Sau, District 3', imageUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80', amenities: ['WiFi', 'AC', 'Balcony'], blockName: 'D', floorNumber: 4 },
-  { id: '5', roomNumber: 'E-115', roomType: 'Dormitory', pricePerMonth: 1500000, capacity: 4, area: 40, genderType: 'Male', status: 'OCCUPIED', propertyName: 'Student Quarter', address: '3 Pham Van Dong, Thu Duc', imageUrl: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80', amenities: ['WiFi', 'Laundry'], blockName: 'E', floorNumber: 1 },
-  { id: '6', roomNumber: 'F-222', roomType: 'Single Room', pricePerMonth: 2800000, capacity: 1, area: 20, genderType: 'Female', status: 'AVAILABLE', propertyName: 'Blossom Boarding', address: '67 Nguyen Trai, District 1', imageUrl: 'https://images.unsplash.com/photo-1574362848149-11496d93a7c7?w=600&q=80', amenities: ['WiFi', 'AC', 'Kitchen'], blockName: 'F', floorNumber: 2 },
-  { id: '7', roomNumber: 'G-301', roomType: 'Double Room', pricePerMonth: 5200000, capacity: 2, area: 35, genderType: 'Mixed', status: 'AVAILABLE', propertyName: 'Park View Tower', address: '18 Le Duan, District 1', imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?w=600&q=80', amenities: ['WiFi', 'AC', 'Parking', 'Gym', 'Security'], blockName: 'G', floorNumber: 3 },
-  { id: '8', roomNumber: 'H-104', roomType: 'Studio', pricePerMonth: 2600000, capacity: 1, area: 20, genderType: 'Female', status: 'AVAILABLE', propertyName: 'Pink Garden', address: '22 Hoang Van Thu, Phu Nhuan', imageUrl: 'https://images.unsplash.com/photo-1556912173-3bb406ef7e97?w=600&q=80', amenities: ['WiFi', 'Kitchen', 'Laundry'], blockName: 'H', floorNumber: 1 },
-  { id: '9', roomNumber: 'I-201', roomType: 'Single Room', pricePerMonth: 1900000, capacity: 1, area: 16, genderType: 'Male', status: 'RESERVED', propertyName: 'Budget Zone', address: '55 Nguyen Oanh, Go Vap', imageUrl: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&q=80', amenities: ['WiFi', 'Security'], blockName: 'I', floorNumber: 2 },
+const ROOM_TYPES = ['Studio', 'Standard', 'Deluxe', 'Suite', 'Villa'];
+const MOCK_ROOMS = [
+  { id: '1', roomNumber: 'Villa 01',    roomType: 'Villa',    pricePerNight: 2500000, capacity: 4, area: 80, status: 'AVAILABLE',   primaryImageUrl: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=280&fit=crop', propertyName: 'Sunset Resort Đà Nẵng',   location: 'Đà Nẵng',  rating: 4.8, reviews: 124 },
+  { id: '2', roomNumber: 'Deluxe 05',  roomType: 'Deluxe',   pricePerNight: 1200000, capacity: 2, area: 35, status: 'AVAILABLE',   primaryImageUrl: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&h=280&fit=crop', propertyName: 'Mountain View Homestay',        location: 'Đà Lạt',   rating: 4.6, reviews: 89  },
+  { id: '3', roomNumber: 'Suite 03',   roomType: 'Suite',    pricePerNight: 1800000, capacity: 3, area: 55, status: 'RESERVED',    primaryImageUrl: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=400&h=280&fit=crop', propertyName: 'Hội An Garden Villa',         location: 'Hội An',   rating: 4.9, reviews: 210 },
+  { id: '4', roomNumber: 'Standard 12',roomType: 'Standard', pricePerNight:  750000, capacity: 2, area: 28, status: 'AVAILABLE',   primaryImageUrl: 'https://images.unsplash.com/photo-1560185007-5f0bb1866cab?w=400&h=280&fit=crop', propertyName: 'Phú Quốc Beach House',        location: 'Phú Quốc', rating: 4.4, reviews: 67  },
+  { id: '5', roomNumber: 'Studio 08',  roomType: 'Studio',   pricePerNight:  600000, capacity: 1, area: 20, status: 'AVAILABLE',   primaryImageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=400&h=280&fit=crop', propertyName: 'Hà Nội Old Quarter Inn',       location: 'Hà Nội',   rating: 4.2, reviews: 43  },
+  { id: '6', roomNumber: 'Deluxe 09',  roomType: 'Deluxe',   pricePerNight: 1350000, capacity: 2, area: 40, status: 'MAINTENANCE', primaryImageUrl: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=280&fit=crop', propertyName: 'Nha Trang Beach Resort',         location: 'Nha Trang', rating: 4.5, reviews: 156 },
 ];
 
-const ROOM_TYPES = ['Studio', 'Single Room', 'Double Room', 'Dormitory'];
-const GENDER_TYPES = ['Any', 'Male', 'Female', 'Mixed'];
-const SORT_OPTIONS = [
-  { label: 'Newest First',     value: 'newest' },
-  { label: 'Price: Low → High', value: 'price_asc' },
-  { label: 'Price: High → Low', value: 'price_desc' },
-];
-
-function formatPrice(p: number) { return '₫' + p.toLocaleString('vi-VN'); }
+// Unique locations derived from mock data
+const ALL_LOCATIONS = [...new Set(MOCK_ROOMS.map(r => r.location))];
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    AVAILABLE: 'badge-success', OCCUPIED: 'badge-error',
-    RESERVED: 'badge-warning', MAINTENANCE: 'badge-info',
+  const map: Record<string, { cls: string; label: string }> = {
+    AVAILABLE:       { cls: 'badge-success', label: 'Available' },
+    PENDING_DEPOSIT: { cls: 'badge-warning', label: 'Pending' },
+    RESERVED:        { cls: 'badge-info',    label: 'Reserved' },
+    OCCUPIED:        { cls: 'badge-neutral', label: 'Occupied' },
+    MAINTENANCE:     { cls: 'badge-neutral', label: 'Maintenance' },
   };
-  const labels: Record<string, string> = {
-    AVAILABLE: 'Available', OCCUPIED: 'Occupied',
-    RESERVED: 'Reserved', MAINTENANCE: 'Maintenance',
-  };
-  return <span className={`badge ${map[status] ?? 'badge-neutral'}`}>{labels[status] ?? status}</span>;
+  const s = map[status] || { cls: 'badge-neutral', label: status };
+  return <span className={`badge ${s.cls}`}>{s.label}</span>;
 }
 
-export default function RoomListingPage() {
-  const [searchParams] = useSearchParams();
-
-  // Filter states → entity attributes
-  const [location, setLocation] = useState(searchParams.get('location') || '');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
-  const [types, setTypes] = useState<string[]>(
-    searchParams.get('type') ? [searchParams.get('type')!] : []
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+      {[1,2,3,4,5].map(i => (
+        <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill={i <= Math.round(rating) ? '#ea2804' : '#e5e7eb'}>
+          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+        </svg>
+      ))}
+      <span className="body-sm text-charcoal" style={{ marginLeft: 2 }}>{rating}</span>
+    </div>
   );
-  const [gender, setGender] = useState('Any');
-  const [sort, setSort] = useState('newest');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 6;
+}
 
-  // Apply filters (entity-attribute driven)
-  const filtered = ALL_ROOMS.filter((r) => {
-    if (location && !r.address.toLowerCase().includes(location.toLowerCase()) &&
-        !r.propertyName.toLowerCase().includes(location.toLowerCase())) return false;
-    if (minPrice && r.pricePerMonth < Number(minPrice)) return false;
-    if (maxPrice && r.pricePerMonth > Number(maxPrice)) return false;
-    if (types.length > 0 && !types.includes(r.roomType)) return false;
-    if (gender !== 'Any' && r.genderType !== gender) return false;
+export function RoomListingContent() {
+  const [params] = useSearchParams();
+
+  // Pre-fill filters from URL params
+  const urlLocation  = params.get('location')  || '';
+  const urlGuests    = params.get('guests')     || '';
+  const urlCheckIn   = params.get('checkIn')    || '';
+  const urlCheckOut  = params.get('checkOut')   || '';
+
+  // If URL location matches one of our known locations exactly, pre-check it
+  const initLocations = ALL_LOCATIONS.filter(l =>
+    urlLocation && l.toLowerCase().includes(urlLocation.toLowerCase())
+  );
+
+  const [filters, setFilters] = useState({
+    location: initLocations,   // string[]
+    roomType: [] as string[],
+    minPrice: '',
+    maxPrice: '',
+    guests: urlGuests,
+    checkIn: urlCheckIn,
+    checkOut: urlCheckOut,
+  });
+  const [sort, setSort] = useState('newest');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const filtered = MOCK_ROOMS.filter(r => {
+    if (filters.location.length && !filters.location.includes(r.location)) return false;
+    if (filters.roomType.length && !filters.roomType.includes(r.roomType))  return false;
+    if (filters.minPrice && r.pricePerNight < Number(filters.minPrice)) return false;
+    if (filters.maxPrice && r.pricePerNight > Number(filters.maxPrice)) return false;
+    if (filters.guests && r.capacity < Number(filters.guests)) return false;
     return true;
   }).sort((a, b) => {
-    if (sort === 'price_asc') return a.pricePerMonth - b.pricePerMonth;
-    if (sort === 'price_desc') return b.pricePerMonth - a.pricePerMonth;
-    return Number(b.id) - Number(a.id);
+    if (sort === 'price-asc')  return a.pricePerNight - b.pricePerNight;
+    if (sort === 'price-desc') return b.pricePerNight - a.pricePerNight;
+    if (sort === 'rating')     return b.rating - a.rating;
+    return 0;
   });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
   function toggleType(t: string) {
-    setTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-    setCurrentPage(1);
+    setFilters(p => ({
+      ...p,
+      roomType: p.roomType.includes(t) ? p.roomType.filter(x => x !== t) : [...p.roomType, t],
+    }));
+  }
+
+  function toggleLocation(loc: string) {
+    setFilters(p => ({
+      ...p,
+      location: p.location.includes(loc) ? p.location.filter(x => x !== loc) : [...p.location, loc],
+    }));
   }
 
   function clearFilters() {
-    setLocation(''); setMinPrice(''); setMaxPrice('');
-    setTypes([]); setGender('Any'); setCurrentPage(1);
+    setFilters({ location: [], roomType: [], minPrice: '', maxPrice: '', guests: '', checkIn: '', checkOut: '' });
   }
 
-  const hasActiveFilters = location || minPrice || maxPrice || types.length > 0 || gender !== 'Any';
+  const FilterPanel = () => (
+    <div className="card" style={{ padding: 20 }}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
+        <h3 className="heading-sm">Filters</h3>
+        <button className="btn-ghost btn-sm" onClick={clearFilters} style={{ color: 'var(--primary)' }}>Clear All</button>
+      </div>
 
-  return (
-    <PublicLayout>
-      <div className="container-wide section-pad-sm">
-        <div className="flex gap-8">
+      {/* Location */}
+      <div style={{ marginBottom: 20 }}>
+        <p className="form-label" style={{ marginBottom: 10 }}>Location</p>
+        {ALL_LOCATIONS.map(loc => (
+          <label key={loc} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 }}>
+            <input type="checkbox" checked={filters.location.includes(loc)} onChange={() => toggleLocation(loc)}
+              style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }} />
+            <span className="body-sm">{loc}</span>
+          </label>
+        ))}
+      </div>
 
-          {/* ── FILTER SIDEBAR ── */}
-          <aside
-            className="hidden lg:block flex-shrink-0"
-            style={{ width: 280 }}
-          >
-            <div
-              className="card sticky top-20"
-              style={{ padding: 24 }}
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="heading-sm" style={{ color: 'var(--ink)' }}>Filter Rooms</h2>
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="body-sm font-semibold"
-                    style={{ color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}
-                  >
-                    Clear all
-                  </button>
-                )}
-              </div>
+      {/* Check-in / Check-out */}
+      <div style={{ marginBottom: 20 }}>
+        <p className="form-label">Check-in Date</p>
+        <input type="date" className="input" value={filters.checkIn} onChange={e => setFilters(p => ({ ...p, checkIn: e.target.value }))} />
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <p className="form-label">Check-out Date</p>
+        <input type="date" className="input" value={filters.checkOut} onChange={e => setFilters(p => ({ ...p, checkOut: e.target.value }))} />
+      </div>
 
-              {/* Location → Property.address */}
-              <div className="mb-5">
-                <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Location</label>
-                <input
-                  type="text"
-                  className="input-field-rect"
-                  placeholder="City, district, street…"
-                  value={location}
-                  onChange={(e) => { setLocation(e.target.value); setCurrentPage(1); }}
-                />
-              </div>
+      {/* Room type */}
+      <div style={{ marginBottom: 20 }}>
+        <p className="form-label" style={{ marginBottom: 10 }}>Room Type</p>
+        {ROOM_TYPES.map(type => (
+          <label key={type} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 }}>
+            <input type="checkbox" checked={filters.roomType.includes(type)} onChange={() => toggleType(type)}
+              style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }} />
+            <span className="body-sm">{type}</span>
+          </label>
+        ))}
+      </div>
 
-              {/* Price Range → Room.pricePerMonth */}
-              <div className="mb-5">
-                <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Price Range (₫/month)</label>
-                <div className="flex gap-2">
-                  <input type="number" className="input-field-rect" placeholder="Min" value={minPrice} onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(1); }} />
-                  <input type="number" className="input-field-rect" placeholder="Max" value={maxPrice} onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }} />
-                </div>
-              </div>
-
-              {/* Room Type → Room.roomType */}
-              <div className="mb-5">
-                <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Room Type</label>
-                <div className="flex flex-col gap-2">
-                  {ROOM_TYPES.map((t) => (
-                    <label key={t} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={types.includes(t)}
-                        onChange={() => toggleType(t)}
-                        style={{ accentColor: 'var(--primary)', width: 16, height: 16 }}
-                      />
-                      <span className="body-sm" style={{ color: 'var(--ink)' }}>{t}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Gender Type → Room.genderType */}
-              <div className="mb-5">
-                <label className="label-sm block mb-2" style={{ color: 'var(--ink)' }}>Gender Type</label>
-                <div className="flex flex-col gap-2">
-                  {GENDER_TYPES.map((g) => (
-                    <label key={g} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="gender"
-                        checked={gender === g}
-                        onChange={() => { setGender(g); setCurrentPage(1); }}
-                        style={{ accentColor: 'var(--primary)', width: 16, height: 16 }}
-                      />
-                      <span className="body-sm" style={{ color: 'var(--ink)' }}>{g}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          {/* ── MAIN CONTENT ── */}
-          <div className="flex-1 min-w-0">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-              <p className="body-md" style={{ color: 'var(--charcoal)' }}>
-                <span className="font-semibold" style={{ color: 'var(--ink)' }}>{filtered.length}</span> rooms found
-              </p>
-              <div className="flex items-center gap-3">
-                {/* Sort */}
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                  className="input-field-rect body-sm"
-                  style={{ width: 'auto', height: 38, paddingTop: 0, paddingBottom: 0 }}
-                >
-                  {SORT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-
-                {/* View toggle */}
-                <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--hairline)' }}>
-                  {(['grid', 'list'] as const).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setView(v)}
-                      className="px-3 py-2 transition-colors"
-                      style={{
-                        background: view === v ? 'var(--surface-dark)' : 'var(--surface-card)',
-                        color: view === v ? 'var(--on-dark)' : 'var(--charcoal)',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 16,
-                      }}
-                    >
-                      {v === 'grid' ? '⊞' : '≡'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Empty State */}
-            {paginated.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="text-5xl mb-4">🔍</div>
-                <h3 className="heading-sm mb-2" style={{ color: 'var(--ink)' }}>No rooms match your filters</h3>
-                <p className="body-md mb-6" style={{ color: 'var(--charcoal)' }}>Try adjusting your filters to see more results.</p>
-                <button onClick={clearFilters} className="btn-primary">Clear Filters</button>
-              </div>
-            ) : (
-              <>
-                {/* Room Grid */}
-                <div className={`${view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5' : 'flex flex-col gap-4'}`}>
-                  {paginated.map((room) => (
-                    view === 'grid' ? (
-                      <Link key={room.id} to={`/rooms/${room.id}`} style={{ textDecoration: 'none' }}>
-                        <div
-                          className="card overflow-hidden transition-all duration-200 h-full flex flex-col"
-                          style={{ cursor: 'pointer' }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px rgba(32,32,32,0.10)'; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}
-                        >
-                          <div className="relative" style={{ height: 180 }}>
-                            <img src={room.imageUrl} alt={room.roomNumber} className="w-full h-full object-cover" />
-                            <div className="absolute top-3 left-3"><StatusBadge status={room.status} /></div>
-                          </div>
-                          <div className="p-4 flex flex-col flex-1 gap-2">
-                            <p className="caption" style={{ color: 'var(--ash)' }}>{room.propertyName}</p>
-                            <h3 className="heading-sm" style={{ color: 'var(--ink)' }}>{room.roomNumber} — {room.roomType}</h3>
-                            <p className="body-sm flex items-center gap-1" style={{ color: 'var(--charcoal)' }}>📍 {room.address}</p>
-                            <div className="flex gap-3 text-xs" style={{ color: 'var(--muted)' }}>
-                              <span>👥 {room.capacity}</span><span>📐 {room.area}m²</span><span>⚤ {room.genderType}</span>
-                            </div>
-                            <div className="flex items-center justify-between pt-2 mt-auto border-t" style={{ borderColor: 'var(--hairline)' }}>
-                              <span>
-                                <span className="font-bold" style={{ color: 'var(--primary)', fontSize: 17 }}>{formatPrice(room.pricePerMonth)}</span>
-                                <span className="caption" style={{ color: 'var(--ash)' }}>/mo</span>
-                              </span>
-                              <span className="btn-outline" style={{ height: 30, padding: '0 12px', fontSize: 12 }}>View →</span>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    ) : (
-                      /* List view */
-                      <Link key={room.id} to={`/rooms/${room.id}`} style={{ textDecoration: 'none' }}>
-                        <div
-                          className="card overflow-hidden flex transition-all duration-200"
-                          style={{ cursor: 'pointer' }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(32,32,32,0.10)'; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}
-                        >
-                          <img src={room.imageUrl} alt={room.roomNumber} style={{ width: 160, height: 120, objectFit: 'cover', flexShrink: 0 }} />
-                          <div className="flex-1 p-4 flex items-center justify-between gap-4">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <h3 className="heading-sm" style={{ color: 'var(--ink)' }}>{room.roomNumber} — {room.roomType}</h3>
-                                <StatusBadge status={room.status} />
-                              </div>
-                              <p className="body-sm" style={{ color: 'var(--ash)' }}>{room.propertyName} · {room.address}</p>
-                              <div className="flex gap-3 text-xs" style={{ color: 'var(--muted)' }}>
-                                <span>👥 {room.capacity}</span><span>📐 {room.area}m²</span><span>⚤ {room.genderType}</span>
-                              </div>
-                            </div>
-                            <div className="flex-shrink-0 text-right">
-                              <div className="font-bold" style={{ color: 'var(--primary)', fontSize: 18 }}>{formatPrice(room.pricePerMonth)}</div>
-                              <div className="caption mb-2" style={{ color: 'var(--ash)' }}>/month</div>
-                              <span className="btn-outline" style={{ height: 32, padding: '0 14px', fontSize: 13 }}>View Details</span>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    )
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-10">
-                    <button
-                      className="btn-outline"
-                      style={{ height: 36, padding: '0 14px', fontSize: 13 }}
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >← Prev</button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setCurrentPage(p)}
-                        className="rounded-full font-semibold text-sm transition-colors"
-                        style={{
-                          width: 36, height: 36,
-                          background: p === currentPage ? 'var(--ink)' : 'var(--surface-card)',
-                          color: p === currentPage ? 'var(--on-dark)' : 'var(--charcoal)',
-                          border: '1px solid var(--hairline)',
-                          cursor: 'pointer',
-                        }}
-                      >{p}</button>
-                    ))}
-                    <button
-                      className="btn-outline"
-                      style={{ height: 36, padding: '0 14px', fontSize: 13 }}
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >Next →</button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+      {/* Price range */}
+      <div style={{ marginBottom: 20 }}>
+        <p className="form-label" style={{ marginBottom: 10 }}>Price Range (₫/night)</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input type="number" className="input" placeholder="Min" value={filters.minPrice} onChange={e => setFilters(p => ({ ...p, minPrice: e.target.value }))} />
+          <input type="number" className="input" placeholder="Max" value={filters.maxPrice} onChange={e => setFilters(p => ({ ...p, maxPrice: e.target.value }))} />
         </div>
       </div>
+
+      {/* Guests */}
+      <div style={{ marginBottom: 20 }}>
+        <p className="form-label">Minimum Guests</p>
+        <input type="number" min={1} max={20} className="input" placeholder="2" value={filters.guests} onChange={e => setFilters(p => ({ ...p, guests: e.target.value }))} />
+      </div>
+
+      <button className="btn-primary" style={{ width: '100%' }} onClick={() => setSidebarOpen(false)}>
+        Apply Filters
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="container-wide section-pad-sm">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 24 }}>
+        <Link to="/" className="text-primary" style={{ textDecoration: 'none' }}>Home</Link>
+        <span>›</span>
+        <span className="text-ink" style={{ fontWeight: 600 }}>All Rooms</span>
+      </div>
+
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+        {/* Desktop Filter Sidebar — sticky so it follows scroll */}
+        <div className="hidden lg:block" style={{ width: 280, flexShrink: 0, position: 'sticky', top: 80, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
+          <FilterPanel />
+        </div>
+
+        {/* Mobile filter button */}
+        <button className="lg:hidden btn-outline btn-sm" onClick={() => setSidebarOpen(true)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>
+          Filters {(filters.roomType.length || filters.minPrice || filters.maxPrice || filters.guests) ? `(active)` : ''}
+        </button>
+
+        {/* Mobile sidebar */}
+        {sidebarOpen && (
+          <div className="lg:hidden fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setSidebarOpen(false)}>
+            <div className="absolute right-0 top-0 h-full w-80 p-4 overflow-y-auto" style={{ background: 'var(--surface-card)' }} onClick={e => e.stopPropagation()}>
+              <FilterPanel />
+            </div>
+          </div>
+        )}
+
+        {/* Main content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Toolbar */}
+          <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
+            <p className="body-md text-charcoal">
+              <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{filtered.length}</span> rooms found
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="body-sm text-charcoal">Sort by:</span>
+              <select className="select" value={sort} onChange={e => setSort(e.target.value)} style={{ width: 'auto', paddingRight: 36, fontSize: 14, height: 38 }}>
+                <option value="newest">Newest</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating">Rating</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Active filter chips */}
+          {(filters.location.length > 0 || filters.roomType.length > 0 || filters.minPrice || filters.maxPrice || filters.checkIn || filters.checkOut || filters.guests) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+              {filters.location.map(loc => (
+                <button key={loc} onClick={() => toggleLocation(loc)} className="badge badge-primary" style={{ cursor: 'pointer' }}>
+                  📍 {loc} ×
+                </button>
+              ))}
+              {filters.checkIn && <button onClick={() => setFilters(p => ({ ...p, checkIn: '' }))} className="badge badge-tag" style={{ cursor: 'pointer', border: '1px solid var(--hairline)' }}>Check-in: {filters.checkIn} ×</button>}
+              {filters.checkOut && <button onClick={() => setFilters(p => ({ ...p, checkOut: '' }))} className="badge badge-tag" style={{ cursor: 'pointer', border: '1px solid var(--hairline)' }}>Check-out: {filters.checkOut} ×</button>}
+              {filters.guests && <button onClick={() => setFilters(p => ({ ...p, guests: '' }))} className="badge badge-tag" style={{ cursor: 'pointer', border: '1px solid var(--hairline)' }}>{filters.guests} Guests ×</button>}
+              {filters.roomType.map(t => (
+                <button key={t} onClick={() => toggleType(t)} className="badge badge-tag" style={{ cursor: 'pointer', border: '1px solid var(--hairline)' }}>
+                  {t} ×
+                </button>
+              ))}
+              {filters.minPrice && <button onClick={() => setFilters(p => ({ ...p, minPrice: '' }))} className="badge badge-tag" style={{ cursor: 'pointer' }}>Min ₫{Number(filters.minPrice).toLocaleString()} ×</button>}
+              {filters.maxPrice && <button onClick={() => setFilters(p => ({ ...p, maxPrice: '' }))} className="badge badge-tag" style={{ cursor: 'pointer' }}>Max ₫{Number(filters.maxPrice).toLocaleString()} ×</button>}
+            </div>
+          )}
+
+          {filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '80px 32px' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+              <h3 className="heading-sm" style={{ marginBottom: 8 }}>No rooms match your filters</h3>
+              <p className="body-md text-charcoal" style={{ marginBottom: 20 }}>Try adjusting or clearing your filters</p>
+              <button className="btn-outline" onClick={clearFilters}>Clear Filters</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filtered.map(room => (
+                <div key={room.id} className="card" style={{ overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(32,32,32,0.12)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}>
+                  <div style={{ position: 'relative' }}>
+                    <img src={room.primaryImageUrl} alt={room.roomNumber} style={{ width: '100%', height: 180, objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', top: 8, left: 8 }}>
+                      <StatusBadge status={room.status} />
+                    </div>
+                  </div>
+                  <div style={{ padding: 16 }}>
+                    <p className="body-sm text-charcoal" style={{ marginBottom: 3 }}>{room.propertyName}</p>
+                    <h3 className="heading-sm" style={{ marginBottom: 6, fontSize: 17 }}>{room.roomNumber} — {room.roomType}</h3>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 8 }} className="body-sm text-charcoal">
+                      <span>👥 {room.capacity}</span>
+                      <span>📐 {room.area}m²</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                      <StarRating rating={room.rating} />
+                      <span className="body-sm text-charcoal">({room.reviews})</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+                      <div>
+                        <span className="heading-sm text-primary">₫{room.pricePerNight.toLocaleString()}</span>
+                        <span className="body-sm text-charcoal">/night</span>
+                      </div>
+                      <Link to={`/rooms/${room.id}`} className="btn-outline btn-sm" onClick={e => e.stopPropagation()}>View Detail</Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Default export: standalone page with its own layout
+export default function RoomListingPage() {
+  return (
+    <PublicLayout>
+      <RoomListingContent />
     </PublicLayout>
   );
 }
