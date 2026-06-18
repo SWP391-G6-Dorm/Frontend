@@ -1,14 +1,19 @@
 // ─── MaintenancePages.tsx — SCR-27, 28, 29 ───────────────────────────────────
 // Exports: MaintenanceListPage, CreateMaintenancePage, MaintenanceDetailPage
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
+import { maintenanceApi, MaintenanceTicket } from '../../api/maintenanceApi';
+import { bookingApi, BookingSummary } from '../../api/bookingApi';
 
-const TICKETS = [
-  { id: 'M001', bookingId: 'B001', roomNumber: 'Villa 01', propertyName: 'Sunset Resort Đà Nẵng', title: 'Air conditioner not working', description: 'The AC in the bedroom stopped cooling. Room temperature is very high.', status: 'IN_PROGRESS', createdAt: '2026-06-13T09:00:00', updatedAt: '2026-06-14T10:00:00' },
-  { id: 'M002', bookingId: 'B003', roomNumber: 'Suite 03', propertyName: 'Hội An Garden Villa', title: 'Bathroom tap leaking', description: 'Hot water tap in bathroom is leaking continuously.', status: 'RESOLVED', createdAt: '2026-04-06T14:00:00', updatedAt: '2026-04-07T09:00:00' },
-];
+// Helper to format static image URLs from the backend upload directory
+const getPhotoUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const backendBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 function StatusBadge({ s }: { s: string }) {
   const m: Record<string, { cls: string; l: string }> = {
@@ -22,7 +27,7 @@ function StatusBadge({ s }: { s: string }) {
 }
 
 function StatusTimeline({ status }: { status: string }) {
-  const steps = ['OPEN','IN_PROGRESS','RESOLVED','CLOSED'];
+  const steps = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
   const curIdx = steps.indexOf(status);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
@@ -48,9 +53,32 @@ function StatusTimeline({ status }: { status: string }) {
 // ── SCR-27: List ──────────────────────────────────────────────────────────────
 export function MaintenanceListPage() {
   const [filter, setFilter] = useState('ALL');
-  const tabs = ['ALL','OPEN','IN_PROGRESS','RESOLVED','CLOSED'];
+  const [list, setList] = useState<MaintenanceTicket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const tabs = ['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
-  const list = filter === 'ALL' ? TICKETS : TICKETS.filter(t => t.status === filter);
+  useEffect(() => {
+    async function loadTickets() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await maintenanceApi.getCustomerTickets({ status: filter, page: 0, size: 100 });
+        if (res.success && res.data) {
+          setList(res.data.content);
+        } else {
+          setError("Failed to retrieve tickets.");
+        }
+      } catch (err: any) {
+        console.error("Error loading tickets:", err);
+        setError("Error loading tickets. Please verify connection to server.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTickets();
+  }, [filter]);
 
   return (
     <CustomerLayout>
@@ -67,7 +95,15 @@ export function MaintenanceListPage() {
         ))}
       </div>
 
-      {list.length === 0 ? (
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40 }}>
+          <p className="body-md text-charcoal">Loading tickets...</p>
+        </div>
+      ) : error ? (
+        <div className="alert alert-error" style={{ marginBottom: 20 }}>
+          {error}
+        </div>
+      ) : list.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 60 }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🔧</div>
           <h3 className="heading-sm" style={{ marginBottom: 8 }}>No maintenance requests</h3>
@@ -87,7 +123,6 @@ export function MaintenanceListPage() {
                   <p className="body-sm text-charcoal" style={{ marginBottom: 4 }}>
                     📍 {t.roomNumber} · {t.propertyName}
                   </p>
-                  <p className="body-sm text-charcoal" style={{ marginBottom: 4 }}>🎫 Booking: {t.bookingId}</p>
                   <p className="body-sm text-charcoal">
                     Submitted {new Date(t.createdAt).toLocaleDateString('en-US')} · Updated {new Date(t.updatedAt).toLocaleDateString('en-US')}
                   </p>
@@ -105,9 +140,53 @@ export function MaintenanceListPage() {
 // ── SCR-28: Create ────────────────────────────────────────────────────────────
 export function CreateMaintenancePage() {
   const navigate = useNavigate();
+  const [bookings, setBookings] = useState<BookingSummary[]>([]);
   const [form, setForm] = useState({ bookingId: '', title: '', description: '' });
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function loadBookings() {
+      try {
+        const res = await bookingApi.getMyActiveBookings();
+        if (res.success && res.data) {
+          setBookings(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to load active bookings", err);
+      }
+    }
+    loadBookings();
+  }, []);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      if (photos.length + selectedFiles.length > 5) {
+        alert('You can only upload up to 5 photos.');
+        return;
+      }
+      
+      const newPhotos = [...photos, ...selectedFiles];
+      setPhotos(newPhotos);
+
+      const newPreviews = selectedFiles.map(file => URL.createObjectURL(file));
+      setPhotoPreviews([...photoPreviews, ...newPreviews]);
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    const newPhotos = [...photos];
+    newPhotos.splice(index, 1);
+    setPhotos(newPhotos);
+
+    const newPreviews = [...photoPreviews];
+    URL.revokeObjectURL(newPreviews[index]);
+    newPreviews.splice(index, 1);
+    setPhotoPreviews(newPreviews);
+  };
 
   function validate() {
     const e: Record<string, string> = {};
@@ -124,11 +203,28 @@ export function CreateMaintenancePage() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({});
     setLoading(true);
+    
     try {
-      // TODO: await maintenanceApi.create(form);
-      await new Promise(r => setTimeout(r, 800));
-      navigate('/customer/maintenance');
-    } catch { setLoading(false); }
+      const formData = new FormData();
+      formData.append('roomId', form.bookingId);
+      formData.append('title', form.title);
+      formData.append('description', form.description);
+      photos.forEach(photo => {
+        formData.append('photos', photo);
+      });
+
+      const res = await maintenanceApi.createTicket(formData);
+      if (res.success) {
+        navigate('/customer/maintenance');
+      } else {
+        setErrors({ submit: 'Failed to submit maintenance request.' });
+        setLoading(false);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrors({ submit: err.response?.data?.message || 'Server error occurred during submission.' });
+      setLoading(false);
+    }
   }
 
   return (
@@ -142,14 +238,23 @@ export function CreateMaintenancePage() {
 
         <h1 className="heading-md" style={{ marginBottom: 24 }}>Submit Maintenance Request</h1>
 
+        {errors.submit && (
+          <div className="alert alert-error" style={{ marginBottom: 16 }}>
+            {errors.submit}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="card" style={{ padding: 28 }}>
           <div style={{ marginBottom: 16 }}>
-            <label className="form-label form-label-required" htmlFor="bookingId">Related Booking</label>
+            <label className="form-label form-label-required" htmlFor="bookingId">Related Booking / Room</label>
             <select id="bookingId" className={`select ${errors.bookingId ? 'input-error' : ''}`}
               value={form.bookingId} onChange={e => setForm(p => ({ ...p, bookingId: e.target.value }))}>
               <option value="">Select a booking</option>
-              <option value="B001">B001 – Villa 01, Sunset Resort (Jul 10-13)</option>
-              <option value="B002">B002 – Deluxe 05, Mountain View (Aug 1-3)</option>
+              {bookings.map(b => (
+                <option key={b.bookingId} value={b.roomId}>
+                  {b.roomNumber} – {b.propertyName} ({new Date(b.checkInDate).toLocaleDateString('en-US')} to {new Date(b.checkOutDate).toLocaleDateString('en-US')})
+                </option>
+              ))}
             </select>
             {errors.bookingId && <p className="form-error">{errors.bookingId}</p>}
           </div>
@@ -162,7 +267,7 @@ export function CreateMaintenancePage() {
             {errors.title && <p className="form-error">{errors.title}</p>}
           </div>
 
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 16 }}>
             <label className="form-label form-label-required" htmlFor="description">Description</label>
             <textarea id="description" className={`textarea ${errors.description ? 'input-error' : ''}`}
               rows={5} placeholder="Describe the issue in detail so we can help you quickly..."
@@ -171,6 +276,28 @@ export function CreateMaintenancePage() {
               {errors.description ? <p className="form-error">{errors.description}</p> : <span />}
               <span className="form-hint">{form.description.length} chars</span>
             </div>
+          </div>
+
+          {/* Photo upload field */}
+          <div style={{ marginBottom: 24 }}>
+            <label className="form-label">Attach Photos (Optional, max 5)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input type="file" multiple accept="image/*" onChange={handlePhotoChange} disabled={loading} style={{ display: 'none' }} id="photo-upload" />
+              <label htmlFor="photo-upload" className="btn-outline btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '8px 14px', borderRadius: 8 }}>
+                <span>📁 Select Images</span>
+              </label>
+              <span className="body-xs text-charcoal">{photos.length}/5 images attached</span>
+            </div>
+            {photoPreviews.length > 0 && (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                {photoPreviews.map((preview, idx) => (
+                  <div key={idx} style={{ position: 'relative', width: 70, height: 70 }}>
+                    <img src={preview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hairline)' }} />
+                    <button type="button" onClick={() => removePhoto(idx)} style={{ position: 'absolute', top: -6, right: -6, background: '#ea2804', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 'bold' }}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="alert alert-info" style={{ marginBottom: 20 }}>
@@ -193,7 +320,108 @@ export function CreateMaintenancePage() {
 // ── SCR-29: Detail ────────────────────────────────────────────────────────────
 export function MaintenanceDetailPage() {
   const { id } = useParams();
-  const ticket = TICKETS.find(t => t.id === id) || TICKETS[0];
+  const navigate = useNavigate();
+  
+  const [ticket, setTicket] = useState<MaintenanceTicket | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', description: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    async function loadTicket() {
+      if (!id) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await maintenanceApi.getTicketDetail(id);
+        if (res.success && res.data) {
+          setTicket(res.data);
+          setEditForm({ title: res.data.title, description: res.data.description });
+        } else {
+          setError("Maintenance request not found.");
+        }
+      } catch (err: any) {
+        console.error(err);
+        setError(err.response?.data?.message || "Failed to load maintenance request details.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTicket();
+  }, [id]);
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !ticket) return;
+    if (!editForm.title.trim()) { setEditError('Title is required'); return; }
+    if (!editForm.description.trim()) { setEditError('Description is required'); return; }
+    if (editForm.description.length < 20) { setEditError('Description must be at least 20 characters'); return; }
+    
+    setEditLoading(true);
+    setEditError(null);
+    try {
+      const res = await maintenanceApi.updateTicket(id, editForm);
+      if (res.success && res.data) {
+        setTicket(res.data);
+        setIsEditing(false);
+      } else {
+        setEditError('Update failed.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setEditError(err.response?.data?.message || 'Server error occurred during update.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!id) return;
+    setDeleteLoading(true);
+    try {
+      const res = await maintenanceApi.deleteTicket(id);
+      if (res.success) {
+        navigate('/customer/maintenance');
+      } else {
+        alert('Failed to delete ticket.');
+        setDeleteLoading(false);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Server error occurred during deletion.');
+      setDeleteLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <CustomerLayout>
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <p className="body-md text-charcoal">Loading ticket details...</p>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (error || !ticket) {
+    return (
+      <CustomerLayout>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          <div className="alert alert-error" style={{ marginBottom: 20 }}>
+            {error || 'Maintenance ticket details could not be found.'}
+          </div>
+          <Link to="/customer/maintenance" className="btn-outline">← Back to List</Link>
+        </div>
+      </CustomerLayout>
+    );
+  }
 
   return (
     <CustomerLayout>
@@ -201,49 +429,124 @@ export function MaintenanceDetailPage() {
         <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
           <Link to="/customer/maintenance" className="text-primary" style={{ textDecoration: 'none' }}>Maintenance</Link>
           <span>›</span>
-          <span style={{ fontWeight: 600 }}>#{ticket.id}</span>
+          <span style={{ fontWeight: 600 }}>#{ticket.id.substring(0, 8)}...</span>
         </div>
 
-        <div className="flex items-start justify-between" style={{ marginBottom: 24 }}>
-          <div>
-            <h1 className="heading-md" style={{ marginBottom: 4 }}>{ticket.title}</h1>
-            <p className="body-sm text-charcoal">Ticket #{ticket.id} · {ticket.roomNumber} · {ticket.propertyName}</p>
+        {isEditing ? (
+          <div className="card" style={{ padding: 28, marginBottom: 20 }}>
+            <h2 className="heading-sm" style={{ marginBottom: 20 }}>Edit Maintenance Request</h2>
+            {editError && <div className="alert alert-error" style={{ marginBottom: 16 }}>{editError}</div>}
+            
+            <form onSubmit={handleEditSubmit}>
+              <div style={{ marginBottom: 16 }}>
+                <label className="form-label form-label-required" htmlFor="edit-title">Issue Title</label>
+                <input id="edit-title" className="input" value={editForm.title}
+                  onChange={e => setEditForm(p => ({ ...p, title: e.target.value }))} disabled={editLoading} />
+              </div>
+              <div style={{ marginBottom: 24 }}>
+                <label className="form-label form-label-required" htmlFor="edit-description">Description</label>
+                <textarea id="edit-description" className="textarea" rows={5} value={editForm.description}
+                  onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} disabled={editLoading} />
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" className="btn-primary" disabled={editLoading}>
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button type="button" className="btn-ghost" onClick={() => { setIsEditing(false); setEditError(null); }} disabled={editLoading}>
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
-          <StatusBadge s={ticket.status} />
-        </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between" style={{ marginBottom: 24 }}>
+              <div>
+                <h1 className="heading-md" style={{ marginBottom: 4 }}>{ticket.title}</h1>
+                <p className="body-sm text-charcoal">Ticket #{ticket.id} · {ticket.roomNumber} · {ticket.propertyName}</p>
+              </div>
+              <StatusBadge s={ticket.status} />
+            </div>
 
-        {/* Progress */}
-        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
-          <h2 className="heading-sm" style={{ marginBottom: 20 }}>Status Progress</h2>
-          <StatusTimeline status={ticket.status} />
-        </div>
+            {/* Management Buttons for OPEN tickets */}
+            {ticket.status === 'OPEN' && (
+              <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                <button className="btn-outline btn-sm" onClick={() => setIsEditing(true)}>✏️ Edit Request</button>
+                <button className="btn-outline btn-sm" style={{ borderColor: '#ea2804', color: '#ea2804' }} onClick={() => setShowDeleteConfirm(true)}>🗑️ Delete Request</button>
+              </div>
+            )}
 
-        {/* Info */}
-        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
-          <h2 className="heading-sm" style={{ marginBottom: 16 }}>Issue Details</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <div>
-              <p className="body-sm text-charcoal">Room</p>
-              <p style={{ fontWeight: 600 }}>{ticket.roomNumber}</p>
+            {showDeleteConfirm && (
+              <div className="alert alert-error" style={{ marginBottom: 20, padding: 20, display: 'block' }}>
+                <h4 style={{ fontWeight: 700, marginBottom: 8, color: '#991b1b' }}>Are you sure you want to delete this request?</h4>
+                <p className="body-sm text-charcoal" style={{ marginBottom: 16 }}>This action cannot be undone and will permanently remove this maintenance ticket.</p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn-primary" style={{ background: '#ea2804', border: 'none' }} onClick={handleDelete} disabled={deleteLoading}>
+                    {deleteLoading ? 'Deleting...' : 'Yes, Delete'}
+                  </button>
+                  <button className="btn-ghost" onClick={() => setShowDeleteConfirm(false)} disabled={deleteLoading} style={{ background: 'var(--surface-bone)' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Resolution note from Manager */}
+            {ticket.resolutionNote && (
+              <div className="card" style={{ padding: 24, marginBottom: 20, borderLeft: '4px solid var(--primary)' }}>
+                <h2 className="heading-sm" style={{ marginBottom: 8 }}>Manager Resolution Note</h2>
+                <p className="body-md text-charcoal">{ticket.resolutionNote}</p>
+              </div>
+            )}
+
+            {/* Progress */}
+            <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+              <h2 className="heading-sm" style={{ marginBottom: 20 }}>Status Progress</h2>
+              <StatusTimeline status={ticket.status} />
             </div>
-            <div>
-              <p className="body-sm text-charcoal">Property</p>
-              <p style={{ fontWeight: 600 }}>{ticket.propertyName}</p>
+
+            {/* Info */}
+            <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+              <h2 className="heading-sm" style={{ marginBottom: 16 }}>Issue Details</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <p className="body-sm text-charcoal">Room</p>
+                  <p style={{ fontWeight: 600 }}>{ticket.roomNumber}</p>
+                </div>
+                <div>
+                  <p className="body-sm text-charcoal">Property</p>
+                  <p style={{ fontWeight: 600 }}>{ticket.propertyName}</p>
+                </div>
+                <div>
+                  <p className="body-sm text-charcoal">Submitted</p>
+                  <p style={{ fontWeight: 600 }}>{new Date(ticket.createdAt).toLocaleString('en-US')}</p>
+                </div>
+                <div>
+                  <p className="body-sm text-charcoal">Last Updated</p>
+                  <p style={{ fontWeight: 600 }}>{new Date(ticket.updatedAt).toLocaleString('en-US')}</p>
+                </div>
+              </div>
+              
+              <div style={{ marginBottom: 16 }}>
+                <p className="body-sm text-charcoal" style={{ marginBottom: 6 }}>Description</p>
+                <p className="body-md" style={{ padding: '12px 16px', background: 'var(--surface-bone)', borderRadius: 8, whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
+              </div>
+
+              {/* Photos rendering */}
+              {ticket.photoUrls && ticket.photoUrls.length > 0 && (
+                <div>
+                  <p className="body-sm text-charcoal" style={{ marginBottom: 8 }}>Attached Photos</p>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {ticket.photoUrls.map((url, idx) => (
+                      <img key={idx} src={getPhotoUrl(url)} alt={`Ticket photo ${idx + 1}`}
+                        style={{ width: 110, height: 110, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hairline)' }} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <p className="body-sm text-charcoal">Submitted</p>
-              <p style={{ fontWeight: 600 }}>{new Date(ticket.createdAt).toLocaleString('en-US')}</p>
-            </div>
-            <div>
-              <p className="body-sm text-charcoal">Last Updated</p>
-              <p style={{ fontWeight: 600 }}>{new Date(ticket.updatedAt).toLocaleString('en-US')}</p>
-            </div>
-          </div>
-          <div>
-            <p className="body-sm text-charcoal" style={{ marginBottom: 6 }}>Description</p>
-            <p className="body-md" style={{ padding: '12px 16px', background: 'var(--surface-bone)', borderRadius: 8 }}>{ticket.description}</p>
-          </div>
-        </div>
+          </>
+        )}
 
         <Link to="/customer/maintenance" className="btn-outline">← Back to List</Link>
       </div>

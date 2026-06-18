@@ -1,0 +1,66 @@
+import api from './axiosInstance';
+
+export interface MaintenanceTicket {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  roomId: string;
+  roomNumber: string;
+  propertyId: string;
+  propertyName: string;
+  title: string;
+  description: string;
+  photoUrls: string[];
+  status: string;
+  resolutionNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+}
+
+export const maintenanceApi = {
+  createTicket: async (formData: FormData): Promise<{ success: boolean; data: MaintenanceTicket }> => {
+    const res = await api.post('/api/maintenance-tickets', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
+
+  getCustomerTickets: async (params: { page?: number; size?: number; status?: string }): Promise<{ success: boolean; data: PageResponse<MaintenanceTicket> }> => {
+    const res = await api.get('/api/maintenance-tickets', { params });
+    return res.data;
+  },
+
+  getTicketDetail: async (id: string): Promise<{ success: boolean; data: MaintenanceTicket }> => {
+    const res = await api.get(`/api/maintenance-tickets/${id}`);
+    return res.data;
+  },
+
+  updateTicket: async (id: string, payload: { title: string; description: string }): Promise<{ success: boolean; data: MaintenanceTicket }> => {
+    const res = await api.put(`/api/maintenance-tickets/${id}`, payload);
+    return res.data;
+  },
+
+  deleteTicket: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const res = await api.delete(`/api/maintenance-tickets/${id}`);
+    return res.data;
+  },
+
+  getAllTickets: async (params?: { status?: string; page?: number; size?: number }): Promise<{ success: boolean; data: PageResponse<MaintenanceTicket> }> => {
+    const res = await api.get('/api/maintenance-tickets/all', { params });
+    return res.data;
+  },
+
+  updateTicketStatus: async (id: string, payload: { status: string; resolutionNote?: string }): Promise<{ success: boolean; data: MaintenanceTicket }> => {
+    const res = await api.put(`/api/maintenance-tickets/${id}/status`, payload);
+    return res.data;
+  },
+};
