@@ -3,9 +3,45 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 const NAV_LINKS = [
-  { label: 'Home',  path: '/' },
   { label: 'Rooms', path: '/rooms' },
+  { label: 'Properties', path: '/#properties' },
   { label: 'About', path: '/about' },
+];
+
+const FOOTER_COLUMNS = [
+  {
+    title: 'Explore',
+    links: [
+      { label: 'Rooms', to: '/rooms' },
+      { label: 'Homestay', to: '/rooms' },
+      { label: 'Resort & Villa', to: '/rooms' },
+      { label: 'Best Deals', to: '/rooms' },
+    ],
+  },
+  {
+    title: 'Support',
+    links: [
+      { label: 'Help Center', to: '/about' },
+      { label: 'Contact Us', to: '/about' },
+      { label: 'Report Issue', to: '/about' },
+      { label: 'FAQ', to: '/about' },
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      { label: 'About', to: '/about' },
+      { label: 'Privacy Policy', to: '/about' },
+      { label: 'Terms of Service', to: '/about' },
+      { label: 'Careers', to: '/about' },
+    ],
+  },
+];
+
+const FOOTER_BOTTOM_LINKS = [
+  { label: 'Privacy Policy', to: '/about' },
+  { label: 'Terms', to: '/about' },
+  { label: 'Sitemap', to: '/' },
 ];
 
 function Logo() {
@@ -62,7 +98,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => {
-              const active = location.pathname === link.path || location.pathname.startsWith(link.path + '/');
+              const isHash = link.path.startsWith('/#');
+              const active = isHash
+                ? location.pathname === '/' && location.hash === link.path.slice(1)
+                : location.pathname === link.path || location.pathname.startsWith(link.path + '/');
               return (
                 <Link
                   key={link.path}
@@ -174,29 +213,64 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                     <polyline points="9,22 9,12 15,12 15,22" fill="white" fillOpacity="0.6" />
                   </svg>
                 </div>
-                <span style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 15, color: 'var(--on-dark)' }}>
+                <span className="font-display" style={{ fontWeight: 700, fontSize: 15, color: 'var(--on-dark)' }}>
                   Homestay&Resort
                 </span>
               </div>
-              <p className="body-sm" style={{ color: 'var(--on-dark-mute)', lineHeight: 1.75 }}>
+              <p className="body-sm" style={{ color: 'var(--on-dark-mute)', lineHeight: 1.75, marginBottom: 20 }}>
                 Nền tảng đặt phòng homestay &amp; resort trực tuyến — tìm kiếm, đặt phòng và thanh toán nhanh chóng, an toàn.
               </p>
+              <div className="flex gap-3">
+                {[
+                  { label: 'Facebook', href: 'https://facebook.com' },
+                  { label: 'Instagram', href: 'https://instagram.com' },
+                  { label: 'YouTube', href: 'https://youtube.com' },
+                ].map((s) => (
+                  <a
+                    key={s.label}
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.label}
+                    className="caption"
+                    style={{
+                      color: 'var(--on-dark-mute)',
+                      textDecoration: 'none',
+                      padding: '6px 10px',
+                      borderRadius: 9999,
+                      border: '1px solid var(--divider-dark)',
+                      transition: 'color 0.15s, border-color 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'var(--on-dark)';
+                      e.currentTarget.style.borderColor = 'rgba(252,252,252,0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--on-dark-mute)';
+                      e.currentTarget.style.borderColor = 'var(--divider-dark)';
+                    }}
+                  >
+                    {s.label}
+                  </a>
+                ))}
+              </div>
             </div>
             {/* Link columns */}
-            {[
-              { title: 'Explore', links: ['Rooms', 'Homestay', 'Resort & Villa', 'Best Deals'] },
-              { title: 'Support', links: ['Help Center', 'Contact Us', 'Report Issue', 'FAQ'] },
-              { title: 'Company', links: ['About', 'Privacy Policy', 'Terms of Service', 'Careers'] },
-            ].map((col) => (
+            {FOOTER_COLUMNS.map((col) => (
               <div key={col.title}>
                 <h4 className="label-sm mb-5" style={{ color: 'rgba(252,252,252,0.4)' }}>{col.title}</h4>
                 <ul className="space-y-3">
                   {col.links.map((l) => (
-                    <li key={l}>
-                      <a href="#" className="body-sm" style={{ color: 'var(--on-dark-mute)', textDecoration: 'none', transition: 'color 0.15s' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--on-dark)')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--on-dark-mute)')}
-                      >{l}</a>
+                    <li key={l.label}>
+                      <Link
+                        to={l.to}
+                        className="body-sm"
+                        style={{ color: 'var(--on-dark-mute)', textDecoration: 'none', transition: 'color 0.15s' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--on-dark)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--on-dark-mute)')}
+                      >
+                        {l.label}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -207,12 +281,17 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <div className="flex flex-col md:flex-row justify-between items-center pt-8 gap-4">
             <p className="caption" style={{ color: 'var(--on-dark-mute)' }}>© 2026 Homestay &amp; Resort. All rights reserved.</p>
             <div className="flex gap-5">
-              {['Privacy Policy', 'Terms', 'Sitemap'].map((t) => (
-                <a key={t} href="#" className="caption" style={{ color: 'var(--on-dark-mute)', textDecoration: 'none' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--on-dark)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--on-dark-mute)')}>
-                  {t}
-                </a>
+              {FOOTER_BOTTOM_LINKS.map((t) => (
+                <Link
+                  key={t.label}
+                  to={t.to}
+                  className="caption"
+                  style={{ color: 'var(--on-dark-mute)', textDecoration: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--on-dark)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--on-dark-mute)')}
+                >
+                  {t.label}
+                </Link>
               ))}
             </div>
           </div>

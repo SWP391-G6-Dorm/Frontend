@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Bricolage Grotesque"', 'Inter', 'sans-serif'],
-        sans:    ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        display: ['"Be Vietnam Pro"', 'Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+        sans:    ['"Be Vietnam Pro"', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         mono:    ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
       },
       colors: {

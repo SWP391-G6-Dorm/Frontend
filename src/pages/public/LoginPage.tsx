@@ -20,8 +20,6 @@ export default function LoginPage() {
   const [error, setError]         = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
-  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
-
   // Lấy redirect path từ query param (nếu có) — ví dụ: /login?redirect=/customer/bookings
   const params       = new URLSearchParams(location.search);
   const redirectPath = params.get('redirect');
@@ -38,7 +36,6 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setUnverifiedEmail(null);
     if (!validate()) return;
 
     setLoading(true);
@@ -63,19 +60,13 @@ export default function LoginPage() {
         navigate('/customer/dashboard', { replace: true });
       }
     } catch (err: unknown) {
-      // Bắt lỗi tài khoản chưa xác thực — backend trả HTTP 403 + errorCode = ACCOUNT_INACTIVE
-      const axiosError = err as { response?: { data?: { message?: string; data?: { errorCode?: string; email?: string } } } };
-      const errorCode  = axiosError?.response?.data?.data?.errorCode;
-      const email      = axiosError?.response?.data?.data?.email;
-
-      if (errorCode === 'ACCOUNT_INACTIVE' && email) {
-        // OTP mới đã được gửi tự động bởi backend — redirect thẳng sang trang xác thực
-        setUnverifiedEmail(email);
-        return;
-      }
-
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; code?: string };
       const msg = axiosError?.response?.data?.message;
-      setError(msg ?? 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.');
+      if (!axiosError.response) {
+        setError('Không kết nối được máy chủ. Hãy chạy backend (HomestayApplication) trên cổng 8080 và thử lại.');
+      } else {
+        setError(msg ?? 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
@@ -92,7 +83,7 @@ export default function LoginPage() {
             <polyline points="9,22 9,12 15,12 15,22" fill="white" fillOpacity="0.6"/>
           </svg>
         </div>
-        <span style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 18, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
+        <span className="font-display" style={{ fontWeight: 700, fontSize: 18, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
           Homestay<span style={{ color: 'var(--primary)' }}>&</span>Resort
         </span>
       </Link>
@@ -109,58 +100,6 @@ export default function LoginPage() {
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
             {error}
-          </div>
-        )}
-
-        {/* Unverified Account Banner */}
-        {unverifiedEmail && (
-          <div style={{
-            marginBottom: 20,
-            padding: '16px 18px',
-            background: 'linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%)',
-            border: '1.5px solid #f59e0b',
-            borderRadius: 12,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <div style={{ flexShrink: 0, marginTop: 2 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                  <polyline points="22,6 12,13 2,6"/>
-                </svg>
-              </div>
-              <div>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#92400e' }}>
-                  Tài khoản chưa được xác thực
-                </p>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#78350f', lineHeight: 1.5 }}>
-                  Mã OTP mới đã được gửi đến <strong>{unverifiedEmail}</strong>.
-                  Vui lòng kiểm tra hộp thư và xác thực tài khoản.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate(`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`)}
-              style={{
-                alignSelf: 'flex-start',
-                padding: '8px 18px',
-                background: '#f59e0b',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#d97706')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#f59e0b')}
-            >
-              Xác thực ngay →
-            </button>
           </div>
         )}
 

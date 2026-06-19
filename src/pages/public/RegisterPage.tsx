@@ -96,7 +96,7 @@ export default function RegisterPage() {
             <polyline points="9,22 9,12 15,12 15,22" fill="white" fillOpacity="0.6"/>
           </svg>
         </div>
-        <span style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 18, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
+        <span className="font-display" style={{ fontWeight: 700, fontSize: 18, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
           Homestay<span style={{ color: 'var(--primary)' }}>&</span>Resort
         </span>
       </Link>

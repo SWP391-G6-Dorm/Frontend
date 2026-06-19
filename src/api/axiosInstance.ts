@@ -2,8 +2,16 @@ import axios from 'axios';
 import { authApi } from './authApi';
 import { useAuthStore } from '../store/authStore';
 
+const PUBLIC_READ_PATHS = ['/api/rooms', '/api/properties', '/api/public', '/uploads'];
+
+function isPublicReadRoute(url?: string) {
+  if (!url) return false;
+  return PUBLIC_READ_PATHS.some((p) => url.includes(p));
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080',
+  // Dev: dùng Vite proxy (/api → localhost:8080). Prod: set VITE_API_URL.
+  baseURL: import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '' : 'http://localhost:8080'),
   timeout: 10000,
 });
 
@@ -30,6 +38,12 @@ api.interceptors.response.use(
     if (isUnauthorized && isNotRetried && isNotAuthRoute) {
       originalRequest._retry = true;
 
+      // Public GET routes: stale token must not block browsing or redirect to login
+      if (isPublicReadRoute(originalRequest.url) && originalRequest.headers.Authorization) {
+        delete originalRequest.headers.Authorization;
+        return api(originalRequest);
+      }
+
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
@@ -52,9 +66,11 @@ api.interceptors.response.use(
         }
       }
 
-      // Không có refresh token hoặc refresh thất bại → logout
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
+      // Không có refresh token hoặc refresh thất bại → logout (trừ trang public)
+      if (!isPublicReadRoute(originalRequest.url)) {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
     }
 
     return Promise.reject(error);
