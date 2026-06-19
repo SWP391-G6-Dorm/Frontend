@@ -1,6 +1,5 @@
-﻿import api from './axiosInstance';
+import api from './axiosInstance';
 
-// ΓöÇΓöÇ Types ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 export interface PropertySummary {
   id: string;
@@ -13,6 +12,36 @@ export interface PropertySummary {
   availableRooms: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PropertyDetailStats {
+  totalFloors: number;
+  totalRooms: number;
+  availableRooms: number;
+  pendingDepositRooms: number;
+  reservedRooms: number;
+  occupiedRooms: number;
+  maintenanceRooms: number;
+}
+
+export interface PropertyFloorSummary {
+  id: string;
+  floorNumber: number;
+  description: string | null;
+  roomCount: number;
+  availableCount: number;
+}
+
+export interface PropertyDetail {
+  id: string;
+  name: string;
+  address: string;
+  description: string | null;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+  updatedAt: string;
+  stats: PropertyDetailStats;
+  floors: PropertyFloorSummary[];
 }
 
 export interface PropertyPageResponse {
@@ -37,7 +66,7 @@ export interface UpdatePropertyPayload {
   status?: 'ACTIVE' | 'INACTIVE';
 }
 
-// ΓöÇΓöÇ API calls ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 export const propertyApi = {
 
@@ -55,6 +84,12 @@ export const propertyApi = {
   /** SCR-34: Full property detail */
   getById: async (id: string): Promise<{ success: boolean; data: PropertySummary }> => {
     const res = await api.get(`/api/properties/${id}`);
+    return res.data;
+  },
+
+  /** SCR-34: Rich property detail (stats + floors) — MANAGER only */
+  getDetail: async (id: string): Promise<{ success: boolean; data: PropertyDetail }> => {
+    const res = await api.get(`/api/properties/${id}/detail`);
     return res.data;
   },
 

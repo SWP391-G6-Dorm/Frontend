@@ -35,8 +35,10 @@ import { ReviewRatingPage, MyReviewsPage }
 
 // ── Manager Portal ────────────────────────────────────────────────────────────
 import ManagerDashboardPage       from './pages/manager/ManagerDashboardPage';
-import { PropertyListPage, PropertyDetailPage, AddPropertyPage, EditPropertyPage }
-                                  from './pages/manager/PropertyPages';
+import PropertyListPage   from './pages/manager/PropertyListPage';
+import PropertyDetailPage from './pages/manager/PropertyDetailPage';
+import AddPropertyPage    from './pages/manager/AddPropertyPage';
+import EditPropertyPage   from './pages/manager/EditPropertyPage';
 import {
   StructureTreePage, FloorManagementPage,
   RoomListPage, RoomDetailMgmtPage, AddRoomPage, EditRoomPage,
