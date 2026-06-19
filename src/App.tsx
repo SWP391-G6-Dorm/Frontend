@@ -12,8 +12,10 @@ import VerifyEmailPage            from './pages/public/VerifyEmailPage';
 import ForgotPasswordPage         from './pages/public/ForgotPasswordPage';
 import ResetPasswordPage          from './pages/public/ResetPasswordPage';
 import RoomListingPage            from './pages/public/RoomListingPage';
+import SearchResultsPage          from './pages/public/SearchResultsPage';
 import RoomDetailPage             from './pages/public/RoomDetailPage';
 import AvailabilityCalendarPage   from './pages/public/AvailabilityCalendarPage';
+import AboutPage                  from './pages/public/AboutPage';
 import UnauthorizedPage           from './pages/public/UnauthorizedPage';
 
 // ── Customer Portal ───────────────────────────────────────────────────────────
@@ -63,8 +65,10 @@ function App() {
         {/* ─────────────── PUBLIC — Ai cũng vào được ─────────────── */}
         <Route path="/"                       element={<LandingPage />} />
         <Route path="/rooms"                  element={<RoomListingPage />} />
+        <Route path="/search"                 element={<SearchResultsPage />} />
         <Route path="/rooms/:id"              element={<RoomDetailPage />} />
         <Route path="/rooms/:id/calendar"     element={<AvailabilityCalendarPage />} />
+        <Route path="/about"                  element={<AboutPage />} />
         <Route path="/unauthorized"           element={<UnauthorizedPage />} />
 
         {/* ─────────────── GUEST ONLY — Redirect nếu đã login ─────────────── */}
@@ -141,6 +145,14 @@ function App() {
 
         <Route path="/manager/dashboard"
           element={<ProtectedRoute role="MANAGER"><ManagerDashboardPage /></ProtectedRoute>} />
+
+        {/* Profile (SCR-11,12,13) — shared with customer */}
+        <Route path="/manager/profile"
+          element={<ProtectedRoute role="MANAGER"><UserProfilePage /></ProtectedRoute>} />
+        <Route path="/manager/profile/edit"
+          element={<ProtectedRoute role="MANAGER"><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/manager/profile/change-password"
+          element={<ProtectedRoute role="MANAGER"><ChangePasswordPage /></ProtectedRoute>} />
 
         {/* Properties (SCR-33,34,35,36) */}
         <Route path="/manager/properties"
