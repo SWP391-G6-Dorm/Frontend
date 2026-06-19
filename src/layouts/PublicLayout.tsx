@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 const NAV_LINKS = [
+  { label: 'Home', path: '/' },
   { label: 'Rooms', path: '/rooms' },
-  { label: 'Properties', path: '/#properties' },
   { label: 'About', path: '/about' },
 ];
 
