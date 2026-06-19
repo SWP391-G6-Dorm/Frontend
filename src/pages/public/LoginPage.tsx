@@ -60,10 +60,13 @@ export default function LoginPage() {
         navigate('/customer/dashboard', { replace: true });
       }
     } catch (err: unknown) {
-      // Lấy message từ backend error response nếu có
-      const axiosError = err as { response?: { data?: { message?: string } } };
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; code?: string };
       const msg = axiosError?.response?.data?.message;
-      setError(msg ?? 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.');
+      if (!axiosError.response) {
+        setError('Không kết nối được máy chủ. Hãy chạy backend (HomestayApplication) trên cổng 8080 và thử lại.');
+      } else {
+        setError(msg ?? 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
@@ -80,7 +83,7 @@ export default function LoginPage() {
             <polyline points="9,22 9,12 15,12 15,22" fill="white" fillOpacity="0.6"/>
           </svg>
         </div>
-        <span style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 18, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
+        <span className="font-display" style={{ fontWeight: 700, fontSize: 18, color: 'var(--ink)', letterSpacing: '-0.5px' }}>
           Homestay<span style={{ color: 'var(--primary)' }}>&</span>Resort
         </span>
       </Link>
