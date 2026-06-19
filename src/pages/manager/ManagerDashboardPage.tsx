@@ -339,7 +339,7 @@ export default function ManagerDashboardPage() {
                       <Cell key={i} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(val: number, name: string) => [`${val} phòng`, name]} />
+                  <Tooltip formatter={(val: any, name: any) => [`${val} phòng`, name]} />
                 </PieChart>
               </ResponsiveContainer>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
