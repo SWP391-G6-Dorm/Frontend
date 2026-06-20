@@ -38,6 +38,7 @@ export interface FetchRoomsParams {
   search?: string;
   location?: string;
   propertyId?: string;
+  floorId?: string;      // SCR-39: filter by floor
   roomType?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -63,6 +64,17 @@ export function sortToApi(sort: string): string {
 export async function fetchRooms(params: FetchRoomsParams): Promise<RoomsPageResponse> {
   const res = await api.get('/api/rooms', { params });
   return res.data.data;
+}
+
+// SCR-39: Manager-only room list with full filter support
+export async function fetchRoomsManager(params: FetchRoomsParams): Promise<RoomsPageResponse> {
+  const res = await api.get('/api/rooms/manager', { params });
+  return res.data.data;
+}
+
+// SCR-39: Delete room (only allowed if no active bookings)
+export async function deleteRoom(id: string): Promise<void> {
+  await api.delete(`/api/rooms/${id}`);
 }
 
 export async function fetchPropertyOptions(): Promise<PropertyOption[]> {
