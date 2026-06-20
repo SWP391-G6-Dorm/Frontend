@@ -7,9 +7,13 @@ export interface ContractSummaryResponse {
   customerEmail: string;
   roomNumber: string;
   propertyName: string;
+  checkInDate: string;
+  checkOutDate: string;
+  depositAmount: number;
   totalAmount: number;
-  generatedAt: string;
   status: string;
+  generatedAt: string;
+  sentAt: string | null;
 }
 
 export interface ContractDetailResponse {
@@ -41,6 +45,12 @@ export interface PageResponse<T> {
 export const contractApi = {
   getAllContracts: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
     const res = await api.get('/api/contracts', { params });
+    return res.data;
+  },
+
+  // Dành cho CUSTOMER: lấy hợp đồng của chính mình (filter theo JWT)
+  getMyContracts: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
+    const res = await api.get('/api/contracts/my', { params });
     return res.data;
   },
 
