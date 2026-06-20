@@ -66,6 +66,30 @@ export interface UpdatePropertyPayload {
   status?: 'ACTIVE' | 'INACTIVE';
 }
 
+// ── Structure Tree (SCR-37) ──────────────────────────────────────────────────
+
+export interface RoomNode {
+  id: string;
+  roomNumber: string;
+  roomType: string;
+  status: 'AVAILABLE' | 'PENDING_DEPOSIT' | 'RESERVED' | 'OCCUPIED' | 'MAINTENANCE';
+  pricePerNight?: number;
+  capacity?: number;
+}
+
+export interface FloorNode {
+  id: string;
+  floorNumber: number;
+  description: string | null;
+  rooms: RoomNode[];
+}
+
+export interface PropertyStructure {
+  propertyId: string;
+  propertyName: string;
+  floors: FloorNode[];
+}
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 export const propertyApi = {
@@ -108,6 +132,12 @@ export const propertyApi = {
   /** Delete property (MANAGER only) */
   delete: async (id: string): Promise<{ success: boolean }> => {
     const res = await api.delete(`/api/properties/${id}`);
+    return res.data;
+  },
+
+  /** SCR-37: Property → Floors → Rooms tree */
+  getStructure: async (id: string): Promise<{ success: boolean; data: PropertyStructure }> => {
+    const res = await api.get(`/api/properties/${id}/structure`);
     return res.data;
   },
 };
