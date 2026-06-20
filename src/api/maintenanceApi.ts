@@ -44,8 +44,12 @@ export const maintenanceApi = {
     return res.data;
   },
 
-  updateTicket: async (id: string, payload: { title: string; description: string }): Promise<{ success: boolean; data: MaintenanceTicket }> => {
-    const res = await api.put(`/api/maintenance-tickets/${id}`, payload);
+  updateTicket: async (id: string, formData: FormData): Promise<{ success: boolean; data: MaintenanceTicket }> => {
+    const res = await api.put(`/api/maintenance-tickets/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return res.data;
   },
 

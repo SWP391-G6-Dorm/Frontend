@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import { Badge } from './_sharedAdminData';
 import { maintenanceApi, MaintenanceTicket } from '../../api/maintenanceApi';
+import { PhotoLightbox } from '../../components/PhotoLightbox';
 
 const getPhotoUrl = (url: string) => {
   if (!url) return '';
@@ -166,16 +167,7 @@ export function MaintenanceMgmtDetailPage() {
           {ticket.photoUrls && ticket.photoUrls.length > 0 && (
             <div className="card" style={{ padding: 24 }}>
               <h3 className="heading-xs" style={{ marginBottom: 12 }}>Attached Photos</h3>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {ticket.photoUrls.map((url, idx) => (
-                  <img
-                    key={idx}
-                    src={getPhotoUrl(url)}
-                    alt={`Attachment ${idx + 1}`}
-                    style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hairline)' }}
-                  />
-                ))}
-              </div>
+              <PhotoLightbox photoUrls={ticket.photoUrls} getPhotoUrl={getPhotoUrl} />
             </div>
           )}
 
