@@ -84,9 +84,9 @@ export default function ResendContractPage() {
               <button 
                 type="submit" 
                 className="btn-primary" 
-                disabled={resendMutation.isLoading}
+                disabled={resendMutation.isPending}
               >
-                {resendMutation.isLoading ? 'Sending...' : 'Send Contract'}
+                {resendMutation.isPending ? 'Sending...' : 'Send Contract'}
               </button>
               <Link to={`/manager/contracts/${c.id}`} className="btn-ghost">Cancel</Link>
             </div>

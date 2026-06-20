@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { notificationApi } from '../api/notificationApi';
 
 const NAV_ITEMS = [
   { icon: IconDashboard,   label: 'Dashboard',     path: '/customer/dashboard' },
@@ -27,6 +28,31 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   const navigate = useNavigate();
   const { fullName, email, avatarUrl, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await notificationApi.getUnreadCount();
+      if (res.success) {
+        setUnreadCount(res.data.count);
+      }
+    } catch (err) {
+      console.error('Failed to fetch unread count in layout', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    const handleUpdate = () => {
+      fetchUnreadCount();
+    };
+
+    window.addEventListener('unreadCountChanged', handleUpdate);
+    return () => {
+      window.removeEventListener('unreadCountChanged', handleUpdate);
+    };
+  }, [location.pathname]);
 
   function handleLogout() { logout(); navigate('/login'); }
 
@@ -94,7 +120,18 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
                 <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon /></span>
-                {item.label}
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.label === 'Notifications' && unreadCount > 0 && (
+                  <span style={{
+                    background: 'var(--primary)',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: 99,
+                    lineHeight: 1,
+                  }}>{unreadCount}</span>
+                )}
               </Link>
             );
           })}
@@ -163,10 +200,29 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
           </div>
           <div className="flex items-center gap-4">
             {/* Notification bell */}
-            <Link to="/customer/notifications" className="btn-icon" style={{ border: 'none', background: 'transparent', color: 'var(--charcoal)' }}>
+            <Link to="/customer/notifications" className="btn-icon" style={{ border: 'none', background: 'transparent', color: 'var(--charcoal)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  background: 'var(--primary)',
+                  color: '#fff',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  lineHeight: 1,
+                  border: '1.5px solid rgba(249,247,243,0.95)'
+                }}>{unreadCount}</span>
+              )}
             </Link>
             {/* Avatar */}
             <Link to="/customer/profile" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 16, borderLeft: '1px solid var(--hairline)' }}>
