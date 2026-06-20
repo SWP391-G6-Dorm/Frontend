@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
 import { maintenanceApi, MaintenanceTicket } from '../../api/maintenanceApi';
 import { bookingApi, BookingSummary } from '../../api/bookingApi';
+import { PhotoLightbox } from '../../components/PhotoLightbox';
 
 // Helper to format static image URLs from the backend upload directory
 const getPhotoUrl = (url: string) => {
@@ -328,6 +329,11 @@ export function MaintenanceDetailPage() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', description: '' });
+  
+  // Photo editing state
+  const [editExistingPhotos, setEditExistingPhotos] = useState<string[]>([]);
+  const [editNewPhotos, setEditNewPhotos] = useState<File[]>([]);
+  
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   
@@ -364,13 +370,31 @@ export function MaintenanceDetailPage() {
     if (!editForm.description.trim()) { setEditError('Description is required'); return; }
     if (editForm.description.length < 20) { setEditError('Description must be at least 20 characters'); return; }
     
+    const totalPhotos = editExistingPhotos.length + editNewPhotos.length;
+    if (totalPhotos > 5) { setEditError('Maximum 5 photos allowed'); return; }
+    
     setEditLoading(true);
     setEditError(null);
     try {
-      const res = await maintenanceApi.updateTicket(id, editForm);
+      const formData = new FormData();
+      formData.append('title', editForm.title.trim());
+      formData.append('description', editForm.description.trim());
+      
+      // Send which existing photos to keep
+      editExistingPhotos.forEach(url => {
+        formData.append('existingPhotoUrls', url);
+      });
+      
+      // Send new photos
+      editNewPhotos.forEach(file => {
+        formData.append('photos', file);
+      });
+      
+      const res = await maintenanceApi.updateTicket(id, formData as any);
       if (res.success && res.data) {
         setTicket(res.data);
         setIsEditing(false);
+        setEditNewPhotos([]);
       } else {
         setEditError('Update failed.');
       }
@@ -448,11 +472,67 @@ export function MaintenanceDetailPage() {
                 <textarea id="edit-description" className="textarea" rows={5} value={editForm.description}
                   onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} disabled={editLoading} />
               </div>
+
+              {/* ── Photo Editing Section ── */}
+              <div style={{ marginBottom: 24 }}>
+                <label className="form-label">Attached Photos <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({editExistingPhotos.length + editNewPhotos.length}/5)</span></label>
+
+                {/* Existing photos with remove button */}
+                {editExistingPhotos.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <p className="body-sm text-charcoal" style={{ marginBottom: 6 }}>Current photos (click ✕ to remove):</p>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {editExistingPhotos.map((url, idx) => (
+                        <div key={idx} style={{ position: 'relative', width: 90, height: 90, borderRadius: 8, overflow: 'hidden', border: '2px solid var(--hairline)' }}>
+                          <img src={getPhotoUrl(url)} alt={`Photo ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button type="button" onClick={() => setEditExistingPhotos(p => p.filter((_, i) => i !== idx))}
+                            style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(234,40,4,0.85)', color: '#fff', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                            disabled={editLoading}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* New photos with preview and remove */}
+                {editNewPhotos.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <p className="body-sm text-charcoal" style={{ marginBottom: 6 }}>New photos to add:</p>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {editNewPhotos.map((file, idx) => (
+                        <div key={idx} style={{ position: 'relative', width: 90, height: 90, borderRadius: 8, overflow: 'hidden', border: '2px solid #22c55e' }}>
+                          <img src={URL.createObjectURL(file)} alt={`New ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button type="button" onClick={() => setEditNewPhotos(p => p.filter((_, i) => i !== idx))}
+                            style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(234,40,4,0.85)', color: '#fff', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                            disabled={editLoading}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add more button */}
+                {(editExistingPhotos.length + editNewPhotos.length) < 5 && (
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'var(--surface-bone)', border: '1.5px dashed var(--stone)', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--charcoal)' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+                    Add Photos
+                    <input type="file" accept="image/*" multiple hidden
+                      onChange={e => {
+                        if (!e.target.files) return;
+                        const remaining = 5 - editExistingPhotos.length - editNewPhotos.length;
+                        const files = Array.from(e.target.files).slice(0, remaining);
+                        setEditNewPhotos(p => [...p, ...files]);
+                        e.target.value = '';
+                      }} disabled={editLoading} />
+                  </label>
+                )}
+              </div>
+
               <div style={{ display: 'flex', gap: 12 }}>
                 <button type="submit" className="btn-primary" disabled={editLoading}>
                   {editLoading ? 'Saving...' : 'Save Changes'}
                 </button>
-                <button type="button" className="btn-ghost" onClick={() => { setIsEditing(false); setEditError(null); }} disabled={editLoading}>
+                <button type="button" className="btn-ghost" onClick={() => { setIsEditing(false); setEditError(null); setEditNewPhotos([]); }} disabled={editLoading}>
                   Cancel
                 </button>
               </div>
@@ -471,7 +551,7 @@ export function MaintenanceDetailPage() {
             {/* Management Buttons for OPEN tickets */}
             {ticket.status === 'OPEN' && (
               <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-                <button className="btn-outline btn-sm" onClick={() => setIsEditing(true)}>✏️ Edit Request</button>
+                <button className="btn-outline btn-sm" onClick={() => { setIsEditing(true); setEditExistingPhotos(ticket.photoUrls || []); setEditNewPhotos([]); }}>✏️ Edit Request</button>
                 <button className="btn-outline btn-sm" style={{ borderColor: '#ea2804', color: '#ea2804' }} onClick={() => setShowDeleteConfirm(true)}>🗑️ Delete Request</button>
               </div>
             )}
@@ -536,12 +616,7 @@ export function MaintenanceDetailPage() {
               {ticket.photoUrls && ticket.photoUrls.length > 0 && (
                 <div>
                   <p className="body-sm text-charcoal" style={{ marginBottom: 8 }}>Attached Photos</p>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {ticket.photoUrls.map((url, idx) => (
-                      <img key={idx} src={getPhotoUrl(url)} alt={`Ticket photo ${idx + 1}`}
-                        style={{ width: 110, height: 110, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hairline)' }} />
-                    ))}
-                  </div>
+                  <PhotoLightbox photoUrls={ticket.photoUrls} getPhotoUrl={getPhotoUrl} />
                 </div>
               )}
             </div>
