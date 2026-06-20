@@ -26,8 +26,8 @@ import { NotificationCenterPage, NotificationDetailPage }
                                   from './pages/customer/NotificationPages';
 import { BookingFormPage, BookingListPage, BookingDetailPage, BookingCancellationPage }
                                   from './pages/customer/BookingPages';
-import { ContractListPage, ContractDetailPage }
-                                  from './pages/customer/ContractPages';
+import ContractListPage   from './pages/customer/ContractListPage';
+import ContractDetailPage from './pages/customer/ContractDetailPage';
 import { DepositPaymentPage, RemainingPaymentPage, PaymentHistoryPage, ReceiptUploadPage }
                                   from './pages/customer/PaymentPages';
 import { MaintenanceListPage, CreateMaintenancePage, MaintenanceDetailPage }
