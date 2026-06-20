@@ -1,56 +1,57 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // ── Route Guards ─────────────────────────────────────────────────────────────
-import ProtectedRoute  from './components/ProtectedRoute';
-import GuestRoute      from './components/GuestRoute';
+import ProtectedRoute from './components/ProtectedRoute';
+import GuestRoute from './components/GuestRoute';
 
 // ── Public (SCR-01 → SCR-10) ─────────────────────────────────────────────────
-import LandingPage                from './pages/public/LandingPage';
-import LoginPage                  from './pages/public/LoginPage';
-import RegisterPage               from './pages/public/RegisterPage';
-import VerifyEmailPage            from './pages/public/VerifyEmailPage';
-import ForgotPasswordPage         from './pages/public/ForgotPasswordPage';
-import ResetPasswordPage          from './pages/public/ResetPasswordPage';
-import RoomListingPage            from './pages/public/RoomListingPage';
-import SearchResultsPage          from './pages/public/SearchResultsPage';
-import RoomDetailPage             from './pages/public/RoomDetailPage';
-import AvailabilityCalendarPage   from './pages/public/AvailabilityCalendarPage';
-import AboutPage                  from './pages/public/AboutPage';
-import UnauthorizedPage           from './pages/public/UnauthorizedPage';
+import LandingPage from './pages/public/LandingPage';
+import LoginPage from './pages/public/LoginPage';
+import RegisterPage from './pages/public/RegisterPage';
+import VerifyEmailPage from './pages/public/VerifyEmailPage';
+import ForgotPasswordPage from './pages/public/ForgotPasswordPage';
+import ResetPasswordPage from './pages/public/ResetPasswordPage';
+import RoomListingPage from './pages/public/RoomListingPage';
+import SearchResultsPage from './pages/public/SearchResultsPage';
+import RoomDetailPage from './pages/public/RoomDetailPage';
+import AvailabilityCalendarPage from './pages/public/AvailabilityCalendarPage';
+import AboutPage from './pages/public/AboutPage';
+import UnauthorizedPage from './pages/public/UnauthorizedPage';
 
 // ── Customer Portal ───────────────────────────────────────────────────────────
-import CustomerDashboardPage      from './pages/customer/CustomerDashboardPage';
+import CustomerDashboardPage from './pages/customer/CustomerDashboardPage';
 import { UserProfilePage, EditProfilePage, ChangePasswordPage }
-                                  from './pages/customer/ProfilePages';
+  from './pages/customer/ProfilePages';
 import { NotificationCenterPage, NotificationDetailPage }
-                                  from './pages/customer/NotificationPages';
+  from './pages/customer/NotificationPages';
 import { BookingFormPage, BookingListPage, BookingDetailPage, BookingCancellationPage }
-                                  from './pages/customer/BookingPages';
+  from './pages/customer/BookingPages';
 import ContractListPage   from './pages/customer/ContractListPage';
 import ContractDetailPage from './pages/customer/ContractDetailPage';
+
 import { DepositPaymentPage, RemainingPaymentPage, PaymentHistoryPage, ReceiptUploadPage }
-                                  from './pages/customer/PaymentPages';
+  from './pages/customer/PaymentPages';
 import { MaintenanceListPage, CreateMaintenancePage, MaintenanceDetailPage }
-                                  from './pages/customer/MaintenancePages';
+  from './pages/customer/MaintenancePages';
 import { ReviewRatingPage, MyReviewsPage }
-                                  from './pages/customer/ReviewPages';
+  from './pages/customer/ReviewPages';
 
 // ── Manager Portal ────────────────────────────────────────────────────────────
-import ManagerDashboardPage       from './pages/manager/ManagerDashboardPage';
-import PropertyListPage   from './pages/manager/PropertyListPage';
+import ManagerDashboardPage from './pages/manager/ManagerDashboardPage';
+import PropertyListPage from './pages/manager/PropertyListPage';
 import PropertyDetailPage from './pages/manager/PropertyDetailPage';
-import AddPropertyPage    from './pages/manager/AddPropertyPage';
-import EditPropertyPage   from './pages/manager/EditPropertyPage';
+import AddPropertyPage from './pages/manager/AddPropertyPage';
+import EditPropertyPage from './pages/manager/EditPropertyPage';
 import {
   StructureTreePage, FloorManagementPage,
   RoomListPage, RoomDetailMgmtPage, AddRoomPage, EditRoomPage,
   RoomGalleryPage, RoomStatusPage,
-}                                 from './pages/manager/RoomManagementPages';
+} from './pages/manager/RoomManagementPages';
 import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
 import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
 import {
   PaymentListPage, PaymentVerificationPage, PaymentDetailPage,
-}                                 from './pages/manager/BookingContractPaymentPages';
+} from './pages/manager/BookingContractPaymentPages';
 import ContractMgmtListPage from './pages/manager/ContractMgmtListPage';
 import ContractMgmtDetailPage from './pages/manager/ContractMgmtDetailPage';
 import ResendContractPage from './pages/manager/ResendContractPage';
@@ -60,7 +61,7 @@ import {
   MaintenanceMgmtListPage, MaintenanceMgmtDetailPage,
   ReportsDashboardPage, RevenueReportPage, OccupancyReportPage,
   ActivityLogPage, ReviewMgmtPage,
-}                                 from './pages/manager/AdminPages';
+} from './pages/manager/AdminPages';
 
 function App() {
   return (
@@ -68,20 +69,20 @@ function App() {
       <Routes>
 
         {/* ─────────────── PUBLIC — Ai cũng vào được ─────────────── */}
-        <Route path="/"                       element={<LandingPage />} />
-        <Route path="/rooms"                  element={<RoomListingPage />} />
-        <Route path="/search"                 element={<SearchResultsPage />} />
-        <Route path="/rooms/:id"              element={<RoomDetailPage />} />
-        <Route path="/rooms/:id/calendar"     element={<AvailabilityCalendarPage />} />
-        <Route path="/about"                  element={<AboutPage />} />
-        <Route path="/unauthorized"           element={<UnauthorizedPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/rooms" element={<RoomListingPage />} />
+        <Route path="/search" element={<SearchResultsPage />} />
+        <Route path="/rooms/:id" element={<RoomDetailPage />} />
+        <Route path="/rooms/:id/calendar" element={<AvailabilityCalendarPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* ─────────────── GUEST ONLY — Redirect nếu đã login ─────────────── */}
-        <Route path="/login"           element={<GuestRoute><LoginPage /></GuestRoute>} />
-        <Route path="/register"        element={<GuestRoute><RegisterPage /></GuestRoute>} />
-        <Route path="/verify-email"    element={<GuestRoute><VerifyEmailPage /></GuestRoute>} />
+        <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+        <Route path="/verify-email" element={<GuestRoute><VerifyEmailPage /></GuestRoute>} />
         <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
-        <Route path="/reset-password"  element={<GuestRoute><ResetPasswordPage /></GuestRoute>} />
+        <Route path="/reset-password" element={<GuestRoute><ResetPasswordPage /></GuestRoute>} />
 
         {/* ─────────────── CUSTOMER (SCR-11 to SCR-31) ─────────────── */}
         <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
