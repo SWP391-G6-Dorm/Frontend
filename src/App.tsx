@@ -49,9 +49,9 @@ import {
 } from './pages/manager/RoomManagementPages';
 import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
 import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
-import {
-  PaymentListPage, PaymentVerificationPage, PaymentDetailPage,
-} from './pages/manager/BookingContractPaymentPages';
+import PaymentMgmtListPage from './pages/manager/PaymentMgmtListPage';
+import PaymentMgmtVerificationPage from './pages/manager/PaymentMgmtVerificationPage';
+import PaymentMgmtDetailPage from './pages/manager/PaymentMgmtDetailPage';
 import ContractMgmtListPage from './pages/manager/ContractMgmtListPage';
 import ContractMgmtDetailPage from './pages/manager/ContractMgmtDetailPage';
 import ResendContractPage from './pages/manager/ResendContractPage';
@@ -198,11 +198,11 @@ function App() {
 
         {/* Payments (SCR-47,48,49) */}
         <Route path="/manager/payments"
-          element={<ProtectedRoute role="MANAGER"><PaymentListPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><PaymentMgmtListPage /></ProtectedRoute>} />
         <Route path="/manager/payments/:id/verify"
-          element={<ProtectedRoute role="MANAGER"><PaymentVerificationPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><PaymentMgmtVerificationPage /></ProtectedRoute>} />
         <Route path="/manager/payments/:id"
-          element={<ProtectedRoute role="MANAGER"><PaymentDetailPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><PaymentMgmtDetailPage /></ProtectedRoute>} />
 
         {/* Contracts (SCR-50,51,52) */}
         <Route path="/manager/contracts"

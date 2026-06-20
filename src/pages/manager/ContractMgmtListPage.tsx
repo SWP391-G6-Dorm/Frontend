@@ -28,7 +28,7 @@ export default function ContractMgmtListPage() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['manager_contracts', page, size, statusFilter, search],
-    queryFn: () => contractApi.getAllContracts({ page, size, status: statusFilter, search }),
+    queryFn: () => contractApi.getAllContracts({ page, size, status: statusFilter, search: search.trim() || undefined }),
     enabled: !bookingIdFromUrl
   });
 
@@ -55,27 +55,28 @@ export default function ContractMgmtListPage() {
         <h1 className="heading-md">Contract Management</h1>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24, alignItems: 'center' }}>
         <input 
           className="input" 
-          style={{ maxWidth: 300 }} 
+          style={{ maxWidth: 320, flex: 1 }} 
           placeholder="Search by customer or room..." 
           value={search} 
           onChange={e => { setSearch(e.target.value); setPage(0); }} 
         />
-      </div>
-
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 20, padding: '4px', background: 'var(--surface-bone)', borderRadius: 9999, width: 'fit-content' }}>
-        {TABS.map(tab => (
-          <button 
-            key={tab} 
-            className={`tab-pill ${statusFilter === tab ? 'active' : ''}`} 
-            onClick={() => { setStatusFilter(tab); setPage(0); }} 
-            style={{ fontSize: 12 }}
+        
+        <div style={{ position: 'relative' }}>
+          <select 
+            className="input" 
+            style={{ width: 200, appearance: 'none', paddingRight: 36, cursor: 'pointer', fontWeight: 500 }}
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
           >
-            {tab === 'ALL' ? 'All' : tab}
-          </button>
-        ))}
+            {TABS.map(tab => (
+              <option key={tab} value={tab}>{tab === 'ALL' ? 'All Statuses' : tab}</option>
+            ))}
+          </select>
+          <svg style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--ash)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
       </div>
 
       <div className="table-wrap">
