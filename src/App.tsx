@@ -46,11 +46,14 @@ import {
   RoomListPage, RoomDetailMgmtPage, AddRoomPage, EditRoomPage,
   RoomGalleryPage, RoomStatusPage,
 }                                 from './pages/manager/RoomManagementPages';
+import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
+import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
 import {
-  BookingMgmtListPage, BookingMgmtDetailPage,
   PaymentListPage, PaymentVerificationPage, PaymentDetailPage,
-  ContractMgmtListPage, ContractMgmtDetailPage, ResendContractPage,
 }                                 from './pages/manager/BookingContractPaymentPages';
+import ContractMgmtListPage from './pages/manager/ContractMgmtListPage';
+import ContractMgmtDetailPage from './pages/manager/ContractMgmtDetailPage';
+import ResendContractPage from './pages/manager/ResendContractPage';
 import {
   CustomerListPage, CustomerDetailPage,
   ComplaintListPage, ComplaintDetailPage,

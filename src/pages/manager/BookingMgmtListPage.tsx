@@ -1,12 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
-
-const BOOKINGS = [
-  { id: 'B001', customer: 'Nguyễn Văn An', customerEmail: 'an.nguyen@email.com', roomNumber: 'Villa 01', propertyName: 'Sunset Resort Đà Nẵng', checkInDate: '2026-07-10', checkOutDate: '2026-07-13', totalAmount: 7500000, status: 'CONFIRMED' },
-  { id: 'B002', customer: 'Trần Thị Lan', customerEmail: 'lan.tran@email.com', roomNumber: 'Deluxe 05', propertyName: 'Mountain View Homestay', checkInDate: '2026-08-01', checkOutDate: '2026-08-03', totalAmount: 2400000, status: 'PENDING_DEPOSIT' },
-  { id: 'B003', customer: 'Lê Minh Hoàng', customerEmail: 'hoang.le@email.com', roomNumber: 'Suite 03', propertyName: 'Hội An Garden Villa', checkInDate: '2026-04-05', checkOutDate: '2026-04-08', totalAmount: 5400000, status: 'CHECKED_OUT' },
-];
+import { useQuery } from '@tanstack/react-query';
+import { bookingApi } from '../../api/bookingApi';
 
 const STATUS_MAP: Record<string, { cls: string; l: string }> = {
   PENDING_DEPOSIT: { cls: 'badge-warning', l: 'Pending Deposit' },
@@ -24,27 +20,50 @@ function SBadge({ s }: { s: string }) {
 export default function BookingMgmtListPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(0);
+  const size = 10;
   const TABS = ['ALL', 'PENDING_DEPOSIT', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED'];
 
-  const list = BOOKINGS.filter(b => {
-    if (statusFilter !== 'ALL' && b.status !== statusFilter) return false;
-    return b.customer.toLowerCase().includes(search.toLowerCase()) || b.roomNumber.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase());
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['managerBookings', page, size, statusFilter, search],
+    queryFn: () => bookingApi.getAllBookings({
+      page,
+      size,
+      status: statusFilter === 'ALL' ? undefined : statusFilter,
+      search: search || undefined
+    })
   });
+
+  const list = data?.data?.content || [];
+  const totalPages = data?.data?.totalPages || 0;
 
   return (
     <ManagerLayout>
       <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
         <h1 className="heading-md">Booking Management</h1>
       </div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-        <input className="input" style={{ maxWidth: 300 }} placeholder="Search booking, customer..." value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 20, padding: '4px', background: 'var(--surface-bone)', borderRadius: 9999, width: 'fit-content' }}>
-        {TABS.map(tab => (
-          <button key={tab} className={`tab-pill ${statusFilter === tab ? 'active' : ''}`} onClick={() => setStatusFilter(tab)} style={{ fontSize: 12 }}>
-            {tab === 'ALL' ? 'All' : tab.replace('_', ' ')}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24, alignItems: 'center' }}>
+        <input 
+          className="input" 
+          style={{ maxWidth: 320, flex: 1 }} 
+          placeholder="Search booking, customer..." 
+          value={search} 
+          onChange={e => { setSearch(e.target.value); setPage(0); }} 
+        />
+        
+        <div style={{ position: 'relative' }}>
+          <select 
+            className="input" 
+            style={{ width: 200, appearance: 'none', paddingRight: 36, cursor: 'pointer', fontWeight: 500 }}
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
+          >
+            {TABS.map(tab => (
+              <option key={tab} value={tab}>{tab === 'ALL' ? 'All Statuses' : tab.replace('_', ' ')}</option>
+            ))}
+          </select>
+          <svg style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--ash)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
       </div>
       <div className="table-wrap">
         <table className="data-table">
@@ -52,10 +71,13 @@ export default function BookingMgmtListPage() {
             <tr><th>ID</th><th>Customer</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
           </thead>
           <tbody>
-            {list.map(b => (
+            {isLoading && <tr><td colSpan={8} style={{ textAlign: 'center' }}>Loading...</td></tr>}
+            {isError && <tr><td colSpan={8} style={{ textAlign: 'center', color: 'red' }}>Error loading bookings</td></tr>}
+            {!isLoading && !isError && list.length === 0 && <tr><td colSpan={8} style={{ textAlign: 'center' }}>No bookings found</td></tr>}
+            {!isLoading && list.map(b => (
               <tr key={b.id}>
-                <td><span className="code-sm">{b.id}</span></td>
-                <td><p style={{ fontWeight: 600, fontSize: 13 }}>{b.customer}</p><p style={{ fontSize: 11, color: 'var(--ash)' }}>{b.customerEmail}</p></td>
+                <td><span className="code-sm">{b.id.substring(0,8)}</span></td>
+                <td><p style={{ fontWeight: 600, fontSize: 13 }}>{b.customerName}</p><p style={{ fontSize: 11, color: 'var(--ash)' }}>{b.customerEmail}</p></td>
                 <td><p style={{ fontWeight: 600, fontSize: 13 }}>{b.roomNumber}</p><p style={{ fontSize: 11, color: 'var(--ash)' }}>{b.propertyName}</p></td>
                 <td className="text-charcoal">{b.checkInDate}</td>
                 <td className="text-charcoal">{b.checkOutDate}</td>
@@ -67,6 +89,14 @@ export default function BookingMgmtListPage() {
           </tbody>
         </table>
       </div>
+      
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+          <button className="btn-outline btn-sm" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>Prev</button>
+          <span style={{ padding: '4px 10px' }}>Page {page + 1} of {totalPages}</span>
+          <button className="btn-outline btn-sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next</button>
+        </div>
+      )}
     </ManagerLayout>
   );
 }
