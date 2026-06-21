@@ -1,11 +1,35 @@
 // ─── SCR-54: Customer Detail ──────────────────────────────────────────────────
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
-import { CUSTOMERS, Badge } from './_sharedAdminData';
+import { Badge } from './_sharedAdminData';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usersApi } from '../../api/usersApi';
 
 export function CustomerDetailPage() {
   const { id } = useParams();
-  const c = CUSTOMERS.find(x => x.id === id) || CUSTOMERS[0];
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['manager_customer', id],
+    queryFn: () => usersApi.getCustomerDetail(id!),
+    enabled: !!id
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ status }: { status: string }) => usersApi.updateCustomerStatus(id!, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['manager_customer', id] });
+    },
+    onError: () => {
+      alert("Cập nhật trạng thái thất bại");
+    }
+  });
+
+  if (isLoading) return <ManagerLayout><div style={{ padding: 40 }}>Loading...</div></ManagerLayout>;
+  if (isError || !data?.data) return <ManagerLayout><div style={{ padding: 40, color: 'var(--error)' }}>Error or customer not found</div></ManagerLayout>;
+
+  const c = data.data;
 
   return (
     <ManagerLayout>
@@ -19,9 +43,9 @@ export function CustomerDetailPage() {
         <div style={{ display: 'flex', gap: 8 }}>
           <Badge s={c.status} />
           {c.status === 'ACTIVE' ? (
-            <button className="btn-danger btn-sm">Suspend Account</button>
+            <button className="btn-danger btn-sm" onClick={() => statusMutation.mutate({ status: 'SUSPENDED' })} disabled={statusMutation.isPending}>Suspend Account</button>
           ) : (
-            <button className="btn-outline btn-sm" style={{ color: 'var(--success)', borderColor: 'var(--success)' }}>Activate</button>
+            <button className="btn-outline btn-sm" style={{ color: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => statusMutation.mutate({ status: 'ACTIVE' })} disabled={statusMutation.isPending}>Activate</button>
           )}
         </div>
       </div>
