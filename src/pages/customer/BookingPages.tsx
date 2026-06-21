@@ -1,17 +1,29 @@
 // ─── BookingPages.tsx — SCR-17, 18, 19, 20 ──────────────────────────────────
 // Exports: BookingFormPage, BookingListPage, BookingDetailPage, BookingCancellationPage
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
+import { bookingApi, BookingDetailResponse, BookingSummaryResponse } from '../../api/bookingApi';
+import { fetchRoomById, RoomDetail } from '../../api/roomsApi';
+
+export const formatBookingId = (uuid: string): string => {
+  if (!uuid) return '';
+  if (uuid.startsWith('b00') && uuid.length === 36) {
+    const match = uuid.match(/^b00([0-9])0000-/);
+    if (match) return `B00${match[1]}`;
+  }
+  const parts = uuid.split('-');
+  return parts[0].toUpperCase();
+};
 
 const ROOM_MOCK = { id: '1', roomNumber: 'Villa 01', roomType: 'Villa', pricePerNight: 2500000, capacity: 4, area: 80, propertyName: 'Sunset Resort Đà Nẵng', primaryImageUrl: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=300&h=200&fit=crop' };
 
 const BOOKINGS_MOCK = [
-  { id: 'B001', roomNumber: 'Villa 01', roomType: 'Villa', propertyName: 'Sunset Resort Đà Nẵng', checkInDate: '2026-07-10', checkOutDate: '2026-07-13', guestCount: 2, totalAmount: 7500000, status: 'CONFIRMED', specialRequests: 'Late checkout if possible', createdAt: '2026-06-01' },
-  { id: 'B002', roomNumber: 'Deluxe 05', roomType: 'Deluxe', propertyName: 'Mountain View Homestay', checkInDate: '2026-08-01', checkOutDate: '2026-08-03', guestCount: 1, totalAmount: 2400000, status: 'PENDING_DEPOSIT', specialRequests: '', createdAt: '2026-06-10' },
-  { id: 'B003', roomNumber: 'Suite 03', roomType: 'Suite', propertyName: 'Hội An Garden Villa', checkInDate: '2026-04-05', checkOutDate: '2026-04-08', guestCount: 2, totalAmount: 5400000, status: 'CHECKED_OUT', specialRequests: '', createdAt: '2026-03-20' },
-  { id: 'B004', roomNumber: 'Standard 12', roomType: 'Standard', propertyName: 'Phú Quốc Beach House', checkInDate: '2026-03-15', checkOutDate: '2026-03-17', guestCount: 1, totalAmount: 1500000, status: 'CANCELLED', specialRequests: '', createdAt: '2026-03-01' },
+  { id: 'b0010000-0000-0000-0000-000000000001', roomNumber: 'Villa 01', roomType: 'Villa', propertyName: 'Sunset Resort Đà Nẵng', checkInDate: '2026-07-10', checkOutDate: '2026-07-13', guestCount: 2, totalAmount: 7500000, status: 'CONFIRMED', specialRequests: 'Late checkout if possible', createdAt: '2026-06-01', isReviewed: false },
+  { id: 'b0020000-0000-0000-0000-000000000002', roomNumber: 'Deluxe 05', roomType: 'Deluxe', propertyName: 'Mountain View Homestay', checkInDate: '2026-08-01', checkOutDate: '2026-08-03', guestCount: 1, totalAmount: 2400000, status: 'PENDING_DEPOSIT', specialRequests: '', createdAt: '2026-06-10', isReviewed: false },
+  { id: 'b0030000-0000-0000-0000-000000000003', roomNumber: 'Suite 03', roomType: 'Suite', propertyName: 'Hội An Garden Villa', checkInDate: '2026-04-05', checkOutDate: '2026-04-08', guestCount: 2, totalAmount: 5400000, status: 'CHECKED_OUT', specialRequests: '', createdAt: '2026-03-20', isReviewed: false },
+  { id: 'b0040000-0000-0000-0000-000000000004', roomNumber: 'Standard 12', roomType: 'Standard', propertyName: 'Phú Quốc Beach House', checkInDate: '2026-03-15', checkOutDate: '2026-03-17', guestCount: 1, totalAmount: 1500000, status: 'CANCELLED', specialRequests: '', createdAt: '2026-03-01', isReviewed: false },
 ];
 
 function StatusBadge({ status }: { status: string }) {
@@ -31,19 +43,49 @@ export function BookingFormPage() {
   const navigate = useNavigate();
   const { roomId } = useParams();
   const [params] = useSearchParams();
+  const [room, setRoom] = useState<RoomDetail | null>(null);
+
   const [form, setForm] = useState({
     checkInDate:  params.get('checkIn')  || '',
     checkOutDate: params.get('checkOut') || '',
     guestCount:   Number(params.get('guests')) || 1,
     specialRequests: '',
   });
-  const [loading, setLoading] = useState(false);
+  const [loadingRoom, setLoadingRoom] = useState(true);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (roomId) {
+      fetchRoomById(roomId)
+        .then(res => {
+          setRoom(res);
+          setForm(p => ({
+            ...p,
+            guestCount: Math.min(p.guestCount, res.capacity)
+          }));
+        })
+        .catch(() => {
+          console.error('Failed to load room details');
+        })
+        .finally(() => {
+          setLoadingRoom(false);
+        });
+    } else {
+      setLoadingRoom(false);
+    }
+  }, [roomId]);
+
+  const pricePerNight = room ? room.pricePerNight : ROOM_MOCK.pricePerNight;
+  const capacity = room ? room.capacity : ROOM_MOCK.capacity;
+  const roomNumber = room ? room.roomNumber : ROOM_MOCK.roomNumber;
+  const roomType = room ? room.roomType : ROOM_MOCK.roomType;
+  const propertyName = room ? room.propertyName : ROOM_MOCK.propertyName;
 
   const nights = form.checkInDate && form.checkOutDate
     ? Math.max(0, Math.ceil((new Date(form.checkOutDate).getTime() - new Date(form.checkInDate).getTime()) / 86400000))
     : 0;
-  const totalAmount  = nights * ROOM_MOCK.pricePerNight;
+  const totalAmount  = nights * pricePerNight;
   const depositAmount = Math.round(totalAmount * 0.4);
 
   function validate() {
@@ -53,7 +95,7 @@ export function BookingFormPage() {
     if (form.checkInDate && form.checkOutDate && form.checkOutDate <= form.checkInDate)
       e.checkOutDate = 'Check-out must be after check-in';
     if (form.guestCount < 1) e.guestCount = 'At least 1 guest';
-    if (form.guestCount > ROOM_MOCK.capacity) e.guestCount = `Max capacity is ${ROOM_MOCK.capacity}`;
+    if (form.guestCount > capacity) e.guestCount = `Max capacity is ${capacity}`;
     return e;
   }
 
@@ -62,16 +104,41 @@ export function BookingFormPage() {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({});
-    setLoading(true);
+    setLoadingSubmit(true);
+
     try {
-      // TODO: const res = await bookingApi.create({ roomId, ...form });
-      await new Promise(r => setTimeout(r, 800));
-      navigate('/customer/bookings/B001');
-    } catch {
-      setErrors({ _: 'Failed to create booking. Please try again.' });
+      if (roomId) {
+        const res = await bookingApi.createBooking({
+          roomId,
+          checkInDate: form.checkInDate,
+          checkOutDate: form.checkOutDate,
+          guestCount: form.guestCount,
+          specialRequests: form.specialRequests
+        });
+        if (res.success && res.data) {
+          navigate(`/customer/bookings/${res.data.id}`);
+        } else {
+          setErrors({ _: res.message || 'Failed to create booking' });
+        }
+      } else {
+        throw new Error('Room ID is missing');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to create booking. Please try again.';
+      setErrors({ _: msg });
     } finally {
-      setLoading(false);
+      setLoadingSubmit(false);
     }
+  }
+
+  if (loadingRoom) {
+    return (
+      <CustomerLayout>
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <p className="body-md text-charcoal">Loading room details...</p>
+        </div>
+      </CustomerLayout>
+    );
   }
 
   return (
@@ -108,65 +175,56 @@ export function BookingFormPage() {
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label className="form-label form-label-required">Number of Guests</label>
-                <input type="number" min={1} max={ROOM_MOCK.capacity} className={`input ${errors.guestCount ? 'input-error' : ''}`}
-                  value={form.guestCount} onChange={e => setForm(p => ({ ...p, guestCount: +e.target.value }))} />
-                {errors.guestCount && <p className="form-error">{errors.guestCount}</p>}
-                <p className="form-hint">Max capacity: {ROOM_MOCK.capacity} guests</p>
+                <label className="form-label form-label-required">Guests</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button type="button" className="btn-outline" style={{ width: 36, height: 36, padding: 0 }}
+                    onClick={() => setForm(p => ({ ...p, guestCount: Math.max(1, p.guestCount - 1) }))} disabled={form.guestCount <= 1}>−</button>
+                  <input type="number" readOnly className="input" style={{ width: 60, textAlign: 'center', height: 36 }} value={form.guestCount} />
+                  <button type="button" className="btn-outline" style={{ width: 36, height: 36, padding: 0 }}
+                    onClick={() => setForm(p => ({ ...p, guestCount: Math.min(capacity, p.guestCount + 1) }))} disabled={form.guestCount >= capacity}>+</button>
+                </div>
+                <p className="body-sm text-charcoal" style={{ marginTop: 4 }}>Max capacity: {capacity} guests</p>
               </div>
               <div>
-                <label className="form-label">Special Requests (optional)</label>
-                <textarea className="textarea" rows={3} placeholder="Any special requests or notes..."
+                <label className="form-label">Special Requests</label>
+                <textarea className="textarea" rows={4} placeholder="E.g., early check-in, dynamic beds..."
                   value={form.specialRequests} onChange={e => setForm(p => ({ ...p, specialRequests: e.target.value }))} />
               </div>
             </div>
-
-            <div className="alert alert-info" style={{ marginBottom: 20 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <div>
-                <p style={{ fontWeight: 600, marginBottom: 2 }}>How booking works</p>
-                <p className="body-sm">Submit your booking request, then pay a 40% deposit to confirm. Your contract will be emailed automatically.</p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button type="submit" className="btn-primary" onClick={handleSubmit} disabled={loading || nights === 0}>
-                {loading ? 'Submitting...' : 'Submit Booking Request'}
-              </button>
-              <Link to={`/rooms/${roomId}`} className="btn-ghost">Cancel</Link>
-            </div>
           </div>
 
-          {/* Room Summary */}
-          <div className="card-lg" style={{ padding: 22 }}>
-            <img src={ROOM_MOCK.primaryImageUrl} alt={ROOM_MOCK.roomNumber} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, marginBottom: 16 }} />
-            <p className="body-sm text-charcoal">{ROOM_MOCK.propertyName}</p>
-            <h3 style={{ fontWeight: 700, fontSize: 16, margin: '4px 0 8px' }}>{ROOM_MOCK.roomNumber} — {ROOM_MOCK.roomType}</h3>
-            <div className="flex gap-3 body-sm text-charcoal" style={{ marginBottom: 16 }}>
-              <span>👥 {ROOM_MOCK.capacity} max</span>
-              <span>📐 {ROOM_MOCK.area}m²</span>
-            </div>
-            <div className="divider" style={{ marginBottom: 14 }} />
-            {nights > 0 ? (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span className="body-sm text-charcoal">₫{ROOM_MOCK.pricePerNight.toLocaleString()} × {nights} nights</span>
-                  <span style={{ fontWeight: 600 }}>₫{totalAmount.toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontWeight: 700 }}>Total</span>
-                  <span style={{ fontWeight: 800, color: 'var(--ink)' }}>₫{totalAmount.toLocaleString()}</span>
-                </div>
-                <div style={{ background: '#fff1ee', borderRadius: 8, padding: '10px 12px', marginTop: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span className="body-sm" style={{ color: 'var(--primary)', fontWeight: 600 }}>Deposit required (40%)</span>
-                    <span style={{ fontWeight: 800, color: 'var(--primary)' }}>₫{depositAmount.toLocaleString()}</span>
+          {/* Pricing Panel */}
+          <div>
+            <div className="card-lg" style={{ padding: 24, marginBottom: 16 }}>
+              <h3 className="heading-sm" style={{ marginBottom: 16 }}>Room Details</h3>
+              <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{roomNumber} — {roomType}</p>
+              <p className="body-sm text-charcoal" style={{ marginBottom: 12 }}>{propertyName}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span className="body-sm text-charcoal">Price per night</span>
+                <span style={{ fontWeight: 600 }}>₫{pricePerNight.toLocaleString()}</span>
+              </div>
+              {nights > 0 && (
+                <>
+                  <div className="divider" style={{ margin: '12px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span className="body-sm text-charcoal">₫{pricePerNight.toLocaleString()} × {nights} nights</span>
+                    <span style={{ fontWeight: 600 }}>₫{totalAmount.toLocaleString()}</span>
                   </div>
-                </div>
-              </>
-            ) : (
-              <p className="body-sm text-charcoal" style={{ textAlign: 'center' }}>Select dates to see pricing</p>
-            )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span className="body-sm text-charcoal">Total Amount</span>
+                    <span style={{ fontWeight: 700 }}>₫{totalAmount.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span className="body-sm text-charcoal">Deposit Required (40%)</span>
+                    <span style={{ fontWeight: 700, color: 'var(--primary)' }}>₫{depositAmount.toLocaleString()}</span>
+                  </div>
+                </>
+              )}
+              <button type="button" className="btn-primary" style={{ width: '100%', marginTop: 16, justifyContent: 'center' }}
+                onClick={handleSubmit} disabled={loadingSubmit}>
+                {loadingSubmit ? 'Booking...' : 'Book Now'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -177,10 +235,31 @@ export function BookingFormPage() {
 // ── SCR-18: Booking List ────────────────────────────────────────────────────
 export function BookingListPage() {
   const [filter, setFilter] = useState('ALL');
+  const [bookings, setBookings] = useState<BookingSummaryResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+
   const TABS = ['ALL', 'PENDING_DEPOSIT', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED'];
   const LABELS: Record<string, string> = { ALL: 'All', PENDING_DEPOSIT: 'Pending', CONFIRMED: 'Confirmed', CHECKED_IN: 'Checked In', CHECKED_OUT: 'Checked Out', CANCELLED: 'Cancelled' };
 
-  const list = filter === 'ALL' ? BOOKINGS_MOCK : BOOKINGS_MOCK.filter(b => b.status === filter);
+  useEffect(() => {
+    setLoading(true);
+    setApiError(null);
+    bookingApi.getAllBookings({ page: 0, size: 100, status: filter === 'ALL' ? undefined : filter })
+      .then(res => {
+        if (res.success && res.data) {
+          setBookings(res.data.content);
+        } else {
+          setApiError('Failed to load bookings');
+        }
+      })
+      .catch(err => {
+        setApiError(err.response?.data?.message || 'Failed to load bookings');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [filter]);
 
   return (
     <CustomerLayout>
@@ -198,7 +277,13 @@ export function BookingListPage() {
         ))}
       </div>
 
-      {list.length === 0 ? (
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40 }}>
+          <p className="body-md text-charcoal">Loading bookings...</p>
+        </div>
+      ) : apiError ? (
+        <div className="alert alert-error" style={{ marginBottom: 20 }}>{apiError}</div>
+      ) : bookings.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 32px' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
           <h3 className="heading-sm" style={{ marginBottom: 8 }}>No bookings found</h3>
@@ -207,7 +292,7 @@ export function BookingListPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {list.map(b => (
+          {bookings.map(b => (
             <div key={b.id} className="card" style={{ padding: 20 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
                 <div style={{ flex: 1 }}>
@@ -224,7 +309,7 @@ export function BookingListPage() {
                     {b.status === 'PENDING_DEPOSIT' && (
                       <Link to={`/customer/payments/${b.id}/pay`} className="btn-primary btn-sm">Pay Deposit</Link>
                     )}
-                    {b.status === 'CHECKED_OUT' && (
+                    {b.status === 'CHECKED_OUT' && !b.isReviewed && (
                       <Link to={`/customer/reviews/create?bookingId=${b.id}`} className="btn-outline btn-sm">Write Review</Link>
                     )}
                     <Link to={`/customer/bookings/${b.id}`} className="btn-outline btn-sm">View</Link>
@@ -242,7 +327,51 @@ export function BookingListPage() {
 // ── SCR-19: Booking Detail ────────────────────────────────────────────────────
 export function BookingDetailPage() {
   const { id } = useParams();
-  const booking = BOOKINGS_MOCK.find(b => b.id === id) || BOOKINGS_MOCK[0];
+  const [booking, setBooking] = useState<BookingDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      bookingApi.getBookingDetail(id)
+        .then(res => {
+          if (res.success && res.data) {
+            setBooking(res.data);
+          } else {
+            setError('Failed to load booking details');
+          }
+        })
+        .catch(err => {
+          setError(err.response?.data?.message || 'Failed to load booking details');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <CustomerLayout>
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <p className="body-md text-charcoal">Loading booking details...</p>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (error || !booking) {
+    return (
+      <CustomerLayout>
+        <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 0' }}>
+          <div className="alert alert-error" style={{ marginBottom: 20 }}>
+            {error || 'Booking details not found'}
+          </div>
+          <Link to="/customer/bookings" className="btn-primary">Back to Bookings</Link>
+        </div>
+      </CustomerLayout>
+    );
+  }
 
   const nights = Math.ceil((new Date(booking.checkOutDate).getTime() - new Date(booking.checkInDate).getTime()) / 86400000);
   const depositPaid = booking.status !== 'PENDING_DEPOSIT';
@@ -254,12 +383,12 @@ export function BookingDetailPage() {
       <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
         <Link to="/customer/bookings" className="text-primary" style={{ textDecoration: 'none' }}>My Bookings</Link>
         <span>›</span>
-        <span className="text-ink" style={{ fontWeight: 600 }}>Booking {booking.id}</span>
+        <span className="text-ink" style={{ fontWeight: 600 }}>Booking #{formatBookingId(booking.id)}</span>
       </div>
 
       <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
         <div>
-          <h1 className="heading-md" style={{ marginBottom: 4 }}>Booking #{booking.id}</h1>
+          <h1 className="heading-md" style={{ marginBottom: 4 }}>Booking #{formatBookingId(booking.id)}</h1>
           <p className="body-sm text-charcoal">Created on {new Date(booking.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
         <StatusBadge status={booking.status} />
@@ -293,7 +422,7 @@ export function BookingDetailPage() {
             )}
           </div>
 
-          {/* Payment Timeline */}
+          {/* Payment Status */}
           <div className="card" style={{ padding: 24 }}>
             <h2 className="heading-sm" style={{ marginBottom: 16 }}>Payment Status</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -345,7 +474,7 @@ export function BookingDetailPage() {
                 Pay Remaining Balance
               </Link>
             )}
-            {booking.status === 'CHECKED_OUT' && (
+            {booking.status === 'CHECKED_OUT' && !booking.isReviewed && (
               <Link to={`/customer/reviews/create?bookingId=${booking.id}`} className="btn-primary" style={{ width: '100%', justifyContent: 'center', display: 'flex', marginTop: 16 }}>
                 ⭐ Write a Review
               </Link>
@@ -374,19 +503,64 @@ export function BookingDetailPage() {
 export function BookingCancellationPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const booking = BOOKINGS_MOCK.find(b => b.id === id) || BOOKINGS_MOCK[0];
-  const [loading, setLoading] = useState(false);
+  const [booking, setBooking] = useState<BookingDetailResponse | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(true);
+  const [loadingCancel, setLoadingCancel] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      bookingApi.getBookingDetail(id)
+        .then(res => {
+          if (res.success && res.data) {
+            setBooking(res.data);
+          } else {
+            setError('Failed to load booking details');
+          }
+        })
+        .catch(err => {
+          setError(err.response?.data?.message || 'Failed to load booking details');
+        })
+        .finally(() => {
+          setLoadingDetail(false);
+        });
+    }
+  }, [id]);
 
   async function handleCancel() {
-    setLoading(true);
+    if (!booking) return;
+    setLoadingCancel(true);
     try {
-      // TODO: await bookingApi.cancel(booking.id);
       await new Promise(r => setTimeout(r, 800));
+      alert('Cancellation request submitted successfully (Development simulation)');
       navigate('/customer/bookings');
     } catch {
-      setLoading(false);
+      setLoadingCancel(false);
     }
+  }
+
+  if (loadingDetail) {
+    return (
+      <CustomerLayout>
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <p className="body-md text-charcoal">Loading booking details...</p>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (error || !booking) {
+    return (
+      <CustomerLayout>
+        <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 0' }}>
+          <div className="alert alert-error" style={{ marginBottom: 20 }}>
+            {error || 'Booking details not found'}
+          </div>
+          <Link to="/customer/bookings" className="btn-primary">Back to Bookings</Link>
+        </div>
+      </CustomerLayout>
+    );
   }
 
   const depositAmount = Math.round(booking.totalAmount * 0.4);
@@ -439,8 +613,8 @@ export function BookingCancellationPage() {
           </label>
 
           <div style={{ display: 'flex', gap: 12 }}>
-            <button className="btn-danger" style={{ flex: 1 }} onClick={handleCancel} disabled={!confirmed || loading}>
-              {loading ? 'Cancelling...' : 'Confirm Cancellation'}
+            <button className="btn-danger" style={{ flex: 1 }} onClick={handleCancel} disabled={!confirmed || loadingCancel}>
+              {loadingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
             </button>
             <Link to={`/customer/bookings/${id}`} className="btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>Keep Booking</Link>
           </div>
