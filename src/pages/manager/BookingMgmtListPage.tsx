@@ -30,7 +30,7 @@ export default function BookingMgmtListPage() {
       page,
       size,
       status: statusFilter === 'ALL' ? undefined : statusFilter,
-      search: search || undefined
+      search: search.trim() || undefined
     })
   });
 
