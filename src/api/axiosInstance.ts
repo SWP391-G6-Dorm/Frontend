@@ -31,9 +31,9 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     const isUnauthorized = error.response?.status === 401;
-    const isNotRetried   = !originalRequest._retry;
+    const isNotRetried = !originalRequest._retry;
     const isNotAuthRoute = !originalRequest.url?.includes('/api/auth/login')
-                        && !originalRequest.url?.includes('/api/auth/refresh');
+      && !originalRequest.url?.includes('/api/auth/refresh');
 
     if (isUnauthorized && isNotRetried && isNotAuthRoute) {
       originalRequest._retry = true;
@@ -51,7 +51,7 @@ api.interceptors.response.use(
 
           if (res.success && res.data) {
             // Cập nhật tokens trong localStorage
-            localStorage.setItem('accessToken',  res.data.accessToken);
+            localStorage.setItem('accessToken', res.data.accessToken);
             localStorage.setItem('refreshToken', res.data.refreshToken);
 
             // Đồng bộ Zustand store với data mới

@@ -167,3 +167,93 @@ export async function checkRoomAvailability(
   const res = await api.get(`/api/rooms/${id}/availability`, { params: { checkIn, checkOut } });
   return res.data.data;
 }
+
+// ── SCR-40: Booking history for a room (Manager) ─────────────────────────────
+
+export interface RoomBookingSummary {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  roomNumber: string;
+  roomType: string;
+  propertyName: string;
+  checkInDate: string;       // yyyy-MM-dd
+  checkOutDate: string;      // yyyy-MM-dd
+  guestCount: number;
+  totalAmount: number;
+  status: string;            // PENDING_DEPOSIT | CONFIRMED | CHECKED_IN | CHECKED_OUT | CANCELLED
+  createdAt: string;
+}
+
+export interface RoomBookingsPage {
+  content: RoomBookingSummary[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export async function fetchRoomBookings(
+  roomId: string,
+  page = 0,
+  size = 5,
+): Promise<RoomBookingsPage> {
+  const res = await api.get(`/api/rooms/${roomId}/bookings`, {
+    params: { page, size, sort: 'checkInDate,desc' },
+  });
+  return res.data.data;
+}
+
+// ── SCR-41: Create room (Manager) ─────────────────────────────────────────────
+
+export interface CreateRoomPayload {
+  propertyId: string;
+  floorId: string;
+  roomNumber: string;
+  roomType: string;
+  pricePerNight: number;   // backend: BigDecimal — send as number
+  capacity: number;
+  area?: number;           // optional
+  description?: string;    // optional
+}
+
+// POST /api/rooms — MANAGER only — returns RoomDetail (same shape as fetchRoomById)
+export async function createRoom(payload: CreateRoomPayload): Promise<RoomDetail> {
+  const res = await api.post('/api/rooms', payload);
+  return res.data.data;
+}
+
+// ── SCR-42: Update room (Manager) ─────────────────────────────────────────────
+
+export interface UpdateRoomPayload {
+  roomNumber?: string;
+  roomType?: string;
+  pricePerNight?: number;
+  capacity?: number;
+  area?: number | null;         // null = clear the value in backend
+  description?: string | null;  // null = clear the value in backend
+}
+
+// PUT /api/rooms/{id} — MANAGER only — partial update, returns updated RoomDetail
+export async function updateRoom(id: string, payload: UpdateRoomPayload): Promise<RoomDetail> {
+  const res = await api.put(`/api/rooms/${id}`, payload);
+  return res.data.data;
+}
+
+// ── SCR-44: Update room status (Manager) ─────────────────────────────────────
+
+export interface UpdateRoomStatusPayload {
+  // Backend only allows AVAILABLE <-> MAINTENANCE manually
+  // PENDING_DEPOSIT / RESERVED / OCCUPIED are managed by booking flow
+  status: 'AVAILABLE' | 'MAINTENANCE';
+  note?: string;  // UI requires this when status = MAINTENANCE
+}
+
+// PATCH /api/rooms/{id}/status — MANAGER only
+export async function updateRoomStatus(
+  id: string,
+  payload: UpdateRoomStatusPayload,
+): Promise<RoomDetail> {
+  const res = await api.patch(`/api/rooms/${id}/status`, payload);
+  return res.data.data;
+}
