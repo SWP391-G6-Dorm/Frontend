@@ -162,13 +162,7 @@ export function useRoomSearch() {
   function applyFilters(resetPage = true) {
     const next = new URLSearchParams();
     if (draft.search.trim()) {
-      const term = draft.search.trim();
-      const matchedProperty = properties.find((p) => p.name.toLowerCase() === term.toLowerCase());
-      if (matchedProperty) {
-        next.set('search', term);
-      } else {
-        next.set('location', term);
-      }
+      next.set('location', draft.search.trim());
     }
     if (draft.propertyIds.length === 1) next.set('propertyId', draft.propertyIds[0]);
     else if (draft.propertyIds.length > 1) next.set('propertyIds', draft.propertyIds.join(','));
