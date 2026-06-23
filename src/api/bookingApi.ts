@@ -24,6 +24,7 @@ export interface BookingSummaryResponse {
   totalAmount: number;
   status: string;
   createdAt: string;
+  isReviewed?: boolean;
 }
 
 export interface BookingDetailResponse {
@@ -44,6 +45,7 @@ export interface BookingDetailResponse {
   status: string;
   specialRequests: string;
   createdAt: string;
+  isReviewed?: boolean;
 }
 
 export interface PageResponse<T> {
@@ -73,6 +75,10 @@ export const bookingApi = {
   },
   markCheckedOut: async (id: string): Promise<{ success: boolean }> => {
     const res = await api.patch(`/api/bookings/${id}/check-out`);
+    return res.data;
+  },
+  createBooking: async (request: { roomId: string; checkInDate: string; checkOutDate: string; guestCount: number; specialRequests?: string }): Promise<{ success: boolean; data: BookingDetailResponse; message: string }> => {
+    const res = await api.post('/api/bookings', request);
     return res.data;
   },
 };
