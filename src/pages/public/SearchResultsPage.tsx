@@ -3,14 +3,23 @@ import PublicLayout from '../../layouts/PublicLayout';
 import Pagination from '../../components/ui/Pagination';
 import RoomSearchCard, { RoomCardSkeleton } from '../../components/rooms/RoomSearchCard';
 import { buildSearchSummary, useRoomSearch } from '../../hooks/useRoomSearch';
+import {
+  blockNonDigitKey,
+  clampPositiveIntString,
+  digitsOnly,
+} from '../../utils/filterInput';
 
-const PRICE_SLIDER_MAX = 5_000_000;
+type SearchResultsVariant = 'search' | 'rooms';
 
-export function SearchResultsContent() {
+export function SearchResultsContent({ variant = 'search' }: { variant?: SearchResultsVariant }) {
   const s = useRoomSearch();
   const {
     draft,
     setDraft,
+    priceMin,
+    sliderMax,
+    MAX_FILTER_PRICE,
+    MAX_FILTER_GUESTS,
     properties,
     rooms,
     totalElements,
@@ -38,6 +47,12 @@ export function SearchResultsContent() {
 
   const summary = buildSearchSummary(urlLocation, urlCheckIn, urlCheckOut, urlGuests, hasActiveFilters);
 
+  const breadcrumbCurrent = variant === 'rooms' ? 'Danh sách phòng' : 'Kết quả tìm kiếm';
+  const pageTitle =
+    variant === 'rooms' && !hasActiveFilters && !urlLocation && !urlCheckIn
+      ? 'Tất cả phòng đang trống'
+      : summary;
+
   return (
     <div className="container-wide section-pad-sm">
       <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20, flexWrap: 'wrap' }}>
@@ -46,7 +61,7 @@ export function SearchResultsContent() {
         </Link>
         <span>›</span>
         <span className="text-ink" style={{ fontWeight: 600 }}>
-          Kết quả tìm kiếm
+          {breadcrumbCurrent}
         </span>
       </div>
 
@@ -60,7 +75,7 @@ export function SearchResultsContent() {
         }}
       >
         <h1 className="heading-md font-display" style={{ marginBottom: 4 }}>
-          {summary}
+          {pageTitle}
         </h1>
         <p className="body-sm text-charcoal">
           {loading ? 'Đang tìm...' : `${totalElements} phòng phù hợp`}
@@ -76,7 +91,7 @@ export function SearchResultsContent() {
         }}
       >
         <aside
-          className="card"
+          className="card search-filter-aside"
           style={{ padding: 24, position: 'sticky', top: 88, border: '1px solid var(--hairline)' }}
         >
           <h2 className="heading-sm font-display" style={{ marginBottom: 20 }}>
@@ -96,36 +111,60 @@ export function SearchResultsContent() {
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <label className="form-label">Khoảng giá (₫/đêm)</label>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <label className="form-label">Khoảng giá</label>
+            <div className="search-filter-price-row" style={{ marginBottom: 8 }}>
               <input
-                type="number"
-                min={0}
-                className="input"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="input search-filter-input-compact"
                 placeholder="Tối thiểu"
                 value={draft.minPrice}
-                onChange={(e) => setDraft((p) => ({ ...p, minPrice: e.target.value }))}
-                style={{ borderRadius: 10, height: 38, fontSize: 13 }}
+                onKeyDown={blockNonDigitKey}
+                onChange={(e) => setDraft((p) => ({ ...p, minPrice: digitsOnly(e.target.value) }))}
+                onBlur={() =>
+                  setDraft((p) => ({
+                    ...p,
+                    minPrice: p.minPrice ? clampPositiveIntString(p.minPrice, MAX_FILTER_PRICE) : '',
+                  }))
+                }
               />
               <input
-                type="number"
-                min={0}
-                className="input"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="input search-filter-input-compact"
                 placeholder="Tối đa"
                 value={draft.maxPrice}
-                onChange={(e) => setDraft((p) => ({ ...p, maxPrice: e.target.value }))}
-                style={{ borderRadius: 10, height: 38, fontSize: 13 }}
+                onKeyDown={blockNonDigitKey}
+                onChange={(e) => setDraft((p) => ({ ...p, maxPrice: digitsOnly(e.target.value) }))}
+                onBlur={() =>
+                  setDraft((p) => {
+                    let maxP = p.maxPrice ? clampPositiveIntString(p.maxPrice, MAX_FILTER_PRICE) : '';
+                    const minP = p.minPrice ? clampPositiveIntString(p.minPrice, MAX_FILTER_PRICE) : '';
+                    if (minP && maxP && Number(maxP) < Number(minP)) maxP = minP;
+                    return { ...p, maxPrice: maxP };
+                  })
+                }
               />
             </div>
             <input
               type="range"
-              min={0}
-              max={PRICE_SLIDER_MAX}
-              step={100000}
-              value={draft.maxPrice ? Math.min(Number(draft.maxPrice), PRICE_SLIDER_MAX) : PRICE_SLIDER_MAX}
-              onChange={(e) => setDraft((p) => ({ ...p, maxPrice: e.target.value }))}
+              min={priceMin}
+              max={sliderMax}
+              step={Math.round((sliderMax - priceMin) / 20 / 50000) * 50000 || 50000}
+              value={draft.maxPrice ? Math.min(Number(draft.maxPrice), sliderMax) : sliderMax}
+              onChange={(e) =>
+                setDraft((p) => ({
+                  ...p,
+                  maxPrice: clampPositiveIntString(e.target.value, MAX_FILTER_PRICE),
+                }))
+              }
               style={{ width: '100%' }}
             />
+            <p className="body-sm text-charcoal" style={{ marginTop: 6, marginBottom: 0 }}>
+              Tối đa {MAX_FILTER_PRICE.toLocaleString('vi-VN')}
+            </p>
           </div>
 
           <div style={{ marginBottom: 20 }}>
@@ -164,41 +203,47 @@ export function SearchResultsContent() {
             </div>
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="form-label">Số khách tối thiểu</label>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              className="input"
-              value={draft.guests}
-              onChange={(e) => setDraft((p) => ({ ...p, guests: e.target.value }))}
-              style={{ borderRadius: 10, height: 40, fontSize: 14 }}
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-            <div>
+          <div className="search-filter-dates" style={{ marginBottom: 20 }}>
+            <div className="search-filter-date-field">
               <label className="form-label">Check-in</label>
               <input
                 type="date"
-                className="input"
+                className="input search-filter-input-compact search-filter-date-input"
                 value={draft.checkIn}
                 onChange={(e) => setDraft((p) => ({ ...p, checkIn: e.target.value }))}
-                style={{ borderRadius: 10, height: 38, fontSize: 13 }}
               />
             </div>
-            <div>
+            <div className="search-filter-date-field">
               <label className="form-label">Check-out</label>
               <input
                 type="date"
-                className="input"
+                className="input search-filter-input-compact search-filter-date-input"
                 value={draft.checkOut}
                 min={draft.checkIn || undefined}
                 onChange={(e) => setDraft((p) => ({ ...p, checkOut: e.target.value }))}
-                style={{ borderRadius: 10, height: 38, fontSize: 13 }}
               />
             </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label className="form-label">Số khách tối thiểu</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="input"
+              placeholder="1–100"
+              value={draft.guests}
+              onKeyDown={blockNonDigitKey}
+              onChange={(e) => setDraft((p) => ({ ...p, guests: digitsOnly(e.target.value) }))}
+              onBlur={() =>
+                setDraft((p) => ({
+                  ...p,
+                  guests: p.guests ? clampPositiveIntString(p.guests, MAX_FILTER_GUESTS) : '',
+                }))
+              }
+              style={{ borderRadius: 10, height: 40, fontSize: 14 }}
+            />
           </div>
 
           <div className="flex flex-col gap-2">

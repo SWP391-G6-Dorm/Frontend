@@ -1,29 +1,73 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
 import {
   fetchFeaturedRooms,
   fetchFeaturedProperties,
   fetchPlatformStats,
-  fetchSearchSuggestions,
+  fetchPromotions,
   type FeaturedRoom,
   type FeaturedProperty,
   type PlatformStats,
-  type SearchSuggestion,
+  type Promotion,
 } from '../../api/publicApi';
-import { formatStatValue } from '../../utils/mediaUrl';
+import { formatStatValue, resolveMediaUrl } from '../../utils/mediaUrl';
 import SafeImage from '../../components/ui/SafeImage';
+
+/** Banner mặc định SCR-01 khi DB chưa có promotion (fallback hiển thị ngay) */
+const DEFAULT_PROMOTIONS: Promotion[] = [
+  {
+    id: 'default-1',
+    subtitle: 'Ưu đãi cuối tuần',
+    title: 'Giảm 20%\nthứ 6 – chủ nhật',
+    description: 'Áp dụng cho phòng trống cuối tuần tại tất cả homestay.',
+    ctaText: 'Đặt ngay →',
+    ctaUrl: '/search?sort=price-asc',
+    colorTheme: 'red',
+    isActive: true,
+    sortOrder: 0,
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'default-2',
+    subtitle: 'Đặt sớm hè 2026',
+    title: 'Combo 3 đêm\n+ bữa sáng miễn phí',
+    description: 'Ưu đãi có hạn — đặt trước 31/08/2026.',
+    ctaText: 'Khám phá →',
+    ctaUrl: '/search',
+    colorTheme: 'blue',
+    isActive: true,
+    sortOrder: 1,
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'default-3',
+    subtitle: 'Lưu trú dài hạn',
+    title: 'Giảm thêm 15%\ncho booking từ 5 đêm',
+    description: 'Lý tưởng cho kỳ nghỉ dài ngày hoặc công tác.',
+    ctaText: 'Xem phòng →',
+    ctaUrl: '/rooms',
+    colorTheme: 'green',
+    isActive: true,
+    sortOrder: 2,
+    createdAt: '',
+    updatedAt: '',
+  },
+];
+
+const HERO_FALLBACK_IMAGES = [
+  'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=900&h=650&fit=crop',
+  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=500&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&h=400&fit=crop',
+];
 
 const HOW_IT_WORKS = [
   { step: '01', title: 'Search & Browse', desc: 'Find your perfect room by location, dates, type and capacity with real-time availability.' },
   { step: '02', title: 'Book & Deposit', desc: 'Confirm your booking with a 40% deposit. Receive your contract instantly via email.' },
   { step: '03', title: 'Check In & Enjoy', desc: 'Pay the remaining balance at check-in and enjoy your premium homestay experience.' },
 ];
-
-const SUGGESTION_ICONS: Record<string, string> = {
-  location: '📍',
-  property: '🏨',
-};
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
@@ -165,10 +209,7 @@ function SectionSkeleton({ count, cols = 4 }: { count: number; cols?: number }) 
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState({ location: '', checkIn: '', checkOut: '', guests: 1 });
-  const [dateError, setDateError] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const locationRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState({ location: '' });
 
   const [featuredRooms, setFeaturedRooms] = useState<FeaturedRoom[]>([]);
   const [featuredProperties, setFeaturedProperties] = useState<FeaturedProperty[]>([]);
@@ -177,18 +218,7 @@ export default function LandingPage() {
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  const [promotions, setPromotions] = useState<Promotion[]>(DEFAULT_PROMOTIONS);
 
   useEffect(() => {
     let cancelled = false;
@@ -202,11 +232,19 @@ export default function LandingPage() {
         fetchFeaturedRooms(8),
         fetchFeaturedProperties(6),
         fetchPlatformStats(),
+        fetchPromotions(),
       ]);
 
       if (cancelled) return;
 
-      const [roomsResult, propertiesResult, statsResult] = results;
+      const [roomsResult, propertiesResult, statsResult, promoResult] = results;
+
+      if (promoResult.status === 'fulfilled') {
+        const promos = promoResult.value;
+        setPromotions(promos.length > 0 ? promos : DEFAULT_PROMOTIONS);
+      } else {
+        setPromotions(DEFAULT_PROMOTIONS);
+      }
 
       if (roomsResult.status === 'fulfilled') {
         setFeaturedRooms(roomsResult.value);
@@ -242,48 +280,16 @@ export default function LandingPage() {
   }, [reloadKey]);
 
   useEffect(() => {
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      setLoadingSuggestions(true);
-      try {
-        const data = await fetchSearchSuggestions(search.location);
-        if (!cancelled) setSuggestions(data);
-      } catch {
-        if (!cancelled) setSuggestions([]);
-      } finally {
-        if (!cancelled) setLoadingSuggestions(false);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [search.location]);
-
-  useEffect(() => {
     if (window.location.hash === '#properties') {
       document.getElementById('properties')?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [loadingProperties]);
 
-  const filteredSuggestions = suggestions.map((s) => ({
-    ...s,
-    icon: SUGGESTION_ICONS[s.type] ?? '📍',
-  }));
-
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (search.checkIn && search.checkOut && search.checkIn >= search.checkOut) {
-      setDateError('Check-out must be after check-in');
-      return;
-    }
-    setDateError('');
     const params = new URLSearchParams();
-    if (search.location) params.set('location', search.location);
-    if (search.checkIn) params.set('checkIn', search.checkIn);
-    if (search.checkOut) params.set('checkOut', search.checkOut);
-    if (search.guests > 1) params.set('guests', String(search.guests));
+    const term = search.location.trim();
+    if (term) params.set('location', term);
     navigate('/search?' + params.toString());
   }
 
@@ -301,292 +307,172 @@ export default function LandingPage() {
         { value: '—', label: 'Average Rating' },
       ];
 
+  const heroImages = [
+    featuredRooms[0]?.primaryImageUrl ?? featuredProperties[0]?.coverImageUrl,
+    featuredRooms[1]?.primaryImageUrl ?? featuredProperties[1]?.coverImageUrl,
+    featuredRooms[2]?.primaryImageUrl ?? featuredProperties[2]?.coverImageUrl,
+  ].map((url, i) => (url ? resolveMediaUrl(url) : HERO_FALLBACK_IMAGES[i]));
+
   return (
     <PublicLayout>
-      {/* Hero */}
-      <section style={{ background: 'var(--primary)', padding: '96px 32px', position: 'relative', overflow: 'hidden' }}>
+      {/* Hero — compact split layout with imagery */}
+      <section
+        style={{
+          padding: '40px 32px 36px',
+          background: 'linear-gradient(135deg, #faf8f4 0%, #f3efe6 55%, #fce8e4 100%)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
         <div
           style={{
             position: 'absolute',
-            top: '-40%',
-            right: '-10%',
-            width: 500,
-            height: 500,
+            top: -80,
+            right: -60,
+            width: 320,
+            height: 320,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255,106,61,0.5) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '-30%',
-            left: '5%',
-            width: 400,
-            height: 400,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(244,168,160,0.3) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(234,40,4,0.08) 0%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
 
-        <div className="container-wide" style={{ position: 'relative', textAlign: 'center' }}>
-          <h1
-            className="display-xl"
-            style={{ color: 'var(--on-dark)', marginBottom: 20, maxWidth: 700, margin: '0 auto 20px' }}
-          >
-            Find Your Perfect Stay
-          </h1>
-          <p
-            className="body-lg"
-            style={{
-              color: 'rgba(252,252,252,0.85)',
-              marginBottom: 24,
-              maxWidth: 560,
-              margin: '0 auto 24px',
-            }}
-          >
-            Discover and book premium homestay &amp; resort rooms across Vietnam — simple, fast and secure.
-          </p>
+        <div
+          className="container-wide"
+          style={{
+            position: 'relative',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 32,
+            alignItems: 'center',
+          }}
+        >
+          {/* Left — copy + search */}
+          <div>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: 'var(--primary)',
+                background: 'rgba(234,40,4,0.08)',
+                padding: '6px 12px',
+                borderRadius: 9999,
+                marginBottom: 14,
+              }}
+            >
+              ✦ Homestay &amp; Resort Việt Nam
+            </span>
 
-          <Link to="/rooms" className="btn-dark" style={{ marginBottom: 32, display: 'inline-flex' }}>
-            Browse Rooms
-          </Link>
+            <h1
+              className="heading-md"
+              style={{
+                fontSize: 'clamp(28px, 4vw, 42px)',
+                lineHeight: 1.15,
+                letterSpacing: '-0.03em',
+                marginBottom: 10,
+                maxWidth: 480,
+              }}
+            >
+              Tìm nơi lưu trú hoàn hảo
+            </h1>
+            <p className="body-md text-charcoal" style={{ marginBottom: 20, maxWidth: 440, lineHeight: 1.6 }}>
+              Khám phá homestay &amp; resort cao cấp — đặt phòng nhanh, an toàn, minh bạch giá.
+            </p>
 
-          <form
-            onSubmit={handleSearch}
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 8,
-              background: 'var(--surface-card)',
-              borderRadius: 9999,
-              padding: '6px 6px 6px 20px',
-              maxWidth: 860,
-              margin: '0 auto',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-              alignItems: 'center',
-            }}
-          >
-            <div ref={locationRef} style={{ flex: 1, minWidth: 180, position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round">
+            <form onSubmit={handleSearch} className="hero-search-pill">
+              <div className="hero-search-field hero-search-field--location">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
                 <input
-                  placeholder="Location or property..."
+                  placeholder="Bạn muốn đi đâu?"
                   value={search.location}
                   autoComplete="off"
-                  onFocus={() => setShowSuggestions(true)}
-                  onChange={(e) => {
-                    setSearch((p) => ({ ...p, location: e.target.value }));
-                    setShowSuggestions(true);
-                  }}
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 14,
-                    background: 'transparent',
-                    color: 'var(--ink)',
-                    width: '100%',
-                    padding: '6px 0',
-                  }}
+                  onChange={(e) => setSearch((p) => ({ ...p, location: e.target.value }))}
                 />
               </div>
 
-              {showSuggestions && (loadingSuggestions || filteredSuggestions.length > 0) && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 14px)',
-                    left: -20,
-                    right: -8,
-                    background: 'var(--surface-card)',
-                    borderRadius: 12,
-                    boxShadow: '0 8px 32px rgba(32,32,32,0.16)',
-                    border: '1px solid var(--hairline)',
-                    zIndex: 100,
-                    overflow: 'hidden',
-                    minWidth: 260,
-                  }}
-                >
-                  {filteredSuggestions.some((s) => s.type === 'location') && (
-                    <>
-                      <div
-                        style={{
-                          padding: '8px 14px 4px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: '0.06em',
-                          textTransform: 'uppercase',
-                          color: 'var(--ash)',
-                        }}
-                      >
-                        Locations
-                      </div>
-                      {filteredSuggestions
-                        .filter((s) => s.type === 'location')
-                        .map((s) => (
-                          <button
-                            key={s.label}
-                            type="button"
-                            onClick={() => {
-                              setSearch((p) => ({ ...p, location: s.label }));
-                              setShowSuggestions(false);
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                              width: '100%',
-                              padding: '9px 14px',
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontSize: 14,
-                              color: 'var(--ink)',
-                              textAlign: 'left',
-                            }}
-                          >
-                            <span>{s.icon}</span>
-                            <span>{s.label}</span>
-                          </button>
-                        ))}
-                    </>
-                  )}
-                  {filteredSuggestions.some((s) => s.type === 'property') && (
-                    <>
-                      <div
-                        style={{
-                          padding: '8px 14px 4px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: '0.06em',
-                          textTransform: 'uppercase',
-                          color: 'var(--ash)',
-                          borderTop: filteredSuggestions.some((s) => s.type === 'location')
-                            ? '1px solid var(--hairline)'
-                            : 'none',
-                          marginTop: 4,
-                        }}
-                      >
-                        Properties
-                      </div>
-                      {filteredSuggestions
-                        .filter((s) => s.type === 'property')
-                        .map((s) => (
-                          <button
-                            key={s.label}
-                            type="button"
-                            onClick={() => {
-                              setSearch((p) => ({ ...p, location: s.label }));
-                              setShowSuggestions(false);
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                              width: '100%',
-                              padding: '9px 14px',
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontSize: 14,
-                              color: 'var(--ink)',
-                              textAlign: 'left',
-                            }}
-                          >
-                            <span>{s.icon}</span>
-                            <span>{s.label}</span>
-                          </button>
-                        ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+              <button type="submit" className="hero-search-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <span className="hero-search-btn-text">Tìm</span>
+              </button>
+            </form>
+          </div>
 
-            <div style={{ width: 1, height: 28, background: 'var(--hairline)' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}>
-              <input
-                type="date"
-                value={search.checkIn}
-                onChange={(e) => setSearch((p) => ({ ...p, checkIn: e.target.value }))}
+          {/* Right — image collage */}
+          <div className="landing-hero-visual" style={{ position: 'relative', minHeight: 280, maxWidth: 480, margin: '0 auto', width: '100%', paddingBottom: 8 }}>
+            <SafeImage
+              src={heroImages[0]}
+              alt="Homestay resort"
+              style={{
+                width: '100%',
+                height: 280,
+                objectFit: 'cover',
+                borderRadius: 20,
+                boxShadow: '0 20px 50px rgba(32,32,32,0.15)',
+                display: 'block',
+              }}
+            />
+            <SafeImage
+              src={heroImages[1]}
+              alt="Phòng view biển"
+              className="landing-hero-float"
+              style={{
+                position: 'absolute',
+                bottom: -16,
+                left: -12,
+                width: 130,
+                height: 100,
+                objectFit: 'cover',
+                borderRadius: 14,
+                border: '3px solid #fff',
+                boxShadow: '0 8px 24px rgba(32,32,32,0.18)',
+              }}
+            />
+            <SafeImage
+              src={heroImages[2]}
+              alt="Resort villa"
+              className="landing-hero-float landing-hero-float-tr"
+              style={{
+                position: 'absolute',
+                top: 20,
+                right: -16,
+                width: 110,
+                height: 90,
+                objectFit: 'cover',
+                borderRadius: 14,
+                border: '3px solid #fff',
+                boxShadow: '0 8px 24px rgba(32,32,32,0.18)',
+              }}
+            />
+            {stats && stats.totalProperties > 0 && (
+              <div
                 style={{
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: 14,
-                  background: 'transparent',
-                  color: search.checkIn ? 'var(--ink)' : 'var(--ash)',
-                }}
-              />
-            </div>
-            <div style={{ width: 1, height: 28, background: 'var(--hairline)' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}>
-              <input
-                type="date"
-                value={search.checkOut}
-                onChange={(e) => setSearch((p) => ({ ...p, checkOut: e.target.value }))}
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: 14,
-                  background: 'transparent',
-                  color: search.checkOut ? 'var(--ink)' : 'var(--ash)',
-                }}
-              />
-            </div>
-            <div style={{ width: 1, height: 28, background: 'var(--hairline)' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={search.guests}
-                onChange={(e) => setSearch((p) => ({ ...p, guests: +e.target.value }))}
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: 14,
-                  background: 'transparent',
-                  color: 'var(--ink)',
-                  width: 50,
-                }}
-              />
-              <span style={{ fontSize: 13, color: 'var(--ash)' }}>guests</span>
-            </div>
-            <button type="submit" className="btn-primary btn-sm" style={{ borderRadius: 9999, whiteSpace: 'nowrap' }}>
-              Search
-            </button>
-          </form>
-
-          {dateError && (
-            <p style={{ color: '#ff6b6b', fontSize: 13, marginTop: 8, textAlign: 'center' }}>⚠ {dateError}</p>
-          )}
-
-          <div className="flex flex-wrap gap-2 mt-5" style={{ justifyContent: 'center' }}>
-            {['Đà Lạt', 'Hội An', 'Đà Nẵng', 'Phú Quốc', 'Nha Trang'].map((loc) => (
-              <button
-                key={loc}
-                type="button"
-                onClick={() => {
-                  setSearch((p) => ({ ...p, location: loc }));
-                  navigate(`/search?location=${encodeURIComponent(loc)}`);
-                }}
-                style={{
-                  fontSize: 13,
-                  padding: '4px 12px',
-                  borderRadius: 9999,
-                  background: 'rgba(252,252,252,0.15)',
-                  color: 'rgba(252,252,252,0.85)',
-                  border: '1px solid rgba(252,252,252,0.25)',
-                  cursor: 'pointer',
+                  position: 'absolute',
+                  bottom: 24,
+                  right: 20,
+                  background: 'rgba(255,255,255,0.95)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: 12,
+                  padding: '10px 14px',
+                  boxShadow: '0 4px 20px rgba(32,32,32,0.12)',
+                  border: '1px solid var(--hairline)',
                 }}
               >
-                {loc}
-              </button>
-            ))}
+                <p style={{ fontWeight: 800, fontSize: 18, color: 'var(--primary)', margin: 0, lineHeight: 1 }}>
+                  {formatStatValue(stats.totalProperties)}
+                </p>
+                <p className="body-sm text-charcoal" style={{ margin: 0, fontSize: 11 }}>Homestay &amp; resort</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -614,6 +500,80 @@ export default function LandingPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Promo Banners — dynamic từ DB (fallback mặc định nếu chưa seed) */}
+      {promotions.length > 0 && (
+        <section style={{ background: 'var(--surface-bone)', padding: '40px 32px' }}>
+          <div className="container-wide">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+              {promotions.map((promo) => {
+                const gradients: Record<string, string> = {
+                  red:    'linear-gradient(135deg, #ea2804 0%, #ff6a3d 100%)',
+                  blue:   'linear-gradient(135deg, #1a3c5e 0%, #2d6a9f 100%)',
+                  green:  'linear-gradient(135deg, #1a5c3a 0%, #2e9c5e 100%)',
+                  purple: 'linear-gradient(135deg, #4c1d8f 0%, #7c3aed 100%)',
+                  orange: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)',
+                };
+                const ctaColors: Record<string, string> = {
+                  red: 'var(--primary)', blue: '#1a3c5e',
+                  green: '#1a5c3a', purple: '#4c1d8f', orange: '#b45309',
+                };
+                const bg = gradients[promo.colorTheme] ?? gradients.red;
+                const ctaColor = ctaColors[promo.colorTheme] ?? ctaColors.red;
+
+                return (
+                  <div
+                    key={promo.id}
+                    style={{
+                      borderRadius: 16,
+                      background: bg,
+                      padding: '28px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', bottom: -20, left: -10, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase' }}>
+                      {promo.subtitle}
+                    </span>
+                    <h3 style={{ fontSize: 26, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: 0, whiteSpace: 'pre-line' }}>
+                      {promo.title}
+                    </h3>
+                    {promo.description && (
+                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', margin: 0 }}>
+                        {promo.description}
+                      </p>
+                    )}
+                    <Link
+                      to={promo.ctaUrl}
+                      style={{
+                        marginTop: 4,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: '#fff',
+                        color: ctaColor,
+                        fontWeight: 700,
+                        fontSize: 13,
+                        padding: '8px 18px',
+                        borderRadius: 9999,
+                        textDecoration: 'none',
+                        width: 'fit-content',
+                      }}
+                    >
+                      {promo.ctaText}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Featured Rooms */}

@@ -640,6 +640,183 @@
     .display-xl  { font-size: 30px; letter-spacing: -0.5px; }
   }
 
+  /* Landing hero search — single-line grid, no overlap */
+  .hero-search-pill {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0;
+    background: #fff;
+    border-radius: 9999px;
+    padding: 5px 5px 5px 14px;
+    box-shadow: 0 8px 30px rgba(32, 32, 32, 0.08);
+    border: 1px solid var(--hairline);
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .hero-search-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .hero-search-field--location {
+    padding-left: 0;
+    padding-right: 10px;
+  }
+
+  .hero-search-field--date {
+    padding: 6px 4px;
+  }
+
+  .hero-search-field--guests {
+    gap: 2px;
+    padding: 6px 4px;
+    justify-content: center;
+  }
+
+  .hero-search-field input {
+    border: none;
+    outline: none;
+    font-size: 14px;
+    background: transparent;
+    color: var(--ink);
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hero-search-field--date input[type="date"] {
+    font-size: 12px;
+    padding: 0;
+  }
+
+  .hero-search-field--guests input[type="number"] {
+    width: 26px;
+    text-align: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .hero-search-guest-label {
+    font-size: 11px;
+    color: var(--charcoal);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .hero-search-sep {
+    width: 1px;
+    height: 24px;
+    background: var(--hairline);
+    justify-self: center;
+  }
+
+  .hero-search-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 16px;
+    margin-left: 2px;
+    border: none;
+    border-radius: 9999px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+    white-space: nowrap;
+  }
+
+  .hero-search-btn:hover {
+    background: var(--primary-deep);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 720px) {
+    .hero-search-pill {
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding-left: 12px;
+    }
+    .hero-search-btn-text {
+      display: none;
+    }
+    .hero-search-btn {
+      padding: 10px 12px;
+    }
+    .landing-hero-float {
+      display: none;
+    }
+    .landing-hero-visual {
+      max-width: 100% !important;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .hero-search-pill {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+  }
+
+  /* Search / rooms filter sidebar — tránh tràn input date trong cột hẹp */
+  .search-filter-aside {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .search-filter-input-compact {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    border-radius: 10px !important;
+    height: 38px !important;
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+  }
+
+  .search-filter-price-row {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .search-filter-price-row .search-filter-input-compact {
+    flex: 1 1 0;
+  }
+
+  .search-filter-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .search-filter-date-field {
+    min-width: 0;
+  }
+
+  .search-filter-date-input {
+    display: block;
+  }
+
+  .search-filter-date-input::-webkit-datetime-edit {
+    padding: 0;
+    font-size: 13px;
+  }
+
+  .search-filter-date-input::-webkit-calendar-picker-indicator {
+    margin-left: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+
   /* ── Color Utilities ── */
   .bg-canvas        { background-color: var(--canvas); }
   .bg-bone          { background-color: var(--surface-bone); }

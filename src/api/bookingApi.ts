@@ -27,6 +27,15 @@ export interface BookingSummaryResponse {
   isReviewed?: boolean;
 }
 
+export interface BookingPaymentInfo {
+  id: string;
+  type: string;
+  amount: number;
+  method: string;
+  status: string;
+  paidAt: string | null;
+}
+
 export interface BookingDetailResponse {
   id: string;
   customerId: string;
@@ -46,19 +55,32 @@ export interface BookingDetailResponse {
   specialRequests: string;
   createdAt: string;
   isReviewed?: boolean;
+  payments?: BookingPaymentInfo[];
 }
 
 export interface PageResponse<T> {
   content: T[];
-  pageNumber: number;
-  pageSize: number;
+  page: number;
+  size: number;
   totalElements: number;
   totalPages: number;
+}
+
+export interface CreateBookingPayload {
+  roomId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  guestCount: number;
+  specialRequests?: string;
 }
 
 export const bookingApi = {
   getMyActiveBookings: async (): Promise<{ success: boolean; data: BookingSummary[] }> => {
     const res = await api.get('/api/bookings/my-active');
+    return res.data;
+  },
+  createBooking: async (payload: CreateBookingPayload): Promise<{ success: boolean; message: string; data: BookingDetailResponse }> => {
+    const res = await api.post('/api/bookings', payload);
     return res.data;
   },
   getAllBookings: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<BookingSummaryResponse> }> => {
@@ -77,8 +99,8 @@ export const bookingApi = {
     const res = await api.patch(`/api/bookings/${id}/check-out`);
     return res.data;
   },
-  createBooking: async (request: { roomId: string; checkInDate: string; checkOutDate: string; guestCount: number; specialRequests?: string }): Promise<{ success: boolean; data: BookingDetailResponse; message: string }> => {
-    const res = await api.post('/api/bookings', request);
+  cancelBooking: async (id: string): Promise<{ success: boolean }> => {
+    const res = await api.patch(`/api/bookings/${id}/cancel`);
     return res.data;
   },
 };

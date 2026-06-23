@@ -4,11 +4,17 @@ import axios from 'axios';
 import {
   fetchRooms,
   fetchPropertyOptions,
+  fetchPriceStats,
   sortToApi,
   ROOM_TYPES,
   type RoomListItem,
   type PropertyOption,
 } from '../api/roomsApi';
+import {
+  MAX_FILTER_GUESTS,
+  MAX_FILTER_PRICE,
+  clampPositiveIntString,
+} from '../utils/filterInput';
 
 const PAGE_SIZE = 12;
 
@@ -55,6 +61,16 @@ export function useRoomSearch() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [properties, setProperties] = useState<PropertyOption[]>([]);
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(5_000_000);
+  const sliderMax = Math.min(priceMax, MAX_FILTER_PRICE);
+
+  function sanitizeDraftPrices(minRaw: string, maxRaw: string) {
+    let minP = minRaw ? clampPositiveIntString(minRaw, MAX_FILTER_PRICE) : '';
+    let maxP = maxRaw ? clampPositiveIntString(maxRaw, MAX_FILTER_PRICE) : '';
+    if (minP && maxP && Number(maxP) < Number(minP)) maxP = minP;
+    return { minP, maxP };
+  }
 
   useEffect(() => {
     setDraft({
@@ -85,6 +101,12 @@ export function useRoomSearch() {
     fetchPropertyOptions()
       .then(setProperties)
       .catch(() => setProperties([]));
+    fetchPriceStats()
+      .then((s) => {
+        setPriceMin(Math.floor(s.minPrice));
+        setPriceMax(Math.min(Math.ceil(s.maxPrice), MAX_FILTER_PRICE));
+      })
+      .catch(() => {});
   }, []);
 
   const loadRooms = useCallback(async () => {
@@ -100,9 +122,15 @@ export function useRoomSearch() {
         location: urlLocation || undefined,
         propertyId,
         roomType: urlRoomTypes.length ? urlRoomTypes.join(',') : undefined,
-        minPrice: urlMinPrice ? Number(urlMinPrice) : undefined,
-        maxPrice: urlMaxPrice ? Number(urlMaxPrice) : undefined,
-        capacity: urlGuests ? Number(urlGuests) : undefined,
+        minPrice: urlMinPrice
+          ? Number(clampPositiveIntString(urlMinPrice, MAX_FILTER_PRICE))
+          : undefined,
+        maxPrice: urlMaxPrice
+          ? Number(clampPositiveIntString(urlMaxPrice, MAX_FILTER_PRICE))
+          : undefined,
+        capacity: urlGuests
+          ? Number(clampPositiveIntString(urlGuests, MAX_FILTER_GUESTS))
+          : undefined,
         checkIn: urlCheckIn || undefined,
         checkOut: urlCheckOut || undefined,
         status: 'AVAILABLE',
@@ -154,22 +182,19 @@ export function useRoomSearch() {
   }, [loadRooms]);
 
   function applyFilters(resetPage = true) {
+    const { minP, maxP } = sanitizeDraftPrices(draft.minPrice, draft.maxPrice);
+    const guests = draft.guests ? clampPositiveIntString(draft.guests, MAX_FILTER_GUESTS) : '';
+
     const next = new URLSearchParams();
     if (draft.search.trim()) {
-      const term = draft.search.trim();
-      const matchedProperty = properties.find((p) => p.name.toLowerCase() === term.toLowerCase());
-      if (matchedProperty) {
-        next.set('search', term);
-      } else {
-        next.set('location', term);
-      }
+      next.set('location', draft.search.trim());
     }
     if (draft.propertyIds.length === 1) next.set('propertyId', draft.propertyIds[0]);
     else if (draft.propertyIds.length > 1) next.set('propertyIds', draft.propertyIds.join(','));
     if (draft.roomTypes.length) next.set('roomType', draft.roomTypes.join(','));
-    if (draft.minPrice) next.set('minPrice', draft.minPrice);
-    if (draft.maxPrice) next.set('maxPrice', draft.maxPrice);
-    if (draft.guests) next.set('guests', draft.guests);
+    if (minP) next.set('minPrice', minP);
+    if (maxP) next.set('maxPrice', maxP);
+    if (guests) next.set('guests', guests);
     if (draft.checkIn) next.set('checkIn', draft.checkIn);
     if (draft.checkOut) next.set('checkOut', draft.checkOut);
     if (draft.sort && draft.sort !== 'newest') next.set('sort', draft.sort);
@@ -350,6 +375,11 @@ export function useRoomSearch() {
   return {
     draft,
     setDraft,
+    priceMin,
+    priceMax,
+    sliderMax,
+    MAX_FILTER_PRICE,
+    MAX_FILTER_GUESTS,
     rooms,
     totalElements,
     totalPages,

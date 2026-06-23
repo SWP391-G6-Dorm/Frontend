@@ -34,6 +34,20 @@ export interface PlatformStats {
   totalReviews: number;
 }
 
+export interface Promotion {
+  id: string;
+  subtitle: string;
+  title: string;
+  description?: string;
+  ctaText: string;
+  ctaUrl: string;
+  colorTheme: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SearchSuggestion {
   type: 'location' | 'property';
   label: string;
@@ -57,4 +71,9 @@ export async function fetchPlatformStats(): Promise<PlatformStats> {
 export async function fetchSearchSuggestions(q = ''): Promise<SearchSuggestion[]> {
   const res = await api.get('/api/public/search-suggestions', { params: { q } });
   return res.data.data;
+}
+
+export async function fetchPromotions(): Promise<Promotion[]> {
+  const res = await api.get('/api/public/promotions');
+  return res.data.data ?? [];
 }
