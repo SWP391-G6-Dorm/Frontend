@@ -643,7 +643,7 @@
   /* Landing hero search — single-line grid, no overlap */
   .hero-search-pill {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 1px 108px 1px 108px 1px 72px auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0;
     background: #fff;
@@ -741,7 +741,7 @@
 
   @media (max-width: 720px) {
     .hero-search-pill {
-      grid-template-columns: minmax(0, 1fr) 1px 96px 1px 96px 1px 64px auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       padding-left: 12px;
     }
     .hero-search-btn-text {
@@ -760,11 +760,61 @@
 
   @media (max-width: 520px) {
     .hero-search-pill {
-      grid-template-columns: minmax(0, 1fr) 1px 88px 1px 88px 1px 58px auto;
+      grid-template-columns: minmax(0, 1fr) auto;
     }
-    .hero-search-guest-label {
-      display: none;
-    }
+  }
+
+  /* Search / rooms filter sidebar — tránh tràn input date trong cột hẹp */
+  .search-filter-aside {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .search-filter-input-compact {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    border-radius: 10px !important;
+    height: 38px !important;
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+  }
+
+  .search-filter-price-row {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .search-filter-price-row .search-filter-input-compact {
+    flex: 1 1 0;
+  }
+
+  .search-filter-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .search-filter-date-field {
+    min-width: 0;
+  }
+
+  .search-filter-date-input {
+    display: block;
+  }
+
+  .search-filter-date-input::-webkit-datetime-edit {
+    padding: 0;
+    font-size: 13px;
+  }
+
+  .search-filter-date-input::-webkit-calendar-picker-indicator {
+    margin-left: 0;
+    padding: 0;
+    cursor: pointer;
   }
 
   /* ── Color Utilities ── */

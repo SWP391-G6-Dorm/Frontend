@@ -209,8 +209,7 @@ function SectionSkeleton({ count, cols = 4 }: { count: number; cols?: number }) 
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState({ location: '', checkIn: '', checkOut: '', guests: 1 });
-  const [dateError, setDateError] = useState('');
+  const [search, setSearch] = useState({ location: '' });
 
   const [featuredRooms, setFeaturedRooms] = useState<FeaturedRoom[]>([]);
   const [featuredProperties, setFeaturedProperties] = useState<FeaturedProperty[]>([]);
@@ -288,17 +287,9 @@ export default function LandingPage() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (search.checkIn && search.checkOut && search.checkIn >= search.checkOut) {
-      setDateError('Ngày check-out phải sau ngày check-in');
-      return;
-    }
-    setDateError('');
     const params = new URLSearchParams();
     const term = search.location.trim();
     if (term) params.set('location', term);
-    if (search.checkIn) params.set('checkIn', search.checkIn);
-    if (search.checkOut) params.set('checkOut', search.checkOut);
-    if (search.guests > 1) params.set('guests', String(search.guests));
     navigate('/search?' + params.toString());
   }
 
@@ -407,42 +398,6 @@ export default function LandingPage() {
                 />
               </div>
 
-              <span className="hero-search-sep" aria-hidden />
-
-              <div className="hero-search-field hero-search-field--date">
-                <input
-                  type="date"
-                  value={search.checkIn}
-                  onChange={(e) => setSearch((p) => ({ ...p, checkIn: e.target.value }))}
-                  title="Check-in"
-                />
-              </div>
-
-              <span className="hero-search-sep" aria-hidden />
-
-              <div className="hero-search-field hero-search-field--date">
-                <input
-                  type="date"
-                  value={search.checkOut}
-                  onChange={(e) => setSearch((p) => ({ ...p, checkOut: e.target.value }))}
-                  title="Check-out"
-                />
-              </div>
-
-              <span className="hero-search-sep" aria-hidden />
-
-              <div className="hero-search-field hero-search-field--guests">
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={search.guests}
-                  onChange={(e) => setSearch((p) => ({ ...p, guests: +e.target.value }))}
-                  aria-label="Số khách"
-                />
-                <span className="hero-search-guest-label">khách</span>
-              </div>
-
               <button type="submit" className="hero-search-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -450,10 +405,6 @@ export default function LandingPage() {
                 <span className="hero-search-btn-text">Tìm</span>
               </button>
             </form>
-
-            {dateError && (
-              <p style={{ color: 'var(--error)', fontSize: 13, marginBottom: 8 }}>⚠ {dateError}</p>
-            )}
           </div>
 
           {/* Right — image collage */}
