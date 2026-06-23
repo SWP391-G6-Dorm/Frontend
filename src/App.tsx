@@ -62,6 +62,7 @@ import {
   ReportsDashboardPage, RevenueReportPage, OccupancyReportPage,
   ActivityLogPage, ReviewMgmtPage,
 } from './pages/manager/AdminPages';
+import PromotionMgmtPage from './pages/manager/PromotionMgmtPage';
 
 function App() {
   return (
@@ -245,6 +246,10 @@ function App() {
           element={<ProtectedRoute role="MANAGER"><ActivityLogPage /></ProtectedRoute>} />
         <Route path="/manager/reviews"
           element={<ProtectedRoute role="MANAGER"><ReviewMgmtPage /></ProtectedRoute>} />
+
+        {/* Promotion / Banner Management */}
+        <Route path="/manager/promotions"
+          element={<ProtectedRoute role="MANAGER"><PromotionMgmtPage /></ProtectedRoute>} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />

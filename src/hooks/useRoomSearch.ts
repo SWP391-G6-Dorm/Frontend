@@ -4,6 +4,7 @@ import axios from 'axios';
 import {
   fetchRooms,
   fetchPropertyOptions,
+  fetchPriceStats,
   sortToApi,
   ROOM_TYPES,
   type RoomListItem,
@@ -55,6 +56,8 @@ export function useRoomSearch() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [properties, setProperties] = useState<PropertyOption[]>([]);
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(5_000_000);
 
   useEffect(() => {
     setDraft({
@@ -85,6 +88,9 @@ export function useRoomSearch() {
     fetchPropertyOptions()
       .then(setProperties)
       .catch(() => setProperties([]));
+    fetchPriceStats()
+      .then((s) => { setPriceMin(Math.floor(s.minPrice)); setPriceMax(Math.ceil(s.maxPrice)); })
+      .catch(() => {});
   }, []);
 
   const loadRooms = useCallback(async () => {
@@ -350,6 +356,8 @@ export function useRoomSearch() {
   return {
     draft,
     setDraft,
+    priceMin,
+    priceMax,
     rooms,
     totalElements,
     totalPages,

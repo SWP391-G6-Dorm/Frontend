@@ -159,6 +159,60 @@ export async function fetchRoomReviews(id: string, page = 0, size = 5): Promise<
   return res.data.data;
 }
 
+export async function fetchPriceStats(): Promise<{ minPrice: number; maxPrice: number }> {
+  const res = await api.get('/api/rooms/price-stats');
+  return res.data.data;
+}
+
+// ── Manager room write operations ─────────────────────────────────────────
+
+export interface CreateRoomPayload {
+  propertyId: string;
+  floorId: string;
+  roomNumber: string;
+  roomType?: string;
+  pricePerNight: number;
+  capacity: number;
+  area?: number;
+  description?: string;
+}
+
+export interface UpdateRoomPayload {
+  roomNumber?: string;
+  roomType?: string;
+  pricePerNight?: number;
+  capacity?: number;
+  area?: number;
+  description?: string;
+}
+
+export async function createRoom(payload: CreateRoomPayload): Promise<RoomDetail> {
+  const res = await api.post('/api/rooms', payload);
+  return res.data.data;
+}
+
+export async function updateRoom(id: string, payload: UpdateRoomPayload): Promise<RoomDetail> {
+  const res = await api.put(`/api/rooms/${id}`, payload);
+  return res.data.data;
+}
+
+export async function updateRoomStatus(id: string, status: string): Promise<RoomDetail> {
+  const res = await api.patch(`/api/rooms/${id}/status`, { status });
+  return res.data.data;
+}
+
+export async function uploadRoomImages(id: string, files: File[]): Promise<void> {
+  const formData = new FormData();
+  files.forEach(f => formData.append('files', f));
+  await api.post(`/api/rooms/${id}/images`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+}
+
+export async function deleteRoomImage(imageId: string): Promise<void> {
+  await api.delete(`/api/rooms/images/${imageId}`);
+}
+
 export async function checkRoomAvailability(
   id: string,
   checkIn: string,

@@ -6,10 +6,12 @@ import {
   fetchFeaturedProperties,
   fetchPlatformStats,
   fetchSearchSuggestions,
+  fetchPromotions,
   type FeaturedRoom,
   type FeaturedProperty,
   type PlatformStats,
   type SearchSuggestion,
+  type Promotion,
 } from '../../api/publicApi';
 import { formatStatValue } from '../../utils/mediaUrl';
 import SafeImage from '../../components/ui/SafeImage';
@@ -179,6 +181,8 @@ export default function LandingPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [locationChips, setLocationChips] = useState<string[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -202,11 +206,17 @@ export default function LandingPage() {
         fetchFeaturedRooms(8),
         fetchFeaturedProperties(6),
         fetchPlatformStats(),
+        fetchSearchSuggestions(''),
+        fetchPromotions(),
       ]);
 
       if (cancelled) return;
 
-      const [roomsResult, propertiesResult, statsResult] = results;
+      const [roomsResult, propertiesResult, statsResult, chipsResult, promoResult] = results;
+
+      if (promoResult.status === 'fulfilled') {
+        setPromotions(promoResult.value);
+      }
 
       if (roomsResult.status === 'fulfilled') {
         setFeaturedRooms(roomsResult.value);
@@ -222,6 +232,14 @@ export default function LandingPage() {
 
       if (statsResult.status === 'fulfilled') {
         setStats(statsResult.value);
+      }
+
+      if (chipsResult.status === 'fulfilled') {
+        const chips = chipsResult.value
+          .filter((s) => s.type === 'location')
+          .map((s) => s.label)
+          .slice(0, 6);
+        setLocationChips(chips);
       }
 
       const allFailed = results.every((r) => r.status === 'rejected');
@@ -565,29 +583,31 @@ export default function LandingPage() {
             <p style={{ color: '#ff6b6b', fontSize: 13, marginTop: 8, textAlign: 'center' }}>⚠ {dateError}</p>
           )}
 
-          <div className="flex flex-wrap gap-2 mt-5" style={{ justifyContent: 'center' }}>
-            {['Đà Lạt', 'Hội An', 'Đà Nẵng', 'Phú Quốc', 'Nha Trang'].map((loc) => (
-              <button
-                key={loc}
-                type="button"
-                onClick={() => {
-                  setSearch((p) => ({ ...p, location: loc }));
-                  navigate(`/search?location=${encodeURIComponent(loc)}`);
-                }}
-                style={{
-                  fontSize: 13,
-                  padding: '4px 12px',
-                  borderRadius: 9999,
-                  background: 'rgba(252,252,252,0.15)',
-                  color: 'rgba(252,252,252,0.85)',
-                  border: '1px solid rgba(252,252,252,0.25)',
-                  cursor: 'pointer',
-                }}
-              >
-                {loc}
-              </button>
-            ))}
-          </div>
+          {locationChips.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-5" style={{ justifyContent: 'center' }}>
+              {locationChips.map((loc) => (
+                <button
+                  key={loc}
+                  type="button"
+                  onClick={() => {
+                    setSearch((p) => ({ ...p, location: loc }));
+                    navigate(`/search?location=${encodeURIComponent(loc)}`);
+                  }}
+                  style={{
+                    fontSize: 13,
+                    padding: '4px 12px',
+                    borderRadius: 9999,
+                    background: 'rgba(252,252,252,0.15)',
+                    color: 'rgba(252,252,252,0.85)',
+                    border: '1px solid rgba(252,252,252,0.25)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {loc}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -614,6 +634,80 @@ export default function LandingPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Promo Banners — dynamic từ DB */}
+      {promotions.length > 0 && (
+        <section style={{ background: 'var(--surface-bone)', padding: '40px 32px' }}>
+          <div className="container-wide">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+              {promotions.map((promo) => {
+                const gradients: Record<string, string> = {
+                  red:    'linear-gradient(135deg, #ea2804 0%, #ff6a3d 100%)',
+                  blue:   'linear-gradient(135deg, #1a3c5e 0%, #2d6a9f 100%)',
+                  green:  'linear-gradient(135deg, #1a5c3a 0%, #2e9c5e 100%)',
+                  purple: 'linear-gradient(135deg, #4c1d8f 0%, #7c3aed 100%)',
+                  orange: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)',
+                };
+                const ctaColors: Record<string, string> = {
+                  red: 'var(--primary)', blue: '#1a3c5e',
+                  green: '#1a5c3a', purple: '#4c1d8f', orange: '#b45309',
+                };
+                const bg = gradients[promo.colorTheme] ?? gradients.red;
+                const ctaColor = ctaColors[promo.colorTheme] ?? ctaColors.red;
+
+                return (
+                  <div
+                    key={promo.id}
+                    style={{
+                      borderRadius: 16,
+                      background: bg,
+                      padding: '28px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', bottom: -20, left: -10, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase' }}>
+                      {promo.subtitle}
+                    </span>
+                    <h3 style={{ fontSize: 26, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: 0, whiteSpace: 'pre-line' }}>
+                      {promo.title}
+                    </h3>
+                    {promo.description && (
+                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', margin: 0 }}>
+                        {promo.description}
+                      </p>
+                    )}
+                    <Link
+                      to={promo.ctaUrl}
+                      style={{
+                        marginTop: 4,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: '#fff',
+                        color: ctaColor,
+                        fontWeight: 700,
+                        fontSize: 13,
+                        padding: '8px 18px',
+                        borderRadius: 9999,
+                        textDecoration: 'none',
+                        width: 'fit-content',
+                      }}
+                    >
+                      {promo.ctaText}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Featured Rooms */}

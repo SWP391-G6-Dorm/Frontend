@@ -4,13 +4,13 @@ import Pagination from '../../components/ui/Pagination';
 import RoomSearchCard, { RoomCardSkeleton } from '../../components/rooms/RoomSearchCard';
 import { buildSearchSummary, useRoomSearch } from '../../hooks/useRoomSearch';
 
-const PRICE_SLIDER_MAX = 5_000_000;
-
 export function SearchResultsContent() {
   const s = useRoomSearch();
   const {
     draft,
     setDraft,
+    priceMin,
+    priceMax,
     properties,
     rooms,
     totalElements,
@@ -96,7 +96,12 @@ export function SearchResultsContent() {
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <label className="form-label">Khoảng giá (₫/đêm)</label>
+            <label className="form-label">
+              Khoảng giá (₫/đêm)
+              <span className="body-sm text-charcoal" style={{ fontWeight: 400, marginLeft: 6 }}>
+                {priceMin.toLocaleString('vi-VN')}₫ – {priceMax.toLocaleString('vi-VN')}₫
+              </span>
+            </label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
               <input
                 type="number"
@@ -104,25 +109,31 @@ export function SearchResultsContent() {
                 className="input"
                 placeholder="Tối thiểu"
                 value={draft.minPrice}
-                onChange={(e) => setDraft((p) => ({ ...p, minPrice: e.target.value }))}
+                onChange={(e) => {
+                  const v = Math.max(0, Number(e.target.value));
+                  setDraft((p) => ({ ...p, minPrice: v ? String(v) : '' }));
+                }}
                 style={{ borderRadius: 10, height: 38, fontSize: 13 }}
               />
               <input
                 type="number"
-                min={0}
+                min={draft.minPrice ? Number(draft.minPrice) : 0}
                 className="input"
                 placeholder="Tối đa"
                 value={draft.maxPrice}
-                onChange={(e) => setDraft((p) => ({ ...p, maxPrice: e.target.value }))}
+                onChange={(e) => {
+                  const v = Math.max(draft.minPrice ? Number(draft.minPrice) : 0, Number(e.target.value));
+                  setDraft((p) => ({ ...p, maxPrice: v ? String(v) : '' }));
+                }}
                 style={{ borderRadius: 10, height: 38, fontSize: 13 }}
               />
             </div>
             <input
               type="range"
-              min={0}
-              max={PRICE_SLIDER_MAX}
-              step={100000}
-              value={draft.maxPrice ? Math.min(Number(draft.maxPrice), PRICE_SLIDER_MAX) : PRICE_SLIDER_MAX}
+              min={priceMin}
+              max={priceMax}
+              step={Math.round((priceMax - priceMin) / 20 / 50000) * 50000 || 50000}
+              value={draft.maxPrice ? Math.min(Number(draft.maxPrice), priceMax) : priceMax}
               onChange={(e) => setDraft((p) => ({ ...p, maxPrice: e.target.value }))}
               style={{ width: '100%' }}
             />

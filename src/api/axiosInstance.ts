@@ -30,7 +30,8 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    const isUnauthorized = error.response?.status === 401;
+    const isUnauthorized = error.response?.status === 401
+                        || (error.response?.status === 403 && !isPublicReadRoute(originalRequest.url));
     const isNotRetried   = !originalRequest._retry;
     const isNotAuthRoute = !originalRequest.url?.includes('/api/auth/login')
                         && !originalRequest.url?.includes('/api/auth/refresh');
