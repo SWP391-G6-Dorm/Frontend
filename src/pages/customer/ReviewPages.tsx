@@ -8,6 +8,16 @@ import { bookingApi, BookingDetailResponse } from '../../api/bookingApi';
 import { reviewApi, Review } from '../../api/reviewApi';
 import Modal from '../../components/ui/Modal';
 
+export const formatBookingId = (uuid: string): string => {
+  if (!uuid) return '';
+  if (uuid.startsWith('b00') && uuid.length === 36) {
+    const match = uuid.match(/^b00([0-9])0000-/);
+    if (match) return `B00${match[1]}`;
+  }
+  const parts = uuid.split('-');
+  return parts[0].toUpperCase();
+};
+
 // ── SCR-30: Review & Rating Form ─────────────────────────────────────────────
 const BOOKINGS_MOCK = [
   { id: 'b0010000-0000-0000-0000-000000000001', roomNumber: 'Villa 01', roomType: 'Villa', propertyName: 'Sunset Resort Đà Nẵng', checkInDate: '2026-07-10', checkOutDate: '2026-07-13', guestCount: 2, totalAmount: 7500000, status: 'CONFIRMED', specialRequests: 'Late checkout if possible', createdAt: '2026-06-01', isReviewed: false },
@@ -48,6 +58,10 @@ export function ReviewRatingPage() {
       // Mock Fallback
       const mockBooking = BOOKINGS_MOCK.find(b => b.id === bookingId);
       if (mockBooking) {
+        const reviewedBookingsStr = localStorage.getItem('reviewed_mock_bookings') || '[]';
+        const reviewedBookings = JSON.parse(reviewedBookingsStr);
+        const isReviewed = reviewedBookings.includes(mockBooking.id);
+
         setBooking({
           id: mockBooking.id,
           customerId: 'dev-customer-id',
@@ -66,7 +80,7 @@ export function ReviewRatingPage() {
           status: mockBooking.status,
           specialRequests: mockBooking.specialRequests,
           createdAt: mockBooking.createdAt,
-          isReviewed: mockBooking.isReviewed
+          isReviewed: isReviewed
         });
       } else {
         setApiError('Booking details not found in mock data');
@@ -193,6 +207,23 @@ export function ReviewRatingPage() {
             {apiError}
           </div>
           <Link to="/customer/bookings" className="btn-primary">Back to Bookings</Link>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (booking && booking.isReviewed) {
+    return (
+      <CustomerLayout>
+        <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 0' }}>
+          <div className="alert alert-info" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            This booking has already been reviewed. You can view or edit your review on the My Reviews page.
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Link to="/customer/reviews" className="btn-primary" style={{ textDecoration: 'none' }}>Go to My Reviews</Link>
+            <Link to="/customer/bookings" className="btn-ghost" style={{ textDecoration: 'none' }}>Back to Bookings</Link>
+          </div>
         </div>
       </CustomerLayout>
     );
@@ -561,11 +592,10 @@ export function MyReviewsPage() {
                         </div>
                         <p className="body-sm text-charcoal">{new Date(r.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                       </div>
-                      <p className="body-md text-body" style={{ lineHeight: 1.65 }}>{r.comment}</p>
-                      
+                      <p className="body-md text-body" style={{ lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{r.comment}</p>
                       <div className="flex items-center justify-between" style={{ marginTop: 12 }}>
                         <p className="body-sm text-charcoal" style={{ margin: 0 }}>
-                          Booking: <Link to={`/customer/bookings/${r.bookingId}`} className="text-primary" style={{ textDecoration: 'none', fontWeight: 600 }}>{r.bookingId}</Link>
+                          Booking: <Link to={`/customer/bookings/${r.bookingId}`} className="text-primary" style={{ textDecoration: 'none', fontWeight: 600 }}>#{formatBookingId(r.bookingId)}</Link>
                         </p>
                         
                         <div style={{ display: 'flex', gap: 12 }}>

@@ -474,11 +474,6 @@ export function BookingDetailPage() {
                 Pay Remaining Balance
               </Link>
             )}
-            {booking.status === 'CHECKED_OUT' && !booking.isReviewed && (
-              <Link to={`/customer/reviews/create?bookingId=${booking.id}`} className="btn-primary" style={{ width: '100%', justifyContent: 'center', display: 'flex', marginTop: 16 }}>
-                ⭐ Write a Review
-              </Link>
-            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -570,7 +565,7 @@ export function BookingCancellationPage() {
     <CustomerLayout>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
         <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
-          <Link to={`/customer/bookings/${id}`} className="text-primary" style={{ textDecoration: 'none' }}>Booking #{id}</Link>
+          <Link to={`/customer/bookings/${id}`} className="text-primary" style={{ textDecoration: 'none' }}>Booking #{formatBookingId(id || '')}</Link>
           <span>›</span>
           <span className="text-ink" style={{ fontWeight: 600 }}>Cancel Booking</span>
         </div>

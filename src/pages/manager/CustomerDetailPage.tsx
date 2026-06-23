@@ -1,13 +1,13 @@
 // ─── SCR-54: Customer Detail ──────────────────────────────────────────────────
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import { Badge } from './_sharedAdminData';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../../api/usersApi';
+import BookingStatusBadge from '../../components/booking/BookingStatusBadge';
 
 export function CustomerDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
@@ -20,6 +20,7 @@ export function CustomerDetailPage() {
     mutationFn: ({ status }: { status: string }) => usersApi.updateCustomerStatus(id!, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['manager_customer', id] });
+      queryClient.invalidateQueries({ queryKey: ['manager_customers'] });
     },
     onError: () => {
       alert("Cập nhật trạng thái thất bại");
@@ -30,6 +31,16 @@ export function CustomerDetailPage() {
   if (isError || !data?.data) return <ManagerLayout><div style={{ padding: 40, color: 'var(--error)' }}>Error or customer not found</div></ManagerLayout>;
 
   const c = data.data;
+  const recentBookings = c.recentBookings || [];
+
+  const formatBookingId = (uuid: string): string => {
+    if (!uuid) return '';
+    return uuid.substring(0, 8).toUpperCase();
+  };
+
+  const formatVnd = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
 
   return (
     <ManagerLayout>
@@ -38,6 +49,7 @@ export function CustomerDetailPage() {
         <span>›</span>
         <span style={{ fontWeight: 600 }}>{c.fullName}</span>
       </div>
+
       <div className="flex items-start justify-between" style={{ marginBottom: 24 }}>
         <h1 className="heading-md">{c.fullName}</h1>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -50,26 +62,91 @@ export function CustomerDetailPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20 }}>
+      {/* Grid: Profile and KPI info */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, marginBottom: 24 }}>
         <div className="card-lg" style={{ padding: 28 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             {[
               { l: 'Full Name', v: c.fullName },
               { l: 'Email', v: c.email },
-              { l: 'Phone', v: c.phone },
-              { l: 'Joined', v: new Date(c.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
+              { l: 'Phone', v: c.phone || 'N/A' },
+              { l: 'Joined Date', v: new Date(c.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
             ].map(row => (
               <div key={row.l}>
-                <p className="form-label">{row.l}</p>
-                <p style={{ fontSize: 15, fontWeight: 600, marginTop: 4 }}>{row.v}</p>
+                <p className="form-label" style={{ margin: 0, color: 'var(--ash)', fontSize: 12 }}>{row.l}</p>
+                <p style={{ fontSize: 15, fontWeight: 600, marginTop: 4, color: 'var(--ink)' }}>{row.v}</p>
               </div>
             ))}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div className="kpi-card"><span style={{ fontSize: 24 }}>📋</span><div className="kpi-value">{c.bookingCount}</div><div className="kpi-label">Total Bookings</div></div>
-          <Link to={`/manager/bookings?customerId=${c.id}`} className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>View Bookings</Link>
+          <div className="kpi-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <span style={{ fontSize: 32, marginBottom: 8 }}>📋</span>
+            <div className="kpi-value" style={{ fontSize: 28, fontWeight: 800 }}>{c.bookingCount}</div>
+            <div className="kpi-label" style={{ color: 'var(--ash)', fontSize: 13, marginTop: 4 }}>Total Bookings</div>
+          </div>
         </div>
+      </div>
+
+      {/* Booking History section */}
+      <div className="card-lg" style={{ padding: 28 }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
+          <h2 className="heading-sm" style={{ margin: 0 }}>Booking History (Recent {recentBookings.length})</h2>
+          {c.bookingCount > 0 && (
+            <Link to={`/manager/bookings?search=${encodeURIComponent(c.fullName)}`} className="btn-outline btn-sm" style={{ textDecoration: 'none' }}>
+              View All Bookings
+            </Link>
+          )}
+        </div>
+
+        {recentBookings.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ash)' }}>
+            <span style={{ fontSize: 36, display: 'block', marginBottom: 12 }}>📭</span>
+            <p className="body-md">This customer has not made any bookings yet.</p>
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Booking ID</th>
+                  <th>Property / Room</th>
+                  <th>Dates</th>
+                  <th>Total Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentBookings.map((b: any) => (
+                  <tr key={b.id}>
+                    <td>
+                      <span className="code-sm">#{formatBookingId(b.id)}</span>
+                    </td>
+                    <td>
+                      <p style={{ fontWeight: 600, fontSize: 13 }}>{b.roomNumber}</p>
+                      <p style={{ fontSize: 11, color: 'var(--ash)' }}>{b.propertyName}</p>
+                    </td>
+                    <td className="text-charcoal" style={{ fontSize: 13 }}>
+                      {b.checkInDate} → {b.checkOutDate}
+                    </td>
+                    <td style={{ fontWeight: 600 }}>
+                      {formatVnd(b.totalAmount)}
+                    </td>
+                    <td>
+                      <BookingStatusBadge status={b.status} />
+                    </td>
+                    <td>
+                      <Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">
+                        Details
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </ManagerLayout>
   );
