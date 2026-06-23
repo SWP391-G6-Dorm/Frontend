@@ -164,7 +164,52 @@ export async function fetchPriceStats(): Promise<{ minPrice: number; maxPrice: n
   return res.data.data;
 }
 
-// ── Manager room write operations ─────────────────────────────────────────
+export async function checkRoomAvailability(
+  id: string,
+  checkIn: string,
+  checkOut: string,
+): Promise<{ available: boolean; bookedRanges: BookedRange[] }> {
+  const res = await api.get(`/api/rooms/${id}/availability`, { params: { checkIn, checkOut } });
+  return res.data.data;
+}
+
+// ── SCR-40: Booking history for a room (Manager) ─────────────────────────────
+
+export interface RoomBookingSummary {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  roomNumber: string;
+  roomType: string;
+  propertyName: string;
+  checkInDate: string;
+  checkOutDate: string;
+  guestCount: number;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface RoomBookingsPage {
+  content: RoomBookingSummary[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export async function fetchRoomBookings(
+  roomId: string,
+  page = 0,
+  size = 5,
+): Promise<RoomBookingsPage> {
+  const res = await api.get(`/api/rooms/${roomId}/bookings`, {
+    params: { page, size, sort: 'checkInDate,desc' },
+  });
+  return res.data.data;
+}
+
+// ── Manager room write operations ─────────────────────────────────────────────
 
 export interface CreateRoomPayload {
   propertyId: string;
@@ -182,8 +227,8 @@ export interface UpdateRoomPayload {
   roomType?: string;
   pricePerNight?: number;
   capacity?: number;
-  area?: number;
-  description?: string;
+  area?: number | null;
+  description?: string | null;
 }
 
 export async function createRoom(payload: CreateRoomPayload): Promise<RoomDetail> {
@@ -196,28 +241,16 @@ export async function updateRoom(id: string, payload: UpdateRoomPayload): Promis
   return res.data.data;
 }
 
-export async function updateRoomStatus(id: string, status: string): Promise<RoomDetail> {
-  const res = await api.patch(`/api/rooms/${id}/status`, { status });
-  return res.data.data;
+export interface UpdateRoomStatusPayload {
+  status: 'AVAILABLE' | 'MAINTENANCE';
+  note?: string;
 }
 
-export async function uploadRoomImages(id: string, files: File[]): Promise<void> {
-  const formData = new FormData();
-  files.forEach(f => formData.append('files', f));
-  await api.post(`/api/rooms/${id}/images`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-}
-
-export async function deleteRoomImage(imageId: string): Promise<void> {
-  await api.delete(`/api/rooms/images/${imageId}`);
-}
-
-export async function checkRoomAvailability(
+export async function updateRoomStatus(
   id: string,
-  checkIn: string,
-  checkOut: string,
-): Promise<{ available: boolean; bookedRanges: BookedRange[] }> {
-  const res = await api.get(`/api/rooms/${id}/availability`, { params: { checkIn, checkOut } });
+  payload: UpdateRoomStatusPayload,
+): Promise<RoomDetail> {
+  const res = await api.patch(`/api/rooms/${id}/status`, payload);
   return res.data.data;
 }
+

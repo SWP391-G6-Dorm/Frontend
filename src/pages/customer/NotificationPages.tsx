@@ -109,25 +109,6 @@ export function NotificationCenterPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setLoading(true);
-    try {
-      const res = await notificationApi.seedNotifications();
-      if (res.success) {
-        await fetchUnreadCount();
-        await fetchNotifications(0, false);
-        window.dispatchEvent(new Event('unreadCountChanged'));
-      } else {
-        alert("Failed to seed: " + (res.message || "Unknown error"));
-      }
-    } catch (err) {
-      console.error("Failed to seed notifications", err);
-      alert("Failed to seed notifications. Please make sure the backend Spring Boot server has been restarted to apply the new /api/notifications/test-seed endpoint!");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleMarkRead = (id: string) => {
     // Cập nhật local state mượt mà trước khi load detail
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
@@ -176,10 +157,7 @@ export function NotificationCenterPage() {
           <div style={{ textAlign: 'center', padding: 60 }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
             <h3 className="heading-sm" style={{ marginBottom: 8 }}>All caught up!</h3>
-            <p className="body-md text-charcoal" style={{ marginBottom: 16 }}>No {filter === 'UNREAD' ? 'unread ' : ''}notifications.</p>
-            <button onClick={handleSeed} className="btn-primary btn-sm">
-              Create Demo Notifications (Dev Only)
-            </button>
+            <p className="body-md text-charcoal" style={{ marginBottom: 0 }}>No {filter === 'UNREAD' ? 'unread ' : ''}notifications.</p>
           </div>
         ) : (
           <>
@@ -310,6 +288,11 @@ export function NotificationDetailPage() {
                 {notif.type === 'MAINTENANCE_UPDATED' && (
                   <Link to={`/customer/maintenance/${notif.relatedEntityId}`} className="btn-primary btn-sm" style={{ textDecoration: 'none' }}>
                     View Related Ticket
+                  </Link>
+                )}
+                {notif.type === 'PAYMENT_CONFIRMED' && (
+                  <Link to={`/customer/payments`} className="btn-primary btn-sm" style={{ textDecoration: 'none' }}>
+                    View Payment History
                   </Link>
                 )}
               </div>

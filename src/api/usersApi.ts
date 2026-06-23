@@ -57,6 +57,15 @@ export interface CustomerDetailResponse {
   status: string;
   createdAt: string;
   bookingCount: number;
+  recentBookings?: Array<{
+    id: string;
+    roomNumber: string;
+    propertyName: string;
+    checkInDate: string;
+    checkOutDate: string;
+    totalAmount: number;
+    status: string;
+  }>;
 }
 
 export const usersApi = {

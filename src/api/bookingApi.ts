@@ -24,6 +24,7 @@ export interface BookingSummaryResponse {
   totalAmount: number;
   status: string;
   createdAt: string;
+  isReviewed?: boolean;
 }
 
 export interface BookingPaymentInfo {
@@ -53,6 +54,7 @@ export interface BookingDetailResponse {
   status: string;
   specialRequests: string;
   createdAt: string;
+  isReviewed?: boolean;
   payments?: BookingPaymentInfo[];
 }
 

@@ -7,7 +7,7 @@ const RATING_LABELS = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
 export default function ReviewRatingPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const bookingId = params.get('bookingId') || 'B003';
+  const bookingId = params.get('bookingId') || 'b0030000-0000-0000-0000-000000000003';
   const [rating, setRating]   = useState(0);
   const [hovered, setHovered] = useState(0);
   const [comment, setComment] = useState('');

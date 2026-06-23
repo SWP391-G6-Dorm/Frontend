@@ -9,6 +9,15 @@ import { bookingApi, type BookingSummaryResponse } from '../../api/bookingApi';
 import SafeImage from '../../components/ui/SafeImage';
 import Pagination from '../../components/ui/Pagination';
 
+export const formatBookingId = (uuid: string): string => {
+  if (!uuid) return '';
+  if (uuid.startsWith('b00') && uuid.length === 36) {
+    const match = uuid.match(/^b00([0-9])0000-/);
+    if (match) return `B00${match[1]}`;
+  }
+  return uuid.split('-')[0].toUpperCase();
+};
+
 function extractApiError(err: unknown, fallback: string): string {
   const data = (err as { response?: { data?: Record<string, unknown>; status?: number } })?.response?.data;
   if (typeof data?.message === 'string' && data.message) return data.message;
@@ -502,7 +511,7 @@ export function BookingListPage() {
                           {b.status === 'PENDING_DEPOSIT' && (
                             <Link to={`/customer/payments/${b.id}/pay`} className="btn-primary btn-sm">Thanh toán cọc</Link>
                           )}
-                          {b.status === 'CHECKED_OUT' && (
+                          {b.status === 'CHECKED_OUT' && !b.isReviewed && (
                             <Link to={`/customer/reviews/create?bookingId=${b.id}`} className="btn-outline btn-sm">Đánh giá</Link>
                           )}
                           <Link to={`/customer/bookings/${b.id}`} className="btn-outline btn-sm">Chi tiết</Link>
@@ -755,7 +764,7 @@ export function BookingDetailPage() {
                   Thanh toán phần còn lại ({formatVndList(remainingAmount)})
                 </Link>
               )}
-              {booking.status === 'CHECKED_OUT' && (
+              {booking.status === 'CHECKED_OUT' && !booking.isReviewed && (
                 <Link to={`/customer/reviews/create?bookingId=${booking.id}`} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
                   ⭐ Viết đánh giá
                 </Link>

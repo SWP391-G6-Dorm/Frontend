@@ -26,7 +26,7 @@ import { NotificationCenterPage, NotificationDetailPage }
   from './pages/customer/NotificationPages';
 import { BookingFormPage, BookingListPage, BookingDetailPage, BookingCancellationPage }
   from './pages/customer/BookingPages';
-import ContractListPage   from './pages/customer/ContractListPage';
+import ContractListPage from './pages/customer/ContractListPage';
 import ContractDetailPage from './pages/customer/ContractDetailPage';
 
 import { DepositPaymentPage, RemainingPaymentPage, PaymentHistoryPage, ReceiptUploadPage }
@@ -35,6 +35,8 @@ import { MaintenanceListPage, CreateMaintenancePage, MaintenanceDetailPage }
   from './pages/customer/MaintenancePages';
 import { ReviewRatingPage, MyReviewsPage }
   from './pages/customer/ReviewPages';
+import { CustomerComplaintListPage, CreateComplaintPage }
+  from './pages/customer/CustomerComplaintPages';
 
 // ── Manager Portal ────────────────────────────────────────────────────────────
 import ManagerDashboardPage from './pages/manager/ManagerDashboardPage';
@@ -146,6 +148,12 @@ function App() {
           element={<ProtectedRoute role="CUSTOMER"><MyReviewsPage /></ProtectedRoute>} />
         <Route path="/customer/reviews/create"
           element={<ProtectedRoute role="CUSTOMER"><ReviewRatingPage /></ProtectedRoute>} />
+
+        {/* Complaints */}
+        <Route path="/customer/complaints"
+          element={<ProtectedRoute role="CUSTOMER"><CustomerComplaintListPage /></ProtectedRoute>} />
+        <Route path="/customer/complaints/create"
+          element={<ProtectedRoute role="CUSTOMER"><CreateComplaintPage /></ProtectedRoute>} />
 
         {/* ─────────────── MANAGER (SCR-32 to SCR-65) ─────────────── */}
         <Route path="/manager" element={<Navigate to="/manager/dashboard" replace />} />

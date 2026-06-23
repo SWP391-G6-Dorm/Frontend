@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
 
 const MY_REVIEWS = [
-  { id: 'R001', bookingId: 'B003', roomNumber: 'Suite 03', propertyName: 'Hội An Garden Villa', rating: 5, comment: 'Absolutely stunning villa! The garden view was breathtaking and the staff was incredibly welcoming.', createdAt: '2026-04-10T09:00:00', roomImageUrl: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=80&h=80&fit=crop' },
+  { id: 'R001', bookingId: 'b0030000-0000-0000-0000-000000000003', roomNumber: 'Suite 03', propertyName: 'Hội An Garden Villa', rating: 5, comment: 'Absolutely stunning villa! The garden view was breathtaking and the staff was incredibly welcoming.', createdAt: '2026-04-10T09:00:00', roomImageUrl: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=80&h=80&fit=crop' },
 ];
 
 function StarDisplay({ rating }: { rating: number }) {
