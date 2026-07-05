@@ -28,25 +28,31 @@ export interface ApiResponse<T = null> {
 export const notificationApi = {
   // Lấy danh sách thông báo phân trang
   getNotifications: async (params?: { page?: number; size?: number; unreadOnly?: boolean }): Promise<ApiResponse<PageResponse<Notification>>> => {
-    const res = await api.get('/api/notifications', { params });
+    const res = await api.get('/api/v1/notifications', { params });
     return res.data;
   },
 
   // Đếm số thông báo chưa đọc
   getUnreadCount: async (): Promise<ApiResponse<{ count: number }>> => {
-    const res = await api.get('/api/notifications/unread-count');
+    const res = await api.get('/api/v1/notifications/unread-count');
     return res.data;
   },
 
   // Đánh dấu tất cả là đã đọc
   markAllRead: async (): Promise<ApiResponse<{ updated: number }>> => {
-    const res = await api.patch('/api/notifications/mark-all-read');
+    const res = await api.post('/api/v1/notifications/read-all');
     return res.data;
   },
 
-  // Lấy chi tiết thông báo
+  // Lấy chi tiết thông báo (auto mark read)
   getNotificationDetail: async (id: string): Promise<ApiResponse<Notification>> => {
-    const res = await api.get(`/api/notifications/${id}`);
+    const res = await api.get(`/api/v1/notifications/${id}`);
+    return res.data;
+  },
+
+  // Đánh dấu 1 thông báo đã đọc
+  markNotificationRead: async (id: string): Promise<ApiResponse<Notification>> => {
+    const res = await api.post(`/api/v1/notifications/${id}/read`);
     return res.data;
   },
 

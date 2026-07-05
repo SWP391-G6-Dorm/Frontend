@@ -1,10 +1,36 @@
-// ─── NotificationPages.tsx — SCR-14, 15 ──────────────────────────────────────
+// ─── NotificationPages.tsx — SCR-13, 14 ──────────────────────────────────────
 // Exports: NotificationCenterPage, NotificationDetailPage
 
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
+import ManagerLayout from '../../layouts/ManagerLayout';
+import EmployeeLayout from '../../layouts/EmployeeLayout';
+import AdminLayout from '../../layouts/AdminLayout';
+import Alert from '../../components/ui/Alert';
+import { useAuthStore } from '../../store/authStore';
 import { notificationApi, Notification } from '../../api/notificationApi';
+
+function getNotifBase(role: string | null): string {
+  switch (role) {
+    case 'MANAGER':
+      return '/manager/notifications';
+    case 'EMPLOYEE':
+      return '/employee/notifications';
+    case 'ADMIN':
+      return '/admin/notifications';
+    default:
+      return '/customer/notifications';
+  }
+}
+
+function RoleLayout({ children }: { children: React.ReactNode }) {
+  const role = useAuthStore(s => s.role);
+  if (role === 'MANAGER') return <ManagerLayout>{children}</ManagerLayout>;
+  if (role === 'EMPLOYEE') return <EmployeeLayout>{children}</EmployeeLayout>;
+  if (role === 'ADMIN') return <AdminLayout>{children}</AdminLayout>;
+  return <CustomerLayout>{children}</CustomerLayout>;
+}
 
 function NotifIcon({ type }: { type: string }) {
   const m: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {
@@ -25,14 +51,59 @@ function NotifIcon({ type }: { type: string }) {
 function relTime(dt: string) {
   if (!dt) return '';
   const d = (Date.now() - new Date(dt).getTime()) / 1000;
-  if (d < 60) return 'Just now';
-  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
-  if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
-  return `${Math.floor(d / 86400)}d ago`;
+  if (d < 60) return 'Vừa xong';
+  if (d < 3600) return `${Math.floor(d / 60)} phút trước`;
+  if (d < 86400) return `${Math.floor(d / 3600)} giờ trước`;
+  return `${Math.floor(d / 86400)} ngày trước`;
 }
 
-// ── SCR-14: Notification Center ───────────────────────────────────────────────
+function formatNotifDate(iso: string) {
+  return new Date(iso).toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getRelatedAction(
+  role: string | null,
+  type: Notification['type'],
+  relatedEntityId: string,
+): { to: string; label: string } | null {
+  if (role === 'CUSTOMER') {
+    switch (type) {
+      case 'BOOKING_CONFIRMED':
+        return { to: `/customer/bookings/${relatedEntityId}`, label: 'Xem booking liên quan' };
+      case 'CONTRACT_GENERATED':
+        return { to: `/customer/contracts/${relatedEntityId}`, label: 'Xem hợp đồng' };
+      case 'PAYMENT_CONFIRMED':
+        return { to: '/customer/payments', label: 'Xem thanh toán' };
+      case 'MAINTENANCE_UPDATED':
+        return { to: `/customer/maintenance/${relatedEntityId}`, label: 'Xem ticket bảo trì' };
+      default:
+        return null;
+    }
+  }
+  if (role === 'MANAGER') {
+    switch (type) {
+      case 'BOOKING_CONFIRMED':
+        return { to: `/manager/bookings/${relatedEntityId}`, label: 'Xem booking liên quan' };
+      case 'MAINTENANCE_UPDATED':
+        return { to: `/manager/maintenance/${relatedEntityId}`, label: 'Xem ticket bảo trì' };
+      default:
+        return null;
+    }
+  }
+  return null;
+}
+
+// ── SCR-13: Notification Center ───────────────────────────────────────────────
 export function NotificationCenterPage() {
+  const role = useAuthStore(s => s.role);
+  const notifBase = getNotifBase(role);
+
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL');
   const [unreadCount, setUnreadCount] = useState(0);
@@ -75,10 +146,10 @@ export function NotificationCenterPage() {
         setPage(res.data.page);
         setTotalPages(res.data.totalPages);
       } else {
-        setError(res.message || "Failed to load notifications");
+        setError(res.message || 'Không thể tải thông báo');
       }
-    } catch (err) {
-      setError("An error occurred while fetching notifications");
+    } catch {
+      setError('Đã xảy ra lỗi khi tải thông báo. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -121,49 +192,57 @@ export function NotificationCenterPage() {
 
 
   return (
-    <CustomerLayout>
+    <RoleLayout>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
           <div>
-            <h1 className="heading-md" style={{ marginBottom: 4 }}>Notifications</h1>
-            {unreadCount > 0 && <p className="body-sm text-charcoal">{unreadCount} unread</p>}
+            <h1 className="heading-md" style={{ marginBottom: 4 }}>Thông báo</h1>
+            {unreadCount > 0 && <p className="body-sm text-charcoal">{unreadCount} chưa đọc</p>}
           </div>
           {unreadCount > 0 && (
             <button onClick={handleMarkAllRead} className="btn-ghost btn-sm" style={{ color: 'var(--primary)' }}>
-              Mark all as read
+              Đánh dấu tất cả đã đọc
             </button>
           )}
         </div>
 
-        {/* Filter */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: '4px', background: 'var(--surface-bone)', borderRadius: 9999, width: 'fit-content' }}>
           {(['ALL', 'UNREAD'] as const).map(tab => (
             <button key={tab} className={`tab-pill ${filter === tab ? 'active' : ''}`} onClick={() => setFilter(tab)}>
-              {tab === 'ALL' ? 'All' : `Unread (${unreadCount})`}
+              {tab === 'ALL' ? 'Tất cả' : `Chưa đọc (${unreadCount})`}
             </button>
           ))}
         </div>
 
         {loading && page === 0 ? (
           <div style={{ textAlign: 'center', padding: 60 }}>
-            <p className="body-md text-charcoal">Loading notifications...</p>
+            <p className="body-md text-charcoal">Đang tải thông báo...</p>
           </div>
         ) : error ? (
-          <div style={{ textAlign: 'center', padding: 60 }}>
-            <p className="body-md text-charcoal" style={{ color: 'var(--error)' }}>{error}</p>
-            <button onClick={() => fetchNotifications(0, false)} className="btn-outline btn-sm" style={{ marginTop: 12 }}>Retry</button>
+          <div style={{ maxWidth: 480, margin: '0 auto' }}>
+            <Alert variant="error" message={error} />
+            <button
+              type="button"
+              onClick={() => fetchNotifications(0, false)}
+              className="btn-outline btn-sm"
+              style={{ marginTop: 16 }}
+            >
+              Thử lại
+            </button>
           </div>
         ) : notifs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60 }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-            <h3 className="heading-sm" style={{ marginBottom: 8 }}>All caught up!</h3>
-            <p className="body-md text-charcoal" style={{ marginBottom: 0 }}>No {filter === 'UNREAD' ? 'unread ' : ''}notifications.</p>
+            <h3 className="heading-sm" style={{ marginBottom: 8 }}>Bạn đã xem hết!</h3>
+            <p className="body-md text-charcoal" style={{ marginBottom: 0 }}>
+              {filter === 'UNREAD' ? 'Không có thông báo chưa đọc.' : 'Không có thông báo mới.'}
+            </p>
           </div>
         ) : (
           <>
             <div className="card" style={{ overflow: 'hidden' }}>
               {notifs.map((n, i) => (
-                <Link key={n.id} to={`/customer/notifications/${n.id}`}
+                <Link key={n.id} to={`${notifBase}/${n.id}`}
                   onClick={() => handleMarkRead(n.id)}
                   style={{
                     display: 'flex', gap: 14, padding: '16px 20px', textDecoration: 'none',
@@ -195,113 +274,114 @@ export function NotificationCenterPage() {
                   className="btn-outline btn-sm"
                   disabled={loading}
                 >
-                  {loading ? 'Loading...' : 'Load More'}
+                  {loading ? 'Đang tải...' : 'Tải thêm'}
                 </button>
               </div>
             )}
           </>
         )}
       </div>
-    </CustomerLayout>
+    </RoleLayout>
   );
 }
 
-// ── SCR-15: Notification Detail ───────────────────────────────────────────────
+// ── SCR-14: Notification Detail ───────────────────────────────────────────────
 export function NotificationDetailPage() {
   const { id } = useParams();
+  const role = useAuthStore(s => s.role);
+  const notifBase = getNotifBase(role);
+
   const [notif, setNotif] = useState<Notification | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchDetail = async () => {
+    let cancelled = false;
+    async function fetchDetail() {
       if (!id) return;
       setLoading(true);
-      setError(null);
+      setError('');
       try {
         const res = await notificationApi.getNotificationDetail(id);
+        if (cancelled) return;
         if (res.success) {
           setNotif(res.data);
-          // Gửi event báo cho Layout cập nhật lại badge chuông khi xem chi tiết xong
           window.dispatchEvent(new Event('unreadCountChanged'));
         } else {
-          setError(res.message || "Failed to load notification details");
+          setError(res.message || 'Không thể tải chi tiết thông báo');
         }
-      } catch (err) {
-        setError("An error occurred while fetching notification details");
+      } catch (err: unknown) {
+        if (cancelled) return;
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setError(axiosErr?.response?.data?.message ?? 'Đã xảy ra lỗi khi tải chi tiết thông báo');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    };
+    }
     fetchDetail();
+    return () => { cancelled = true; };
   }, [id]);
 
+  const breadcrumbTitle = notif
+    ? (notif.title.length > 40 ? `${notif.title.slice(0, 40)}…` : notif.title)
+    : 'Chi tiết';
+  const relatedAction = notif?.relatedEntityId
+    ? getRelatedAction(role, notif.type, notif.relatedEntityId)
+    : null;
+
   return (
-    <CustomerLayout>
+    <RoleLayout>
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
         <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
-          <Link to="/customer/notifications" className="text-primary" style={{ textDecoration: 'none' }}>Notifications</Link>
+          <Link to={notifBase} className="text-primary" style={{ textDecoration: 'none' }}>Thông báo</Link>
           <span>›</span>
-          <span style={{ fontWeight: 600 }}>Detail</span>
+          <span className="text-ink" style={{ fontWeight: 600 }}>{breadcrumbTitle}</span>
         </div>
 
         {loading ? (
           <div className="card-lg" style={{ padding: 40, textAlign: 'center' }}>
-            <p className="body-md text-charcoal">Loading notification details...</p>
+            <p className="body-md text-charcoal">Đang tải chi tiết thông báo...</p>
           </div>
         ) : error || !notif ? (
-          <div className="card-lg" style={{ padding: 40, textAlign: 'center' }}>
-            <p className="body-md text-charcoal" style={{ color: 'var(--error)' }}>{error || "Notification not found"}</p>
-            <Link to="/customer/notifications" className="btn-outline btn-sm" style={{ marginTop: 16, display: 'inline-block' }}>← Back to Notifications</Link>
+          <div>
+            <Alert variant="error" message={error || 'Không tìm thấy thông báo'} />
+            <Link to={notifBase} className="btn-outline btn-sm" style={{ marginTop: 16, display: 'inline-block' }}>
+              ← Quay lại danh sách
+            </Link>
           </div>
         ) : (
-          <div className="card-lg" style={{ padding: 32 }}>
+          <div className="card-lg" style={{ padding: 32, boxShadow: '0 4px 16px rgba(32,32,32,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
               <NotifIcon type={notif.type} />
               <div style={{ flex: 1 }}>
                 <h1 className="heading-md" style={{ marginBottom: 4 }}>{notif.title}</h1>
                 <p className="body-sm text-charcoal">
-                  {notif.createdAt ? new Date(notif.createdAt).toLocaleString('en-US', {
-                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                  }) : ''}
+                  {notif.createdAt ? formatNotifDate(notif.createdAt) : ''}
+                  {!notif.isRead && (
+                    <span style={{ marginLeft: 8, color: 'var(--primary)', fontWeight: 600 }}>· Mới</span>
+                  )}
                 </p>
               </div>
             </div>
 
             <div className="divider" style={{ marginBottom: 20 }} />
 
-            <p className="body-lg text-body" style={{ lineHeight: 1.75, marginBottom: 28 }}>{notif.content}</p>
+            <p className="body-lg text-body" style={{ lineHeight: 1.75, marginBottom: 28, whiteSpace: 'pre-wrap' }}>
+              {notif.content}
+            </p>
 
-            {/* Custom navigation helper depending on type */}
-            {notif.relatedEntityId && (
+            {relatedAction && (
               <div style={{ marginBottom: 28 }}>
-                {notif.type === 'BOOKING_CONFIRMED' && (
-                  <Link to={`/customer/bookings/${notif.relatedEntityId}`} className="btn-primary btn-sm" style={{ textDecoration: 'none' }}>
-                    View Related Booking
-                  </Link>
-                )}
-                {notif.type === 'CONTRACT_GENERATED' && (
-                  <Link to={`/customer/contracts/${notif.relatedEntityId}`} className="btn-primary btn-sm" style={{ textDecoration: 'none' }}>
-                    View Related Contract
-                  </Link>
-                )}
-                {notif.type === 'MAINTENANCE_UPDATED' && (
-                  <Link to={`/customer/maintenance/${notif.relatedEntityId}`} className="btn-primary btn-sm" style={{ textDecoration: 'none' }}>
-                    View Related Ticket
-                  </Link>
-                )}
-                {notif.type === 'PAYMENT_CONFIRMED' && (
-                  <Link to={`/customer/payments`} className="btn-primary btn-sm" style={{ textDecoration: 'none' }}>
-                    View Payment History
-                  </Link>
-                )}
+                <Link to={relatedAction.to} className="btn-primary btn-sm" style={{ textDecoration: 'none' }}>
+                  {relatedAction.label}
+                </Link>
               </div>
             )}
 
-            <Link to="/customer/notifications" className="btn-outline btn-sm">← Back to Notifications</Link>
+            <Link to={notifBase} className="btn-outline btn-sm">← Quay lại danh sách</Link>
           </div>
         )}
       </div>
-    </CustomerLayout>
+    </RoleLayout>
   );
 }

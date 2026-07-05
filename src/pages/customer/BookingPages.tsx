@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
+import Alert from '../../components/ui/Alert';
 import { fetchRoomById, checkRoomAvailability, type RoomDetail } from '../../api/roomsApi';
 import { bookingApi, type BookingSummaryResponse } from '../../api/bookingApi';
 import SafeImage from '../../components/ui/SafeImage';
@@ -347,7 +348,7 @@ export function BookingFormPage() {
                     <span style={{ fontWeight: 700 }}>Tổng cộng</span>
                     <span className="heading-sm" style={{ fontWeight: 800, color: 'var(--ink)' }}>{formatVnd(totalAmount)}</span>
                   </div>
-                  <div style={{ background: '#fff1ee', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
+                  <div style={{ background: 'rgba(15,118,110,0.08)', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span className="body-sm" style={{ color: 'var(--primary)', fontWeight: 600 }}>Cọc (40%)</span>
                       <span style={{ fontWeight: 800, color: 'var(--primary)' }}>{formatVnd(depositAmount)}</span>
@@ -566,9 +567,9 @@ export function BookingDetailPage() {
     if (!id) return;
     setLoadingDetail(true);
     setDetailError('');
-    bookingApi.getBookingDetail(id)
+    bookingApi.getMyBookingDetail(id)
       .then(res => setBooking(res.data))
-      .catch(() => setDetailError('Không tải được thông tin booking.'))
+      .catch((err) => setDetailError(extractApiError(err, 'Không tải được thông tin booking.')))
       .finally(() => setLoadingDetail(false));
   }, [id]);
 
@@ -585,8 +586,12 @@ export function BookingDetailPage() {
   if (detailError || !booking) {
     return (
       <CustomerLayout>
-        <div className="alert alert-error" style={{ margin: 24 }}>{detailError || 'Không tìm thấy booking.'}</div>
-        <Link to="/customer/bookings" className="btn-outline" style={{ marginLeft: 24 }}>← Quay lại danh sách</Link>
+        <div style={{ margin: 24 }}>
+          <Alert variant="error" message={detailError || 'Không tìm thấy booking.'} />
+          <Link to="/customer/bookings" className="btn-outline" style={{ marginTop: 16, display: 'inline-flex' }}>
+            ← Quay lại danh sách
+          </Link>
+        </div>
       </CustomerLayout>
     );
   }
@@ -594,8 +599,8 @@ export function BookingDetailPage() {
   const nights = Math.ceil(
     (new Date(booking.checkOutDate + 'T00:00:00').getTime() - new Date(booking.checkInDate + 'T00:00:00').getTime()) / 86400000
   );
-  const depositAmount = Number(booking.depositAmount ?? Math.round(booking.totalAmount * 0.4));
-  const remainingAmount = Number(booking.remainingAmount ?? (booking.totalAmount - depositAmount));
+  const depositAmount = Number(booking.depositAmount);
+  const remainingAmount = Number(booking.remainingAmount);
   const payments = booking.payments ?? [];
 
   const depositPayment = payments.find(p => p.type === 'DEPOSIT');
@@ -636,7 +641,7 @@ export function BookingDetailPage() {
         <StatusBadge status={booking.status} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'flex-start' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6" style={{ alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Thông tin booking */}
           <div className="card" style={{ padding: 24 }}>
@@ -786,8 +791,11 @@ export function BookingDetailPage() {
           </div>
 
           {showPayDeposit && (
-            <div className="alert alert-warning" style={{ marginTop: 16, fontSize: 13 }}>
-              Vui lòng thanh toán cọc trong thời gian quy định để giữ phòng.
+            <div style={{ marginTop: 16 }}>
+              <Alert
+                variant="warning"
+                message="Vui lòng thanh toán cọc trong thời gian quy định để giữ phòng."
+              />
             </div>
           )}
         </div>
@@ -796,13 +804,17 @@ export function BookingDetailPage() {
   );
 }
 
-// ── SCR-20: Booking Cancellation ─────────────────────────────────────────────
+// ── SCR-19: Booking Cancellation ─────────────────────────────────────────────
+const NON_CANCELLABLE_STATUSES = new Set(['CHECKED_IN', 'CHECKED_OUT', 'CANCELLED']);
+
 export function BookingCancellationPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [booking, setBooking] = useState<import('../../api/bookingApi').BookingDetailResponse | null>(null);
+  const [preview, setPreview] = useState<import('../../api/bookingApi').CancellationPreview | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(true);
   const [detailError, setDetailError] = useState('');
+  const [previewError, setPreviewError] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [cancelError, setCancelError] = useState('');
@@ -810,9 +822,20 @@ export function BookingCancellationPage() {
   useEffect(() => {
     if (!id) return;
     setLoadingDetail(true);
-    bookingApi.getBookingDetail(id)
-      .then(res => setBooking(res.data))
-      .catch(() => setDetailError('Không tải được thông tin booking.'))
+    setDetailError('');
+    setPreviewError('');
+    Promise.all([
+      bookingApi.getMyBookingDetail(id),
+      bookingApi.getCancellationPreview(id).catch((err) => {
+        setPreviewError(extractApiError(err, 'Không tải được chính sách hủy.'));
+        return null;
+      }),
+    ])
+      .then(([bookingRes, previewRes]) => {
+        setBooking(bookingRes.data);
+        if (previewRes) setPreview(previewRes.data);
+      })
+      .catch((err) => setDetailError(extractApiError(err, 'Không tải được thông tin booking.')))
       .finally(() => setLoadingDetail(false));
   }, [id]);
 
@@ -821,26 +844,60 @@ export function BookingCancellationPage() {
     setLoading(true);
     setCancelError('');
     try {
-      await bookingApi.cancelBooking(id);
+      await bookingApi.cancelMyBooking(id);
       navigate('/customer/bookings');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Hủy booking thất bại.';
-      setCancelError(msg);
+      setCancelError(extractApiError(err, 'Hủy booking thất bại.'));
       setLoading(false);
     }
   }
 
-  if (loadingDetail) return <CustomerLayout><div style={{ padding: 48, textAlign: 'center' }}><p className="body-md text-charcoal">Đang tải...</p></div></CustomerLayout>;
-  if (detailError || !booking) return <CustomerLayout><div className="alert alert-error" style={{ margin: 24 }}>{detailError || 'Không tìm thấy booking.'}</div></CustomerLayout>;
+  if (loadingDetail) {
+    return (
+      <CustomerLayout>
+        <div style={{ padding: 48, textAlign: 'center' }}>
+          <p className="body-md text-charcoal">Đang tải...</p>
+        </div>
+      </CustomerLayout>
+    );
+  }
 
-  const depositAmount = booking.depositAmount ?? Math.round(booking.totalAmount * 0.4);
-  const depositPaid   = booking.status !== 'PENDING_DEPOSIT';
+  if (detailError || !booking) {
+    return (
+      <CustomerLayout>
+        <div style={{ margin: 24 }}>
+          <Alert variant="error" message={detailError || 'Không tìm thấy booking.'} />
+          <Link to="/customer/bookings" className="btn-outline" style={{ marginTop: 16, display: 'inline-flex' }}>
+            ← Quay lại danh sách
+          </Link>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (NON_CANCELLABLE_STATUSES.has(booking.status)) {
+    return (
+      <CustomerLayout>
+        <div style={{ margin: 24, maxWidth: 560 }}>
+          <Alert variant="error" message="Booking không thể hủy ở trạng thái hiện tại." />
+          <Link to={`/customer/bookings/${id}`} className="btn-outline" style={{ marginTop: 16, display: 'inline-flex' }}>
+            ← Quay lại chi tiết booking
+          </Link>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  const refundPercent = preview?.refundPercent ?? 0;
+  const policyVariant = refundPercent === 0 ? 'error' : refundPercent < 100 ? 'warning' : 'info';
 
   return (
     <CustomerLayout>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
         <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
-          <Link to={`/customer/bookings/${id}`} className="text-primary" style={{ textDecoration: 'none' }}>Booking #{booking.id.substring(0, 8).toUpperCase()}</Link>
+          <Link to={`/customer/bookings/${id}`} className="text-primary" style={{ textDecoration: 'none' }}>
+            Booking #{bookingCode(booking.id)}
+          </Link>
           <span>›</span>
           <span className="text-ink" style={{ fontWeight: 600 }}>Hủy đặt phòng</span>
         </div>
@@ -858,39 +915,77 @@ export function BookingCancellationPage() {
           <div style={{ background: 'var(--surface-bone)', borderRadius: 10, padding: 16, marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span className="body-sm text-charcoal">Check-in / Check-out</span>
-              <span style={{ fontWeight: 600, fontSize: 14 }}>{booking.checkInDate} → {booking.checkOutDate}</span>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>
+                {formatDate(booking.checkInDate)} → {formatDate(booking.checkOutDate)}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span className="body-sm text-charcoal">Còn lại đến check-in</span>
+              <span style={{ fontWeight: 600 }}>{preview?.daysUntilCheckIn ?? '—'} ngày</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span className="body-sm text-charcoal">Tổng tiền</span>
-              <span style={{ fontWeight: 600 }}>₫{Number(booking.totalAmount).toLocaleString()}</span>
+              <span style={{ fontWeight: 600 }}>{formatVndList(booking.totalAmount)}</span>
             </div>
           </div>
 
-          {depositPaid && (
-            <div className="alert alert-error" style={{ marginBottom: 20 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <div>
-                <p style={{ fontWeight: 700, marginBottom: 2 }}>Tiền cọc không hoàn lại</p>
-                <p>Tiền cọc ₫{depositAmount.toLocaleString()} sẽ KHÔNG được hoàn trả theo chính sách hủy.</p>
-              </div>
+          {previewError && (
+            <div style={{ marginBottom: 16 }}>
+              <Alert variant="error" message={previewError} />
+            </div>
+          )}
+
+          {preview && (
+            <div style={{ marginBottom: 20 }}>
+              <Alert variant={policyVariant} message={preview.policyText} />
+              <p className="body-sm" style={{ marginTop: 12, fontWeight: 600 }}>
+                Số tiền hoàn dự kiến: {formatVndList(preview.refundAmount)}
+                {preview.forfeitAmount > 0 && (
+                  <span className="text-charcoal" style={{ fontWeight: 400 }}>
+                    {' '}(khấu trừ {formatVndList(preview.forfeitAmount)})
+                  </span>
+                )}
+              </p>
             </div>
           )}
 
           {cancelError && (
-            <div className="alert alert-error" style={{ marginBottom: 16 }}>{cancelError}</div>
+            <div style={{ marginBottom: 16 }}>
+              <Alert variant="error" message={cancelError} closeable onClose={() => setCancelError('')} />
+            </div>
           )}
 
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 24, cursor: 'pointer' }}>
-            <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
-              style={{ width: 16, height: 16, accentColor: 'var(--error)', cursor: 'pointer', marginTop: 2, flexShrink: 0 }} />
-            <span className="body-sm">Tôi hiểu hành động này không thể hoàn tác{depositPaid ? ' và tiền cọc sẽ không được hoàn trả' : ''}.</span>
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(e) => setConfirmed(e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: 'var(--error)', cursor: 'pointer', marginTop: 2, flexShrink: 0 }}
+            />
+            <span className="body-sm">
+              Tôi hiểu hành động này không thể hoàn tác
+              {preview && preview.refundPercent < 100
+                ? preview.refundPercent === 0
+                  ? ' và tiền cọc sẽ không được hoàn trả'
+                  : ` và chỉ được hoàn ${preview.refundPercent}% tiền cọc`
+                : ''}
+              .
+            </span>
           </label>
 
           <div style={{ display: 'flex', gap: 12 }}>
-            <button className="btn-danger" style={{ flex: 1 }} onClick={handleCancel} disabled={!confirmed || loading}>
+            <button
+              type="button"
+              className="btn-danger"
+              style={{ flex: 1 }}
+              onClick={handleCancel}
+              disabled={!confirmed || loading || !!previewError}
+            >
               {loading ? 'Đang hủy...' : 'Xác nhận hủy'}
             </button>
-            <Link to={`/customer/bookings/${id}`} className="btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>Giữ lại</Link>
+            <Link to={`/customer/bookings/${id}`} className="btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
+              Giữ lại
+            </Link>
           </div>
         </div>
       </div>

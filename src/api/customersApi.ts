@@ -39,6 +39,6 @@ export interface CustomerDashboardData {
 }
 
 export async function fetchCustomerDashboard(): Promise<CustomerDashboardData> {
-  const res = await api.get('/api/customers/dashboard');
+  const res = await api.get('/api/v1/customer/dashboard');
   return res.data.data;
 }

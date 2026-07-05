@@ -26,6 +26,7 @@ import {
   faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 import ManagerLayout from '../../layouts/ManagerLayout';
+import DataTable from '../../components/ui/DataTable';
 import { managerApi, type DashboardData } from '../../api/managerApi';
 
 // ── FontAwesome Icon components ───────────────────────────────────────────────
@@ -170,7 +171,7 @@ export default function ManagerDashboardPage() {
 
   const kpiCards: KpiCardProps[] = data ? [
     {
-      icon: <Icons.Property />, iconBg: '#fff1ee', iconColor: 'var(--primary)',
+      icon: <Icons.Property />, iconBg: 'rgba(15,118,110,0.10)', iconColor: 'var(--primary)',
       label: 'Total Properties',
       value: data.kpis.totalProperties,
       valueColor: 'var(--ink)',
@@ -212,7 +213,7 @@ export default function ManagerDashboardPage() {
       valueColor: 'var(--ink)',
     },
     {
-      icon: <Icons.Revenue />, iconBg: '#fff1ee', iconColor: 'var(--primary)',
+      icon: <Icons.Revenue />, iconBg: 'rgba(15,118,110,0.10)', iconColor: 'var(--primary)',
       label: 'Monthly Revenue',
       value: `₫${(data.kpis.monthlyRevenue / 1_000_000).toFixed(1)}M`,
       valueColor: 'var(--primary)',
@@ -229,6 +230,15 @@ export default function ManagerDashboardPage() {
         { name: 'Pending',     value: data.occupancyData.pendingDeposit,  color: '#F59E0B' },
       ].filter(d => d.value > 0)
     : [];
+
+  const recentBookingColumns = [
+    { header: 'ID', accessor: (b: any) => <span className="code-sm">{b.id.slice(0, 8)}</span> },
+    { header: 'Khách hàng', accessor: (b: any) => <span style={{ fontWeight: 600 }}>{b.customerName}</span> },
+    { header: 'Phòng', accessor: (b: any) => <span className="text-charcoal">{b.roomNumber}</span> },
+    { header: 'Check-in', accessor: (b: any) => <span className="text-charcoal">{b.checkInDate}</span> },
+    { header: 'Tổng tiền', accessor: (b: any) => <span style={{ fontWeight: 600 }}>₫{b.totalAmount.toLocaleString('vi-VN')}</span> },
+    { header: 'Trạng thái', accessor: (b: any) => <StatusBadge status={b.status} /> }
+  ];
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -301,9 +311,9 @@ export default function ManagerDashboardPage() {
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#888' }} />
                 <YAxis tickFormatter={v => `${(v / 1_000_000).toFixed(0)}M`} tick={{ fontSize: 11, fill: '#888' }} width={48} />
                 <Tooltip content={<RevenueTooltip />} />
-                <Line type="monotone" dataKey="revenue" stroke="#ea2804" strokeWidth={2.5}
-                  dot={{ r: 4, fill: '#ea2804', strokeWidth: 0 }}
-                  activeDot={{ r: 6, fill: '#ea2804' }} />
+                <Line type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={2.5}
+                  dot={{ r: 4, fill: 'var(--primary)', strokeWidth: 0 }}
+                  activeDot={{ r: 6, fill: 'var(--primary)' }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -378,7 +388,7 @@ export default function ManagerDashboardPage() {
               <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#888' }} />
               <YAxis tick={{ fontSize: 11, fill: '#888' }} width={32} />
               <Tooltip />
-              <Bar dataKey="newBookings" name="Booking mới" fill="#ea2804" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="newBookings" name="Booking mới" fill="var(--primary)" radius={[3, 3, 0, 0]} />
               <Bar dataKey="cancellations" name="Huỷ" fill="#fca5a5" radius={[3, 3, 0, 0]} />
               <Legend />
             </BarChart>
@@ -401,35 +411,13 @@ export default function ManagerDashboardPage() {
               {Array(4).fill(0).map((_, i) => <SkeletonCard key={i} height={44} />)}
             </div>
           ) : (data?.recentBookings?.length ?? 0) > 0 ? (
-            <div className="table-wrap" style={{ border: 'none', borderRadius: 0, background: 'transparent' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Khách hàng</th>
-                    <th>Phòng</th>
-                    <th>Check-in</th>
-                    <th>Tổng tiền</th>
-                    <th>Trạng thái</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data!.recentBookings.map(b => (
-                    <tr key={b.id}>
-                      <td><span className="code-sm">{b.id.slice(0, 8)}</span></td>
-                      <td style={{ fontWeight: 600 }}>{b.customerName}</td>
-                      <td className="text-charcoal">{b.roomNumber}</td>
-                      <td className="text-charcoal">{b.checkInDate}</td>
-                      <td style={{ fontWeight: 600 }}>₫{b.totalAmount.toLocaleString('vi-VN')}</td>
-                      <td><StatusBadge status={b.status} /></td>
-                      <td>
-                        <Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">Xem</Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ border: 'none', borderRadius: 0, background: 'transparent' }}>
+              <DataTable 
+                columns={recentBookingColumns}
+                data={data!.recentBookings}
+                keyExtractor={(b) => b.id}
+                actions={[{ label: 'Xem', onClick: (b: any) => window.location.href = `/manager/bookings/${b.id}` }]}
+              />
             </div>
           ) : (
             <div style={{ padding: '40px 0', textAlign: 'center', opacity: 0.45 }}>

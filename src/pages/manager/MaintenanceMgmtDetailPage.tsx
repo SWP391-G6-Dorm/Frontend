@@ -196,7 +196,7 @@ export function MaintenanceMgmtDetailPage() {
                   border: `1.5px solid ${status === s ? 'var(--primary)' : 'var(--hairline)'}`,
                   borderRadius: 10,
                   cursor: 'pointer',
-                  background: status === s ? '#fff1ee' : 'transparent',
+                  background: status === s ? 'rgba(15,118,110,0.08)' : 'transparent',
                 }}
               >
                 <input

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import { useQuery } from '@tanstack/react-query';
 import { bookingApi } from '../../api/bookingApi';
+import DataTable from '../../components/ui/DataTable';
 
 const STATUS_MAP: Record<string, { cls: string; l: string }> = {
   PENDING_DEPOSIT: { cls: 'badge-warning', l: 'Pending Deposit' },
@@ -37,6 +38,34 @@ export default function BookingMgmtListPage() {
   const list = data?.data?.content || [];
   const totalPages = data?.data?.totalPages || 0;
 
+  const columns = [
+    { header: 'ID', accessor: (b: any) => <span className="code-sm" title={b.id}>{b.id.substring(0,8)}</span> },
+    { header: 'Customer', accessor: (b: any) => (
+      <div>
+        <p style={{ fontWeight: 600, fontSize: 13, margin: 0 }}>{b.customerName}</p>
+        <p style={{ fontSize: 11, color: 'var(--ash)', margin: 0 }}>{b.customerEmail}</p>
+      </div>
+    )},
+    { header: 'Room', accessor: (b: any) => (
+      <div>
+        <p style={{ fontWeight: 600, fontSize: 13, margin: 0 }}>{b.roomNumber}</p>
+        <p style={{ fontSize: 11, color: 'var(--ash)', margin: 0 }}>{b.propertyName}</p>
+      </div>
+    )},
+    { header: 'Dates', accessor: (b: any) => (
+      <div style={{ fontSize: 12 }}>
+        <div>In: {b.checkInDate}</div>
+        <div>Out: {b.checkOutDate}</div>
+      </div>
+    )},
+    { header: 'Amount', accessor: (b: any) => <span style={{ fontWeight: 700 }}>₫{b.totalAmount.toLocaleString()}</span> },
+    { header: 'Status', accessor: (b: any) => <SBadge s={b.status} /> }
+  ];
+
+  const actions = [
+    { label: 'View', onClick: (b: any) => window.location.href = `/manager/bookings/${b.id}` }
+  ];
+
   return (
     <ManagerLayout>
       <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
@@ -65,35 +94,25 @@ export default function BookingMgmtListPage() {
           <svg style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--ash)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
       </div>
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr><th>ID</th><th>Customer</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={8} style={{ textAlign: 'center' }}>Loading...</td></tr>}
-            {isError && <tr><td colSpan={8} style={{ textAlign: 'center', color: 'red' }}>Error loading bookings</td></tr>}
-            {!isLoading && !isError && list.length === 0 && <tr><td colSpan={8} style={{ textAlign: 'center' }}>No bookings found</td></tr>}
-            {!isLoading && list.map(b => (
-              <tr key={b.id}>
-                <td><span className="code-sm">{b.id.substring(0,8)}</span></td>
-                <td><p style={{ fontWeight: 600, fontSize: 13 }}>{b.customerName}</p><p style={{ fontSize: 11, color: 'var(--ash)' }}>{b.customerEmail}</p></td>
-                <td><p style={{ fontWeight: 600, fontSize: 13 }}>{b.roomNumber}</p><p style={{ fontSize: 11, color: 'var(--ash)' }}>{b.propertyName}</p></td>
-                <td className="text-charcoal">{b.checkInDate}</td>
-                <td className="text-charcoal">{b.checkOutDate}</td>
-                <td style={{ fontWeight: 700 }}>₫{b.totalAmount.toLocaleString()}</td>
-                <td><SBadge s={b.status} /></td>
-                <td><Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">View</Link></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ marginBottom: 20 }}>
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>Loading bookings...</div>
+        ) : isError ? (
+          <div style={{ textAlign: 'center', padding: 48, color: 'var(--error)' }}>Error loading bookings</div>
+        ) : (
+          <DataTable 
+            columns={columns}
+            data={list}
+            keyExtractor={(b) => b.id}
+            actions={actions}
+          />
+        )}
       </div>
       
       {totalPages > 1 && (
-        <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', alignItems: 'center' }}>
           <button className="btn-outline btn-sm" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>Prev</button>
-          <span style={{ padding: '4px 10px' }}>Page {page + 1} of {totalPages}</span>
+          <span style={{ fontSize: 13, color: 'var(--charcoal)' }}>Page {page + 1} of {totalPages}</span>
           <button className="btn-outline btn-sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next</button>
         </div>
       )}
