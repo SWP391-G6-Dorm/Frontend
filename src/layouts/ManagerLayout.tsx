@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
@@ -144,8 +144,8 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
                     style={{
                       textDecoration: 'none',
                       fontSize: 13, fontWeight: 500,
-                      color: active ? 'var(--primary)' : 'rgba(252,252,252,0.60)',
-                      background: active ? 'rgba(234,40,4,0.12)' : 'transparent',
+                      color: active ? 'var(--primary-light)' : 'rgba(255,255,255,0.60)',
+                      background: active ? 'rgba(15,118,110,0.18)' : 'transparent',
                     }}
                     onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
                     onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
@@ -201,7 +201,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
         <header className="sticky top-0 z-40 flex items-center justify-between px-5 lg:px-8"
-          style={{ height: 60, background: 'rgba(249,247,243,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--hairline)' }}>
+          style={{ height: 60, background: 'rgba(248,250,252,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--hairline)' }}>
           <div className="flex items-center gap-4">
             <button className="lg:hidden" onClick={() => setMobileOpen(true)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--ink)' }}>

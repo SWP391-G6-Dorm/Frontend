@@ -51,5 +51,10 @@ export const paymentApi = {
   verifyPayment: async (id: string, status: 'PAID' | 'FAILED', note: string) => {
     const res = await api.post(`/api/manager/payments/${id}/verify`, { status, note });
     return res.data;
+  },
+
+  createVnpayUrl: async (bookingId: string, type: 'DEPOSIT' | 'REMAINING_BALANCE'): Promise<{ success: boolean; data: { paymentUrl: string } }> => {
+    const res = await api.post(`/api/payments/vnpay/create-url?bookingId=${bookingId}&type=${type}`);
+    return res.data;
   }
 };

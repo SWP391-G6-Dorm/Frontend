@@ -9,7 +9,7 @@ interface ModalProps {
   actions?: {
     label: string;
     onClick: () => void;
-    variant?: 'primary' | 'secondary' | 'tertiary-text';
+    variant?: 'primary' | 'secondary' | 'ghost';
   }[];
   size?: 'sm' | 'md' | 'lg';
 }

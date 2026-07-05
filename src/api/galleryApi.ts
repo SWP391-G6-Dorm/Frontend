@@ -31,7 +31,6 @@ export async function uploadRoomImages(
     formData,
     {
       params: { setPrimary },
-      headers: { 'Content-Type': 'multipart/form-data' },
     },
   );
   return (res.data.data ?? []) as GalleryImage[];

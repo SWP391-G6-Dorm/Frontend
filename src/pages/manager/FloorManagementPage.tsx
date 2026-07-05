@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import { propertyApi, PropertySummary } from '../../api/propertyApi';
 import { floorApi, FloorSummary, CreateFloorPayload, UpdateFloorPayload } from '../../api/floorApi';
+import DataTable from '../../components/ui/DataTable';
 
 // ── Floor Modal (Add / Edit) ──────────────────────────────────────────────────
 
@@ -345,6 +346,36 @@ export default function FloorManagementPage() {
 
   const currentProperty = properties.find(p => p.id === selectedPropId);
 
+  const columns = [
+    { header: 'Floor', accessor: (floor: any) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 36, height: 36, background: 'var(--surface-bone)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: 'var(--ink)', flexShrink: 0 }}>
+          F{floor.floorNumber}
+        </div>
+        <span style={{ fontWeight: 700 }}>Floor {floor.floorNumber}</span>
+      </div>
+    )},
+    { header: 'Description', accessor: (floor: any) => (
+      <span className="text-charcoal">
+        {floor.description || <span style={{ color: 'var(--stone)', fontStyle: 'italic' }}>No description</span>}
+      </span>
+    )},
+    { header: 'Rooms', accessor: (floor: any) => (
+      floor.roomCount > 0 ? (
+        <Link to={`/manager/rooms?floorId=${floor.id}`} style={{ textDecoration: 'none' }}>
+          <span className="badge badge-neutral" style={{ cursor: 'pointer' }}>{floor.roomCount} room{floor.roomCount !== 1 ? 's' : ''}</span>
+        </Link>
+      ) : <span className="badge badge-neutral">0 rooms</span>
+    )},
+    { header: 'Actions', accessor: (floor: any) => (
+      <div style={{ display: 'flex', gap: 6 }}>
+        <Link to={`/manager/rooms/add?floorId=${floor.id}&propertyId=${selectedPropId}`} className="btn-ghost btn-sm">+ Room</Link>
+        <button className="btn-ghost btn-sm" onClick={() => setModal({ open: true, mode: 'edit', floor })}>Edit</button>
+        <button className="btn-ghost btn-sm" style={{ color: 'var(--error)' }} onClick={() => { setDeleteTarget(floor); setDeleteError(''); }}>Delete</button>
+      </div>
+    )}
+  ];
+
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <ManagerLayout>
@@ -536,146 +567,39 @@ export default function FloorManagementPage() {
             Retry
           </button>
         </div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Floor</th>
-                <th>Description</th>
-                <th>Rooms</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-
-            {floorsLoading ? (
-              <TableSkeleton />
-            ) : floors.length === 0 ? (
-              <tbody>
-                <tr>
-                  <td colSpan={4}>
-                    <div
-                      style={{
-                        padding: '40px 20px',
-                        textAlign: 'center',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 10,
-                      }}
-                    >
-                      <span style={{ fontSize: 36 }}>🏗</span>
-                      <p className="heading-sm" style={{ color: 'var(--charcoal)' }}>
-                        No floors yet
-                      </p>
-                      <p className="body-sm text-mute" style={{ marginBottom: 8 }}>
-                        This property has no floors. Add the first floor to get started.
-                      </p>
-                      <button
-                        className="btn-primary btn-sm"
-                        onClick={() => setModal({ open: true, mode: 'add' })}
-                      >
-                        + Add First Floor
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            ) : (
-              <tbody>
-                {floors
-                  .slice()
-                  .sort((a, b) => a.floorNumber - b.floorNumber)
-                  .map(floor => (
-                    <tr key={floor.id}>
-                      {/* Floor number */}
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              background: 'var(--surface-bone)',
-                              borderRadius: 8,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 700,
-                              fontSize: 13,
-                              color: 'var(--ink)',
-                              flexShrink: 0,
-                            }}
-                          >
-                            F{floor.floorNumber}
-                          </div>
-                          <span style={{ fontWeight: 700 }}>Floor {floor.floorNumber}</span>
-                        </div>
-                      </td>
-
-                      {/* Description */}
-                      <td className="text-charcoal">
-                        {floor.description || (
-                          <span style={{ color: 'var(--stone)', fontStyle: 'italic' }}>
-                            No description
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Room count */}
-                      <td>
-                        {floor.roomCount > 0 ? (
-                          <Link
-                            to={`/manager/rooms?floorId=${floor.id}`}
-                            style={{ textDecoration: 'none' }}
-                          >
-                            <span className="badge badge-neutral" style={{ cursor: 'pointer' }}>
-                              {floor.roomCount} room{floor.roomCount !== 1 ? 's' : ''}
-                            </span>
-                          </Link>
-                        ) : (
-                          <span className="badge badge-neutral">0 rooms</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td>
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: 6,
-                            justifyContent: 'flex-end',
-                          }}
-                        >
-                          <Link
-                            to={`/manager/rooms/add?floorId=${floor.id}&propertyId=${selectedPropId}`}
-                            className="btn-ghost btn-sm"
-                          >
-                            + Room
-                          </Link>
-                          <button
-                            className="btn-ghost btn-sm"
-                            onClick={() => setModal({ open: true, mode: 'edit', floor })}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn-ghost btn-sm"
-                            style={{ color: 'var(--error)' }}
-                            onClick={() => {
-                              setDeleteTarget(floor);
-                              setDeleteError('');
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            )}
-          </table>
+      ) : floorsLoading ? (
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading floors...</div>
+      ) : floors.length === 0 ? (
+        <div
+          style={{
+            padding: '40px 20px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 36 }}>🏗</span>
+          <p className="heading-sm" style={{ color: 'var(--charcoal)' }}>
+            No floors yet
+          </p>
+          <p className="body-sm text-mute" style={{ marginBottom: 8 }}>
+            This property has no floors. Add the first floor to get started.
+          </p>
+          <button
+            className="btn-primary btn-sm"
+            onClick={() => setModal({ open: true, mode: 'add' })}
+          >
+            + Add First Floor
+          </button>
         </div>
+      ) : (
+        <DataTable 
+          columns={columns}
+          data={floors.slice().sort((a, b) => a.floorNumber - b.floorNumber)}
+          keyExtractor={(f) => f.id}
+        />
       )}
 
       {/* ── Quick link to Structure Tree ── */}

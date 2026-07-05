@@ -5,6 +5,7 @@ import ManagerLayout from '../../layouts/ManagerLayout';
 import { Badge } from './_sharedAdminData';
 import { useQuery } from '@tanstack/react-query';
 import { complaintsApi } from '../../api/complaintsApi';
+import DataTable from '../../components/ui/DataTable';
 
 export function ComplaintListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -74,6 +75,15 @@ export function ComplaintListPage() {
 
   const list = data?.data?.content || [];
 
+  const columns = [
+    { header: 'Complaint ID', accessor: (c: any) => <span className="code-sm">#{c.id.substring(0, 8).toUpperCase()}</span> },
+    { header: 'Customer', accessor: (c: any) => <span style={{ fontWeight: 600 }}>{c.customerName}</span> },
+    { header: 'Subject', accessor: (c: any) => <span className="text-charcoal">{c.subject}</span> },
+    { header: 'Status', accessor: (c: any) => <Badge s={c.status} /> },
+    { header: 'Submitted', accessor: (c: any) => <span className="text-charcoal">{new Date(c.createdAt).toLocaleDateString('en-US')}</span> },
+    { header: 'Actions', accessor: (c: any) => <Link to={`/manager/complaints/${c.id}`} className="btn-ghost btn-sm">View</Link> }
+  ];
+
   return (
     <ManagerLayout>
       <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
@@ -105,32 +115,18 @@ export function ComplaintListPage() {
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr><th>Complaint ID</th><th>Customer</th><th>Subject</th><th>Status</th><th>Submitted</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20 }}>Loading...</td></tr>
-            ) : isError ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20, color: 'var(--error)' }}>Error loading data</td></tr>
-            ) : list.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20 }}>No complaints found</td></tr>
-            ) : (
-              list.map(c => (
-                <tr key={c.id}>
-                  <td><span className="code-sm">#{c.id.substring(0, 8).toUpperCase()}</span></td>
-                  <td style={{ fontWeight: 600 }}>{c.customerName}</td>
-                  <td className="text-charcoal">{c.subject}</td>
-                  <td><Badge s={c.status} /></td>
-                  <td className="text-charcoal">{new Date(c.createdAt).toLocaleDateString('en-US')}</td>
-                  <td><Link to={`/manager/complaints/${c.id}`} className="btn-ghost btn-sm">View</Link></td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div style={{ marginBottom: 20 }}>
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>Loading...</div>
+        ) : isError ? (
+          <div style={{ textAlign: 'center', padding: 48, color: 'var(--error)' }}>Error loading data</div>
+        ) : (
+          <DataTable 
+            columns={columns}
+            data={list}
+            keyExtractor={(c) => c.id}
+          />
+        )}
       </div>
 
       {data?.data && data.data.totalPages > 1 && (

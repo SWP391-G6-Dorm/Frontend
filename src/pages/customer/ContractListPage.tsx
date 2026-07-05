@@ -50,17 +50,20 @@ function ContractCard({ contract }: { contract: ContractSummaryResponse }) {
     )
   );
 
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   const handleDownload = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (downloading) return;
     setDownloading(true);
+    setDownloadError(null);
     try {
       await contractApi.downloadContractPdf(
         contract.id,
         `contract-${contract.id.slice(0, 8)}.pdf`
       );
     } catch {
-      alert('Failed to download PDF. Please try again.');
+      setDownloadError('Failed to download PDF. Please try again.');
     } finally {
       setDownloading(false);
     }
@@ -149,6 +152,9 @@ function ContractCard({ contract }: { contract: ContractSummaryResponse }) {
               )}
             </button>
           </div>
+          {downloadError && (
+            <p className="form-error" style={{ marginTop: 6, textAlign: 'right' }}>{downloadError}</p>
+          )}
         </div>
 
       </div>

@@ -1,13 +1,15 @@
 // PropertyListPage.tsx — SCR-33: Property List
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import { propertyApi, PropertySummary } from '../../api/propertyApi';
 import { StatusBadge, formatDate } from './_propertyShared';
+import { DataTable } from '../../components/ui';
 
 const PAGE_SIZE = 10;
 
 export default function PropertyListPage() {
+  const navigate = useNavigate();
   const [search, setSearch]         = useState('');
   const [statusFilter, setStatus]   = useState('');
   const [page, setPage]             = useState(0);
@@ -63,6 +65,23 @@ export default function PropertyListPage() {
     }
   }
 
+  const columns = [
+    { header: '#', accessor: (p: PropertySummary) => <span style={{ color: 'var(--ash)', fontSize: 13 }}>-</span> },
+    { header: 'Property Name', accessor: (p: PropertySummary) => <span className="font-semibold">{p.name}</span> },
+    { header: 'Address', accessor: (p: PropertySummary) => <span className="text-charcoal" style={{ maxWidth: 260, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {p.address}</span> },
+    { header: 'Floors', accessor: (p: PropertySummary) => <span className="font-semibold">{p.totalFloors}</span> },
+    { header: 'Rooms', accessor: (p: PropertySummary) => <span className="font-semibold">{p.totalRooms}</span> },
+    { header: 'Available', accessor: (p: PropertySummary) => <span style={{ fontWeight: 600, color: 'var(--success)' }}>{p.availableRooms}</span> },
+    { header: 'Status', accessor: (p: PropertySummary) => <StatusBadge status={p.status} /> },
+    { header: 'Created', accessor: (p: PropertySummary) => <span className="text-charcoal" style={{ fontSize: 13 }}>{formatDate(p.createdAt)}</span> }
+  ];
+
+  const actions = [
+    { label: 'View', onClick: (p: PropertySummary) => navigate(`/manager/properties/${p.id}`) },
+    { label: 'Edit', onClick: (p: PropertySummary) => navigate(`/manager/properties/${p.id}/edit`) },
+    { label: 'Delete', onClick: (p: PropertySummary) => setDeleteConfirm(p) }
+  ];
+
   return (
     <ManagerLayout>
       {/* ── Page Header ── */}
@@ -74,7 +93,7 @@ export default function PropertyListPage() {
           </p>
         </div>
         <Link to="/manager/properties/add" className="btn-primary btn-sm" id="btn-add-property">
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           Add Property
@@ -123,104 +142,17 @@ export default function PropertyListPage() {
       </div>
 
       {/* ── Table ── */}
-      <div className="table-wrap" style={{ marginBottom: 20 }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}>#</th>
-              <th>Property Name</th>
-              <th>Address</th>
-              <th style={{ textAlign: 'center' }}>Floors</th>
-              <th style={{ textAlign: 'center' }}>Rooms</th>
-              <th style={{ textAlign: 'center' }}>Available</th>
-              <th style={{ textAlign: 'center' }}>Status</th>
-              <th>Created</th>
-              <th style={{ textAlign: 'center' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: 9 }).map((_, j) => (
-                    <td key={j}><div className="skeleton" style={{ height: 16, borderRadius: 8 }} /></td>
-                  ))}
-                </tr>
-              ))
-            ) : properties.length === 0 ? (
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '48px 0' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--ash)' }}>
-                    <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                      <polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
-                    <p className="body-sm">No properties found.</p>
-                    {(search || statusFilter) && (
-                      <button className="btn-ghost btn-sm" onClick={() => { setSearch(''); setStatus(''); }}>
-                        Clear filters
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              properties.map((p, idx) => (
-                <tr key={p.id} className="animate-fade-in">
-                  <td style={{ color: 'var(--ash)', fontSize: 13 }}>{page * PAGE_SIZE + idx + 1}</td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{p.name}</div>
-                  </td>
-                  <td>
-                    <div style={{ color: 'var(--charcoal)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      📍 {p.address}
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'center', fontWeight: 600 }}>{p.totalFloors}</td>
-                  <td style={{ textAlign: 'center', fontWeight: 600 }}>{p.totalRooms}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>{p.availableRooms}</span>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <StatusBadge status={p.status} />
-                  </td>
-                  <td style={{ color: 'var(--charcoal)', fontSize: 13 }}>{formatDate(p.createdAt)}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                      <Link to={`/manager/properties/${p.id}`} className="btn-ghost btn-sm"
-                        id={`btn-view-${p.id}`} style={{ padding: '0 10px' }}>
-                        <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                          <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                        View
-                      </Link>
-                      <Link to={`/manager/properties/${p.id}/edit`} className="btn-ghost btn-sm"
-                        id={`btn-edit-${p.id}`} style={{ padding: '0 10px' }}>
-                        <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                        Edit
-                      </Link>
-                      <button className="btn-ghost btn-sm" id={`btn-delete-${p.id}`}
-                        onClick={() => setDeleteConfirm(p)}
-                        style={{ padding: '0 10px', color: 'var(--error)' }}>
-                        <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <polyline points="3 6 5 6 21 6"/>
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                          <path d="M10 11v6"/><path d="M14 11v6"/>
-                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                        </svg>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div style={{ marginBottom: 20 }}>
+        {loading && properties.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>Loading...</div>
+        ) : (
+          <DataTable 
+            columns={columns}
+            data={properties}
+            keyExtractor={(p) => p.id}
+            actions={actions}
+          />
+        )}
       </div>
 
       {/* ── Pagination ── */}
