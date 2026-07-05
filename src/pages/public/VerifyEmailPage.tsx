@@ -124,7 +124,7 @@ export default function VerifyEmailPage() {
 
       <div className="card-lg animate-fade-up" style={{ width: '100%', maxWidth: 440, padding: 40, textAlign: 'center' }}>
         {/* Icon */}
-        <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fff1ee', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(15,118,110,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
           </svg>
@@ -171,7 +171,7 @@ export default function VerifyEmailPage() {
                     fontWeight: 500,
                     textAlign: 'center',
                     outline: 'none',
-                    background: val ? '#fff1ee' : 'var(--surface-card)',
+                    background: val ? 'rgba(15,118,110,0.08)' : 'var(--surface-card)',
                     color: 'var(--ink)',
                     transition: 'all 0.15s',
                   }}

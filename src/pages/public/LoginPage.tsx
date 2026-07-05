@@ -6,7 +6,6 @@ import { authApi } from '../../api/authApi';
 interface LoginForm {
   email:    string;
   password: string;
-  remember: boolean;
 }
 
 export default function LoginPage() {
@@ -14,7 +13,7 @@ export default function LoginPage() {
   const location  = useLocation();
   const { login } = useAuthStore();
 
-  const [form, setForm]           = useState<LoginForm>({ email: '', password: '', remember: false });
+  const [form, setForm]           = useState<LoginForm>({ email: '', password: '' });
   const [showPw, setShowPw]       = useState(false);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState<string | null>(null);
@@ -47,7 +46,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Lưu thông tin vào store (và localStorage)
+      // Lưu thông tin vào store (và sessionStorage)
       login(res.data);
 
       // Redirect theo role
@@ -55,7 +54,11 @@ export default function LoginPage() {
       if (redirectPath) {
         navigate(redirectPath, { replace: true });
       } else if (role === 'MANAGER') {
-        navigate('/manager/dashboard', { replace: true });
+        navigate('/manager/dashboard',  { replace: true });
+      } else if (role === 'ADMIN') {
+        navigate('/admin/dashboard',    { replace: true });
+      } else if (role === 'EMPLOYEE') {
+        navigate('/employee/dashboard', { replace: true });
       } else {
         navigate('/customer/dashboard', { replace: true });
       }
@@ -150,18 +153,8 @@ export default function LoginPage() {
             {fieldErrors.password && <p className="form-error">{fieldErrors.password}</p>}
           </div>
 
-          {/* Remember + Forgot */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                id="login-remember"
-                checked={form.remember}
-                onChange={e => setForm(p => ({ ...p, remember: e.target.checked }))}
-                style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
-              />
-              <span className="body-sm">Remember me</span>
-            </label>
+          {/* Forgot Password */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 24 }}>
             <Link to="/forgot-password" className="body-sm text-primary" style={{ textDecoration: 'none', fontWeight: 600 }}>
               Forgot password?
             </Link>

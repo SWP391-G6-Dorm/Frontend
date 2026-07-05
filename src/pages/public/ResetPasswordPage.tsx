@@ -5,7 +5,7 @@ import { authApi } from '../../api/authApi';
 function PasswordStrength({ password }: { password: string }) {
   const score = [/.{8,}/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter(r => r.test(password)).length;
   const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-  const colors = ['', '#dc2626', '#f59e0b', '#2563eb', '#2b9a66'];
+  const colors = ['', '#dc2626', '#f59e0b', '#0D9488', '#2b9a66'];
   if (!password) return null;
   return (
     <div style={{ marginTop: 6 }}>
@@ -79,7 +79,7 @@ export default function ResetPasswordPage() {
       </Link>
 
       <div className="card-lg animate-fade-up" style={{ width: '100%', maxWidth: 440, padding: 40 }}>
-        <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#fff1ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+        <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(15,118,110,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>

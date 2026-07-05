@@ -5,6 +5,7 @@ import { Badge } from './_sharedAdminData';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../../api/usersApi';
 import BookingStatusBadge from '../../components/booking/BookingStatusBadge';
+import DataTable from '../../components/ui/DataTable';
 
 export function CustomerDetailPage() {
   const { id } = useParams();
@@ -41,6 +42,20 @@ export function CustomerDetailPage() {
   const formatVnd = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
+
+  const columns = [
+    { header: 'Booking ID', accessor: (b: any) => <span className="code-sm">#{formatBookingId(b.id)}</span> },
+    { header: 'Property / Room', accessor: (b: any) => (
+      <div>
+        <p style={{ fontWeight: 600, fontSize: 13, margin: 0 }}>{b.roomNumber}</p>
+        <p style={{ fontSize: 11, color: 'var(--ash)', margin: 0 }}>{b.propertyName}</p>
+      </div>
+    )},
+    { header: 'Dates', accessor: (b: any) => <span className="text-charcoal" style={{ fontSize: 13 }}>{b.checkInDate} → {b.checkOutDate}</span> },
+    { header: 'Total Amount', accessor: (b: any) => <span style={{ fontWeight: 600 }}>{formatVnd(b.totalAmount)}</span> },
+    { header: 'Status', accessor: (b: any) => <BookingStatusBadge status={b.status} /> },
+    { header: 'Action', accessor: (b: any) => <Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">Details</Link> }
+  ];
 
   return (
     <ManagerLayout>
@@ -105,47 +120,11 @@ export function CustomerDetailPage() {
             <p className="body-md">This customer has not made any bookings yet.</p>
           </div>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Booking ID</th>
-                  <th>Property / Room</th>
-                  <th>Dates</th>
-                  <th>Total Amount</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBookings.map((b: any) => (
-                  <tr key={b.id}>
-                    <td>
-                      <span className="code-sm">#{formatBookingId(b.id)}</span>
-                    </td>
-                    <td>
-                      <p style={{ fontWeight: 600, fontSize: 13 }}>{b.roomNumber}</p>
-                      <p style={{ fontSize: 11, color: 'var(--ash)' }}>{b.propertyName}</p>
-                    </td>
-                    <td className="text-charcoal" style={{ fontSize: 13 }}>
-                      {b.checkInDate} → {b.checkOutDate}
-                    </td>
-                    <td style={{ fontWeight: 600 }}>
-                      {formatVnd(b.totalAmount)}
-                    </td>
-                    <td>
-                      <BookingStatusBadge status={b.status} />
-                    </td>
-                    <td>
-                      <Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">
-                        Details
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable 
+            columns={columns}
+            data={recentBookings}
+            keyExtractor={(b) => b.id}
+          />
         )}
       </div>
     </ManagerLayout>

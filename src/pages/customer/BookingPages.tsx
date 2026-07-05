@@ -347,7 +347,7 @@ export function BookingFormPage() {
                     <span style={{ fontWeight: 700 }}>Tổng cộng</span>
                     <span className="heading-sm" style={{ fontWeight: 800, color: 'var(--ink)' }}>{formatVnd(totalAmount)}</span>
                   </div>
-                  <div style={{ background: '#fff1ee', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
+                  <div style={{ background: 'rgba(15,118,110,0.08)', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span className="body-sm" style={{ color: 'var(--primary)', fontWeight: 600 }}>Cọc (40%)</span>
                       <span style={{ fontWeight: 800, color: 'var(--primary)' }}>{formatVnd(depositAmount)}</span>

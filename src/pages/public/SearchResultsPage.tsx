@@ -294,7 +294,7 @@ export function SearchResultsContent({ variant = 'search' }: { variant?: SearchR
                 padding: '16px 20px',
                 marginBottom: 16,
                 border: '1px solid var(--error)',
-                background: 'rgba(234,40,4,0.06)',
+                background: 'rgba(239,68,68,0.06)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',

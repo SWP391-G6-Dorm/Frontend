@@ -61,7 +61,7 @@ function CalendarMonth({
     if (isOccupied) return { background: '#fee2e2', color: '#dc2626', cursor: 'not-allowed' };
     if (isPending)  return { background: '#fef3c7', color: '#d97706', cursor: 'not-allowed' };
     if (isStart || isEnd) return { background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, borderRadius: 8 };
-    if (inRange)    return { background: '#ffe8e4', color: 'var(--primary)', cursor: 'pointer' };
+    if (inRange)    return { background: 'rgba(15,118,110,0.12)', color: 'var(--primary)', cursor: 'pointer' };
     return { background: '#dcfce7', color: '#2b9a66', cursor: 'pointer' };
   }
 

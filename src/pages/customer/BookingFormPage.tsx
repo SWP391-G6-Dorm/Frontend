@@ -129,7 +129,7 @@ export default function BookingFormPage() {
                   <span style={{ fontWeight: 700 }}>Total</span>
                   <span style={{ fontWeight: 800, color: 'var(--ink)' }}>₫{totalAmount.toLocaleString()}</span>
                 </div>
-                <div style={{ background: '#fff1ee', borderRadius: 8, padding: '10px 12px', marginTop: 10 }}>
+                <div style={{ background: 'rgba(15,118,110,0.08)', borderRadius: 8, padding: '10px 12px', marginTop: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span className="body-sm" style={{ color: 'var(--primary)', fontWeight: 600 }}>Deposit required (40%)</span>
                     <span style={{ fontWeight: 800, color: 'var(--primary)' }}>₫{depositAmount.toLocaleString()}</span>

@@ -294,7 +294,7 @@ export function CreateMaintenancePage() {
                 {photoPreviews.map((preview, idx) => (
                   <div key={idx} style={{ position: 'relative', width: 70, height: 70 }}>
                     <img src={preview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hairline)' }} />
-                    <button type="button" onClick={() => removePhoto(idx)} style={{ position: 'absolute', top: -6, right: -6, background: '#ea2804', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 'bold' }}>×</button>
+                    <button type="button" onClick={() => removePhoto(idx)} style={{ position: 'absolute', top: -6, right: -6, background: 'var(--error)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 'bold' }}>×</button>
                   </div>
                 ))}
               </div>
@@ -552,7 +552,7 @@ export function MaintenanceDetailPage() {
             {ticket.status === 'OPEN' && (
               <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                 <button className="btn-outline btn-sm" onClick={() => { setIsEditing(true); setEditExistingPhotos(ticket.photoUrls || []); setEditNewPhotos([]); }}>✏️ Edit Request</button>
-                <button className="btn-outline btn-sm" style={{ borderColor: '#ea2804', color: '#ea2804' }} onClick={() => setShowDeleteConfirm(true)}>🗑️ Delete Request</button>
+                <button className="btn-outline btn-sm" style={{ borderColor: 'var(--error)', color: 'var(--error)' }} onClick={() => setShowDeleteConfirm(true)}>🗑️ Delete Request</button>
               </div>
             )}
 
@@ -561,7 +561,7 @@ export function MaintenanceDetailPage() {
                 <h4 style={{ fontWeight: 700, marginBottom: 8, color: '#991b1b' }}>Are you sure you want to delete this request?</h4>
                 <p className="body-sm text-charcoal" style={{ marginBottom: 16 }}>This action cannot be undone and will permanently remove this maintenance ticket.</p>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn-primary" style={{ background: '#ea2804', border: 'none' }} onClick={handleDelete} disabled={deleteLoading}>
+                  <button className="btn-danger" onClick={handleDelete} disabled={deleteLoading}>
                     {deleteLoading ? 'Deleting...' : 'Yes, Delete'}
                   </button>
                   <button className="btn-ghost" onClick={() => setShowDeleteConfirm(false)} disabled={deleteLoading} style={{ background: 'var(--surface-bone)' }}>
