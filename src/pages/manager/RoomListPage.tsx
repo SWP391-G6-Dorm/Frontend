@@ -9,6 +9,7 @@ import {
 } from '../../api/roomsApi';
 import { propertyApi, PropertySummary } from '../../api/propertyApi';
 import { floorApi, FloorSummary } from '../../api/floorApi';
+import { DataTable, StatusBadge as UIStatusBadge } from '../../components/ui';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -302,6 +303,32 @@ export default function RoomListPage() {
     acc[r.status] = (acc[r.status] ?? 0) + 1; return acc;
   }, {});
 
+  const columns = [
+    { header: 'Room', accessor: (r: RoomListItem) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {r.primaryImageUrl ? (
+          <img src={r.primaryImageUrl} alt={r.roomNumber} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        ) : (
+          <div style={{ width: 36, height: 36, borderRadius: 6, background: 'var(--surface-bone)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🛏</div>
+        )}
+        <span style={{ fontWeight: 700 }}>{r.roomNumber}</span>
+      </div>
+    ) },
+    { header: 'Type', accessor: (r: RoomListItem) => <span className="text-charcoal">{r.roomType || '—'}</span> },
+    { header: 'Property', accessor: (r: RoomListItem) => <span style={{ maxWidth: 160, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>{r.propertyName}</span> },
+    { header: 'Floor', accessor: (r: RoomListItem) => r.floorNumber != null ? <span className="badge badge-neutral" style={{ fontSize: 11 }}>F{r.floorNumber}</span> : '—' },
+    { header: 'Price / night', accessor: (r: RoomListItem) => <span style={{ fontWeight: 600 }}>{r.pricePerNight != null ? `₫${r.pricePerNight.toLocaleString('vi-VN')}` : '—'}</span> },
+    { header: 'Cap.', accessor: (r: RoomListItem) => <span className="badge badge-neutral">{r.capacity ?? '—'}</span> },
+    { header: 'Status', accessor: (r: RoomListItem) => <UIStatusBadge status={r.status} variant={r.status === 'AVAILABLE' ? 'success' : r.status === 'OCCUPIED' ? 'danger' : r.status === 'MAINTENANCE' ? 'neutral' : 'warning'} /> }
+  ];
+
+  const actions = [
+    { label: 'View', onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}`) },
+    { label: 'Edit', onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/edit`) },
+    { label: 'Status', onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/status`) },
+    { label: 'Delete', onClick: (r: RoomListItem) => { setDeleteTarget(r); setDeleteError(''); } }
+  ];
+
   return (
     <ManagerLayout>
       {/* Header */}
@@ -419,88 +446,17 @@ export default function RoomListPage() {
       )}
 
       {/* Table */}
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Room</th>
-              <th>Type</th>
-              <th>Property</th>
-              <th>Floor</th>
-              <th style={{ textAlign: 'right' }}>Price / night</th>
-              <th style={{ textAlign: 'center' }}>Cap.</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-
-          {loading ? <TableSkeleton /> : rooms.length === 0 ? (
-            <tbody>
-              <tr>
-                <td colSpan={8}>
-                  <div style={{ padding: '48px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 40 }}>🛏</span>
-                    <p className="heading-sm" style={{ color: 'var(--charcoal)' }}>
-                      {hasFilters ? 'No rooms match your filters' : 'No rooms yet'}
-                    </p>
-                    {hasFilters
-                      ? <button className="btn-ghost btn-sm" onClick={handleClearFilters}>Clear filters</button>
-                      : <Link to="/manager/rooms/add" className="btn-primary btn-sm">+ Add First Room</Link>
-                    }
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          ) : (
-            <tbody>
-              {rooms.map(room => (
-                <tr key={room.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      {room.primaryImageUrl ? (
-                        <img src={room.primaryImageUrl} alt={room.roomNumber}
-                          style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
-                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      ) : (
-                        <div style={{ width: 36, height: 36, borderRadius: 6, background: 'var(--surface-bone)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🛏</div>
-                      )}
-                      <span style={{ fontWeight: 700 }}>{room.roomNumber}</span>
-                    </div>
-                  </td>
-                  <td className="text-charcoal">{room.roomType || '—'}</td>
-                  <td>
-                    <span style={{ maxWidth: 160, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>
-                      {room.propertyName}
-                    </span>
-                  </td>
-                  <td>
-                    {room.floorNumber != null
-                      ? <span className="badge badge-neutral" style={{ fontSize: 11 }}>F{room.floorNumber}</span>
-                      : '—'}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                    {room.pricePerNight != null ? `₫${room.pricePerNight.toLocaleString('vi-VN')}` : '—'}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span className="badge badge-neutral">{room.capacity ?? '—'}</span>
-                  </td>
-                  <td><StatusBadge status={room.status} /></td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn-ghost btn-sm" onClick={() => navigate(`/manager/rooms/${room.id}`)}>View</button>
-                      <button className="btn-ghost btn-sm" onClick={() => navigate(`/manager/rooms/${room.id}/edit`)}>Edit</button>
-                      <button className="btn-ghost btn-sm" onClick={() => navigate(`/manager/rooms/${room.id}/status`)} title="Update Status">Status</button>
-                      <button className="btn-ghost btn-sm" style={{ color: 'var(--error)' }}
-                        onClick={() => { setDeleteTarget(room); setDeleteError(''); }}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          )}
-        </table>
+      <div style={{ marginBottom: 20 }}>
+        {loading && rooms.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>Loading...</div>
+        ) : (
+          <DataTable 
+            columns={columns}
+            data={rooms}
+            keyExtractor={(r) => r.id}
+            actions={actions}
+          />
+        )}
       </div>
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

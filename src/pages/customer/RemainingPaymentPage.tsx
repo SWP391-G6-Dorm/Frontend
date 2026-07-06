@@ -103,7 +103,7 @@ export default function RemainingPaymentPage() {
               <label className="form-label">Payment Method</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {PAYMENT_METHODS.map(m => (
-                  <label key={m.value} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: `1.5px solid ${method === m.value ? 'var(--primary)' : 'var(--hairline)'}`, borderRadius: 10, cursor: 'pointer', background: method === m.value ? '#fff1ee' : 'var(--surface-card)', transition: 'all 0.15s' }}>
+                  <label key={m.value} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: `1.5px solid ${method === m.value ? 'var(--primary)' : 'var(--hairline)'}`, borderRadius: 10, cursor: 'pointer', background: method === m.value ? 'rgba(15,118,110,0.08)' : 'var(--surface-card)', transition: 'all 0.15s' }}>
                     <input type="radio" value={m.value} checked={method === m.value} onChange={() => setMethod(m.value)} style={{ accentColor: 'var(--primary)' }} />
                     <span style={{ fontSize: 20 }}>{m.icon}</span>
                     <div><p style={{ fontWeight: 600, fontSize: 14 }}>{m.label}</p><p className="body-sm text-charcoal">{m.desc}</p></div>

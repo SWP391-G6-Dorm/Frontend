@@ -1,6 +1,11 @@
 import { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'tertiary-text' | 'pill-rausch';
+// Button variants aligned with component-library.md
+// button-primary: bg-primary-base (#0F766E), text-inverted, radius-md
+// button-secondary: bg-transparent, border border-base, text-primary
+// button-ghost: no bg, no border
+// button-success / button-danger: semantic actions
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'success' | 'danger';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -10,41 +15,48 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-const variantClasses = {
+const variantClasses: Record<ButtonVariant, string> = {
+  // button-primary: teal bg, white text, radius-md, no border
   primary: `
-    bg-[#ff385c] text-white
-    hover:bg-[#e00b41]
-    disabled:bg-[#ffd1da] disabled:text-white disabled:cursor-not-allowed
-    text-[16px] font-medium leading-[1.25]
-    rounded-[8px] border-none
+    bg-[#0F766E] text-white border-none
+    hover:bg-[#0D9488] hover:-translate-y-px
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
+    focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#CCFBF1]
   `,
+  // button-secondary: transparent bg, border-base, text-primary
   secondary: `
-    bg-white text-[#222222] border border-[#222222]
-    hover:bg-[#f7f7f7]
-    disabled:border-[#dddddd] disabled:text-[#dddddd] disabled:bg-white disabled:cursor-not-allowed
-    text-[16px] font-medium leading-[1.25]
-    rounded-[8px]
+    bg-transparent text-[#1E293B] border border-[#E2E8F0]
+    hover:bg-[#F8FAFC]
+    disabled:opacity-50 disabled:cursor-not-allowed
+    focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#CCFBF1]
   `,
-  'tertiary-text': `
-    bg-transparent text-[#222222]
-    hover:underline underline-offset-2
-    disabled:text-[#dddddd] disabled:cursor-not-allowed
-    text-[16px] font-medium leading-[1.25]
-    p-0
+  // button-ghost: no bg, no border
+  ghost: `
+    bg-transparent text-[#475569] border-none
+    hover:bg-[#F8FAFC] hover:text-[#1E293B]
+    disabled:opacity-50 disabled:cursor-not-allowed
+    focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#CCFBF1]
   `,
-  'pill-rausch': `
-    bg-[#ff385c] text-white
-    hover:bg-[#e00b41]
-    disabled:bg-[#ffd1da] disabled:text-white disabled:cursor-not-allowed
-    text-[14px] font-medium leading-[1.29]
-    rounded-full px-[20px] py-[10px]
+  // button-success: explicit approvals (green)
+  success: `
+    bg-[#10B981] text-white border-none
+    hover:bg-[#059669] hover:-translate-y-px
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
+    focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#CCFBF1]
+  `,
+  // button-danger: destructive actions (red)
+  danger: `
+    bg-[#EF4444] text-white border-none
+    hover:bg-[#DC2626] hover:-translate-y-px
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
+    focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#CCFBF1]
   `,
 };
 
 const sizeClasses = {
-  sm: 'h-10 px-4 text-sm',
-  md: 'h-12 px-6',
-  lg: 'h-14 px-8 text-lg',
+  sm: 'h-9 px-4 text-sm',
+  md: 'h-11 px-6 text-base',  // 44px height per component-library.md
+  lg: 'h-12 px-8 text-base',
 };
 
 export default function Button({
@@ -57,17 +69,14 @@ export default function Button({
   children,
   ...props
 }: ButtonProps) {
-  // Pill and tertiary don't use standard height/padding classes
-  const appliedSizeClass = (variant === 'pill-rausch' || variant === 'tertiary-text') ? '' : sizeClasses[size];
-
   return (
     <button
       className={`
         inline-flex items-center justify-center gap-2
-        transition-colors duration-200
-        focus-ring
+        font-semibold rounded-md
+        transition-all duration-150 select-none cursor-pointer whitespace-nowrap
         ${variantClasses[variant]}
-        ${appliedSizeClass}
+        ${sizeClasses[size]}
         ${fullWidth ? 'w-full' : ''}
         ${className}
       `}
@@ -76,10 +85,11 @@ export default function Button({
     >
       {isLoading && (
         <svg
-          className="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
+          className="animate-spin -ml-1 mr-2 h-4 w-4 text-current flex-shrink-0"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path

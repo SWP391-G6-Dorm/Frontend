@@ -61,8 +61,16 @@ export function sortToApi(sort: string): string {
   }
 }
 
+/** SCR-07 — public room search (api-spec: GET /api/v1/rooms/search) */
 export async function fetchRooms(params: FetchRoomsParams): Promise<RoomsPageResponse> {
-  const res = await api.get('/api/rooms', { params });
+  const { capacity, status, ...rest } = params;
+  const res = await api.get('/api/v1/rooms/search', {
+    params: {
+      ...rest,
+      guests: capacity,
+      status: status ?? 'AVAILABLE',
+    },
+  });
   return res.data.data;
 }
 
@@ -126,7 +134,7 @@ export interface RoomDetail {
 }
 
 export async function fetchRoomById(id: string): Promise<RoomDetail> {
-  const res = await api.get(`/api/rooms/${id}`);
+  const res = await api.get(`/api/v1/rooms/${id}`);
   return res.data.data;
 }
 
@@ -142,7 +150,24 @@ export interface RoomCalendarData {
 }
 
 export async function fetchRoomCalendar(id: string): Promise<RoomCalendarData> {
-  const res = await api.get(`/api/rooms/${id}/calendar`);
+  const res = await api.get(`/api/v1/rooms/${id}/calendar`);
+  return res.data.data;
+}
+
+export interface MonthAvailabilityData {
+  bookedDates: string[];
+  maintenanceDates: string[];
+}
+
+/** SCR-09 — month view availability */
+export async function fetchRoomMonthAvailability(
+  id: string,
+  startDate: string,
+  endDate: string,
+): Promise<MonthAvailabilityData> {
+  const res = await api.get(`/api/v1/rooms/${id}/availability`, {
+    params: { startDate, endDate },
+  });
   return res.data.data;
 }
 
@@ -155,7 +180,7 @@ export interface RoomReviewsPage {
 }
 
 export async function fetchRoomReviews(id: string, page = 0, size = 5): Promise<RoomReviewsPage> {
-  const res = await api.get(`/api/rooms/${id}/reviews`, { params: { page, size } });
+  const res = await api.get(`/api/v1/rooms/${id}/reviews`, { params: { page, size } });
   return res.data.data;
 }
 
@@ -169,7 +194,7 @@ export async function checkRoomAvailability(
   checkIn: string,
   checkOut: string,
 ): Promise<{ available: boolean; bookedRanges: BookedRange[] }> {
-  const res = await api.get(`/api/rooms/${id}/availability`, { params: { checkIn, checkOut } });
+  const res = await api.get(`/api/v1/rooms/${id}/availability`, { params: { checkIn, checkOut } });
   return res.data.data;
 }
 

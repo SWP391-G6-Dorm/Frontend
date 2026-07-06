@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import { useQuery } from '@tanstack/react-query';
 import { paymentApi } from '../../api/paymentApi';
+import DataTable from '../../components/ui/DataTable';
 
 function SBadge({ s }: { s: string }) {
   const m: Record<string, { cls: string; l: string }> = {
@@ -16,6 +17,7 @@ function SBadge({ s }: { s: string }) {
 
 export default function PaymentMgmtListPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const bookingIdFromUrl = searchParams.get('bookingId');
   
   const [search, setSearch] = useState(bookingIdFromUrl || '');
@@ -34,6 +36,25 @@ export default function PaymentMgmtListPage() {
       search: search.trim() || undefined 
     }),
   });
+
+  const columns = [
+    { header: 'ID', accessor: (p: any) => <span className="code-sm" title={p.id}>{p.id.substring(0, 8)}...</span> },
+    { header: 'Booking ID', accessor: (p: any) => <Link to={`/manager/bookings/${p.bookingId}`} className="text-primary" style={{ textDecoration: 'none', fontWeight: 600 }} title={p.bookingId}>{p.bookingId.substring(0, 8)}...</Link> },
+    { header: 'Customer', accessor: (p: any) => p.customerName },
+    { header: 'Type', accessor: (p: any) => <span className="badge badge-tag" style={{ fontSize: 11 }}>{p.type === 'DEPOSIT' ? 'Deposit' : 'Balance'}</span> },
+    { header: 'Method', accessor: (p: any) => <span className="text-charcoal">{p.method.replace('_', ' ')}</span> },
+    { header: 'Amount', accessor: (p: any) => <span style={{ fontWeight: 700 }}>₫{p.amount.toLocaleString()}</span> },
+    { header: 'Created', accessor: (p: any) => <span className="text-charcoal">{new Date(p.createdAt).toLocaleDateString('en-US')}</span> },
+    { header: 'Status', accessor: (p: any) => <SBadge s={p.status} /> },
+    { header: 'Actions', accessor: (p: any) => (
+      <div style={{ display: 'flex', gap: 4 }}>
+        {p.status === 'PENDING' && (
+          <button onClick={() => navigate(`/manager/payments/${p.id}/verify`)} className="btn-primary btn-sm">Verify</button>
+        )}
+        <button onClick={() => navigate(`/manager/payments/${p.id}`)} className="btn-ghost btn-sm">View</button>
+      </div>
+    )}
+  ];
 
   return (
     <ManagerLayout>
@@ -65,56 +86,18 @@ export default function PaymentMgmtListPage() {
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Booking ID</th>
-              <th>Customer</th>
-              <th>Type</th>
-              <th>Method</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 20 }}>Loading payments...</td></tr>
-            ) : isError ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 20, color: 'var(--error)' }}>Error loading payments</td></tr>
-            ) : data?.data?.content.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 20 }}>No payments found</td></tr>
-            ) : (
-              data?.data?.content.map(p => (
-                <tr key={p.id}>
-                  <td><span className="code-sm" title={p.id}>{p.id.substring(0, 8)}...</span></td>
-                  <td><Link to={`/manager/bookings/${p.bookingId}`} className="text-primary" style={{ textDecoration: 'none', fontWeight: 600 }} title={p.bookingId}>{p.bookingId.substring(0, 8)}...</Link></td>
-                  <td>{p.customerName}</td>
-                  <td>
-                    <span className="badge badge-tag" style={{ fontSize: 11 }}>
-                      {p.type === 'DEPOSIT' ? 'Deposit' : 'Balance'}
-                    </span>
-                  </td>
-                  <td className="text-charcoal">{p.method.replace('_', ' ')}</td>
-                  <td style={{ fontWeight: 700 }}>₫{p.amount.toLocaleString()}</td>
-                  <td><SBadge s={p.status} /></td>
-                  <td className="text-charcoal">{new Date(p.createdAt).toLocaleDateString('en-US')}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      {p.status === 'PENDING' && (
-                        <Link to={`/manager/payments/${p.id}/verify`} className="btn-primary btn-sm">Verify</Link>
-                      )}
-                      <Link to={`/manager/payments/${p.id}`} className="btn-ghost btn-sm">View</Link>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div style={{ marginBottom: 20 }}>
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>Loading payments...</div>
+        ) : isError ? (
+          <div style={{ textAlign: 'center', padding: 48, color: 'var(--error)' }}>Error loading payments</div>
+        ) : (
+          <DataTable 
+            columns={columns}
+            data={data?.data?.content || []}
+            keyExtractor={(p) => p.id}
+          />
+        )}
       </div>
 
       {data?.data && data.data.totalPages > 1 && (

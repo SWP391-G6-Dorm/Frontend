@@ -1,12 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
+import Alert from '../../components/ui/Alert';
 import { useAuthStore } from '../../store/authStore';
 import {
   fetchCustomerDashboard,
   type CustomerDashboardData,
   type UpcomingEvent,
+  type PaymentSummary,
 } from '../../api/customersApi';
+
+function PaymentStatusBadge({ status }: { status: string }) {
+  const map: Record<string, { cls: string; label: string }> = {
+    PENDING:               { cls: 'badge-warning', label: 'Chờ thanh toán' },
+    PENDING_VERIFICATION:  { cls: 'badge-warning', label: 'Chờ xác minh' },
+    COMPLETED:             { cls: 'badge-success', label: 'Hoàn tất' },
+    FAILED:                { cls: 'badge-error',   label: 'Thất bại' },
+    REFUNDED:              { cls: 'badge-neutral', label: 'Đã hoàn tiền' },
+  };
+  const s = map[status] || { cls: 'badge-neutral', label: status };
+  return <span className={`badge ${s.cls}`}>{s.label}</span>;
+}
+
+function paymentTypeLabel(type: string) {
+  const map: Record<string, string> = {
+    DEPOSIT: 'Đặt cọc',
+    REMAINING_BALANCE: 'Số dư còn lại',
+    DAMAGE_FEE: 'Phí hư hại',
+  };
+  return map[type] || type;
+}
+
+function formatDateTime(dt: string) {
+  return new Date(dt).toLocaleString('vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
@@ -37,13 +67,14 @@ function NotifIcon({ type }: { type: string }) {
   );
 }
 
-function KpiCard({ value, label, sub, color = 'var(--ink)', icon }: {
-  value: string | number; label: string; sub?: string; color?: string; icon: React.ReactNode;
+function KpiCard({ value, label, sub, warning, color = 'var(--ink)', icon }: {
+  value: string | number; label: string; sub?: string; warning?: string; color?: string; icon: React.ReactNode;
 }) {
   return (
     <div className="kpi-card">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--surface-bone)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--charcoal)' }}>{icon}</div>
+        {warning && <span className="badge badge-warning" style={{ fontSize: 10 }}>{warning}</span>}
       </div>
       <div>
         <div className="kpi-value" style={{ color, fontSize: typeof value === 'number' ? undefined : 22 }}>{value}</div>
@@ -115,15 +146,26 @@ export default function CustomerDashboardPage() {
   const [data, setData] = useState<CustomerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const loadDashboard = useCallback(async (cancelled: () => boolean) => {
+    setLoading(true);
+    setError('');
+    try {
+      const d = await fetchCustomerDashboard();
+      if (!cancelled()) setData(d);
+    } catch {
+      if (!cancelled()) setError('Không tải được dữ liệu dashboard. Vui lòng thử lại.');
+    } finally {
+      if (!cancelled()) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    fetchCustomerDashboard()
-      .then(d => { if (!cancelled) setData(d); })
-      .catch(() => { if (!cancelled) setError('Không tải được dữ liệu dashboard. Vui lòng thử lại.'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+    loadDashboard(() => cancelled);
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadKey, loadDashboard]);
 
   const checkInDisplay = loading ? '…' : (
     data?.upcomingCheckIn
@@ -135,6 +177,7 @@ export default function CustomerDashboardPage() {
       ? formatDate(data.upcomingCheckOut.date)
       : '—'
   );
+  const checkInSoon = !loading && data?.upcomingCheckIn != null && data.upcomingCheckIn.daysUntil < 3;
 
   return (
     <CustomerLayout>
@@ -143,7 +186,19 @@ export default function CustomerDashboardPage() {
         <p className="body-md text-charcoal">Tổng quan đặt phòng, check-in/out sắp tới và hoạt động gần đây.</p>
       </div>
 
-      {error && <div className="alert alert-error" style={{ marginBottom: 24 }}>{error}</div>}
+      {error && (
+        <div style={{ marginBottom: 24 }}>
+          <Alert variant="error" message={error} />
+          <button
+            type="button"
+            className="btn-outline btn-sm"
+            style={{ marginTop: 12 }}
+            onClick={() => setReloadKey(k => k + 1)}
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
 
       {/* Quick Stats — 4 KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" style={{ marginBottom: 24 }}>
@@ -157,6 +212,7 @@ export default function CustomerDashboardPage() {
           value={checkInDisplay}
           label="Check-in sắp tới"
           sub={data?.upcomingCheckIn ? `${data.upcomingCheckIn.roomNumber} · ${daysLabel(data.upcomingCheckIn.daysUntil)}` : 'Chưa có'}
+          warning={checkInSoon ? 'Sắp tới' : undefined}
           color="var(--success)"
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>}
         />
@@ -176,12 +232,12 @@ export default function CustomerDashboardPage() {
       </div>
 
       {/* Check-in / Check-out highlight cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: 32 }}>
         <EventCard title="Check-in sắp tới" event={data?.upcomingCheckIn ?? null} type="checkin" />
         <EventCard title="Check-out sắp tới" event={data?.upcomingCheckOut ?? null} type="checkout" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'flex-start' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6" style={{ alignItems: 'flex-start' }}>
         {/* Upcoming Bookings */}
         <div>
           <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
@@ -232,6 +288,49 @@ export default function CustomerDashboardPage() {
                       )}
                       <Link to={`/customer/bookings/${b.id}`} className="btn-outline btn-sm">Chi tiết</Link>
                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Recent Payments */}
+          <div className="flex items-center justify-between" style={{ marginTop: 32, marginBottom: 16 }}>
+            <h2 className="heading-sm">Thanh toán gần đây</h2>
+            <Link to="/customer/payments" className="btn-ghost btn-sm">Xem tất cả →</Link>
+          </div>
+
+          {loading ? (
+            <div className="card" style={{ padding: 32, textAlign: 'center' }}>
+              <p className="body-md text-charcoal">Đang tải...</p>
+            </div>
+          ) : !data?.recentPayments?.length ? (
+            <div className="card" style={{ padding: 32, textAlign: 'center' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>💳</div>
+              <p className="body-md text-charcoal">Chưa có giao dịch thanh toán nào</p>
+            </div>
+          ) : (
+            <div className="card" style={{ overflow: 'hidden' }}>
+              {data.recentPayments.map((p: PaymentSummary, i: number) => (
+                <div
+                  key={p.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                    padding: '14px 20px', flexWrap: 'wrap',
+                    borderBottom: i < data.recentPayments.length - 1 ? '1px solid var(--hairline)' : 'none',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 140 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 4 }}>
+                      {paymentTypeLabel(p.type)}
+                    </p>
+                    <p className="body-sm text-charcoal">{formatDateTime(p.createdAt)}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                      ₫{Number(p.amount).toLocaleString('vi-VN')}
+                    </p>
+                    <PaymentStatusBadge status={p.status} />
                   </div>
                 </div>
               ))}

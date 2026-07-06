@@ -39,7 +39,14 @@ export function statusForDay(dateKeyStr: string, ranges: BookedRange[], roomStat
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   if (day < today) return 'past';
-  if (roomStatus === 'MAINTENANCE') return 'maintenance';
+  if (
+    roomStatus === 'MAINTENANCE' ||
+    roomStatus === 'OUT_OF_SERVICE' ||
+    roomStatus === 'PENDING_CLEANING' ||
+    roomStatus === 'CLEANING_IN_PROGRESS'
+  ) {
+    return 'maintenance';
+  }
 
   for (const range of ranges) {
     const start = parseLocalDate(range.checkIn);

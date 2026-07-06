@@ -1,11 +1,21 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
+type AllowedRole = 'CUSTOMER' | 'MANAGER' | 'ADMIN' | 'EMPLOYEE';
+
 interface ProtectedRouteProps {
   /** Role bắt buộc để truy cập route này */
-  role: 'CUSTOMER' | 'MANAGER';
+  role: AllowedRole;
   children: React.ReactNode;
 }
+
+/** Bảng fallback dashboard theo role */
+const ROLE_DASHBOARD: Record<string, string> = {
+  CUSTOMER: '/customer/dashboard',
+  MANAGER:  '/manager/dashboard',
+  ADMIN:    '/admin/dashboard',
+  EMPLOYEE: '/employee/dashboard',
+};
 
 /**
  * ProtectedRoute — bảo vệ route theo role.
@@ -31,8 +41,7 @@ export default function ProtectedRoute({ role, children }: ProtectedRouteProps) 
 
   // Đã đăng nhập nhưng sai role
   if (userRole !== role) {
-    // Manager vào trang customer → về manager dashboard (và ngược lại)
-    const fallback = userRole === 'MANAGER' ? '/manager/dashboard' : '/customer/dashboard';
+    const fallback = userRole ? (ROLE_DASHBOARD[userRole] ?? '/') : '/';
     return <Navigate to={fallback} replace />;
   }
 
