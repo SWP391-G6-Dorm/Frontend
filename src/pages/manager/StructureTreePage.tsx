@@ -1,48 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
-import { propertyApi, PropertySummary, PropertyStructure, FloorNode, RoomNode } from '../../api/propertyApi';
-import { floorApi, CreateFloorPayload, UpdateFloorPayload } from '../../api/floorApi';
+import Alert from '../../components/ui/Alert';
+import { propertyApi, type PropertyStructure, type FloorNode } from '../../api/propertyApi';
+import { floorApi, type CreateFloorPayload, type UpdateFloorPayload } from '../../api/floorApi';
+import { managerApi } from '../../api/managerApi';
+import type { AssignedProperty } from '../../api/reportApi';
 
-// ── Status helpers ────────────────────────────────────────────────────────────
+// ── Room status (tiếng Việt) ──────────────────────────────────────────────────
 
-type RoomStatus = RoomNode['status'];
-
-const STATUS_CONFIG: Record<RoomStatus, { dot: string; label: string; badgeCls: string }> = {
-  AVAILABLE:       { dot: '#2b9a66', label: 'Available',       badgeCls: 'badge-success' },
-  PENDING_DEPOSIT: { dot: '#F59E0B', label: 'Pending Deposit', badgeCls: 'badge-warning' },
-  RESERVED:        { dot: '#2563EB', label: 'Reserved',        badgeCls: 'badge-info'    },
-  OCCUPIED:        { dot: '#6B7280', label: 'Occupied',        badgeCls: 'badge-neutral' },
-  MAINTENANCE:     { dot: '#6B7280', label: 'Maintenance',     badgeCls: 'badge-neutral' },
+const ROOM_STATUS_VI: Record<string, string> = {
+  AVAILABLE: 'Trống',
+  PENDING_DEPOSIT: 'Chờ cọc',
+  RESERVED: 'Đã đặt',
+  OCCUPIED: 'Đang ở',
+  PENDING_CLEANING: 'Chờ dọn',
+  CLEANING_IN_PROGRESS: 'Đang dọn',
+  MAINTENANCE: 'Bảo trì',
+  OUT_OF_SERVICE: 'Ngưng phục vụ',
 };
-
-function StatusDot({ status }: { status: RoomStatus }) {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.AVAILABLE;
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        width: 10,
-        height: 10,
-        borderRadius: '50%',
-        background: cfg.dot,
-        flexShrink: 0,
-      }}
-      title={cfg.label}
-    />
-  );
-}
-
-function StatusBadge({ status }: { status: RoomStatus }) {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.AVAILABLE;
-  return <span className={`badge ${cfg.badgeCls}`}>{cfg.label}</span>;
-}
-
-// ── Selection types ───────────────────────────────────────────────────────────
-
-type SelectedNode =
-  | { type: 'floor'; data: FloorNode }
-  | { type: 'room';  data: RoomNode; floor: FloorNode };
 
 // ── Floor Modal ───────────────────────────────────────────────────────────────
 
@@ -56,13 +32,13 @@ interface FloorModalProps {
 
 function FloorModal({ mode, propertyId, initial, onClose, onSuccess }: FloorModalProps) {
   const [floorNumber, setFloorNumber] = useState(initial?.floorNumber?.toString() ?? '');
-  const [description, setDescription]   = useState(initial?.description ?? '');
-  const [saving, setSaving]             = useState(false);
-  const [error, setError]               = useState('');
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleSubmit() {
     if (!floorNumber || isNaN(Number(floorNumber)) || Number(floorNumber) < 1) {
-      setError('Floor number is required and must be a positive integer.');
+      setError('Số tầng là bắt buộc và phải là số nguyên dương.');
       return;
     }
     setSaving(true);
@@ -84,9 +60,9 @@ function FloorModal({ mode, propertyId, initial, onClose, onSuccess }: FloorModa
       }
       onSuccess();
       onClose();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? 'An error occurred. Please try again.';
-      setError(msg);
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      setError(ax?.response?.data?.message ?? 'Đã xảy ra lỗi. Vui lòng thử lại.');
     } finally {
       setSaving(false);
     }
@@ -95,61 +71,64 @@ function FloorModal({ mode, propertyId, initial, onClose, onSuccess }: FloorModa
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.45)' }}
       onClick={onClose}
     >
       <div
-        className="card-lg"
-        style={{ padding: 28, width: 460, maxWidth: '90vw' }}
+        className="bg-white rounded-[16px] shadow-lg border border-[#E2E8F0] p-7 w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="heading-sm" style={{ marginBottom: 20 }}>
-          {mode === 'add' ? '+ Add New Floor' : 'Edit Floor'}
+        <h2 className="text-lg font-semibold text-[#1E293B] mb-5">
+          {mode === 'add' ? 'Thêm tầng mới' : 'Sửa tầng'}
         </h2>
 
         {error && (
-          <div
-            className="alert-error"
-            style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8 }}
-          >
-            {error}
+          <div className="mb-4">
+            <Alert variant="error" message={error} />
           </div>
         )}
 
-        <div style={{ marginBottom: 14 }}>
-          <label className="form-label form-label-required">Floor Number</label>
+        <div className="mb-4">
+          <label className="block text-sm text-[#64748B] mb-1.5">
+            Số tầng <span className="text-[#EF4444]">*</span>
+          </label>
           <input
             type="number"
             min={1}
-            className="input"
-            placeholder="e.g. 1"
+            className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm"
+            placeholder="VD: 1"
             value={floorNumber}
             onChange={e => setFloorNumber(e.target.value)}
             autoFocus
           />
         </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <label className="form-label">Description</label>
+        <div className="mb-6">
+          <label className="block text-sm text-[#64748B] mb-1.5">Mô tả</label>
           <input
-            className="input"
-            placeholder="e.g. Sea View Floor"
+            className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm"
+            placeholder="VD: Khu view biển"
             value={description}
             onChange={e => setDescription(e.target.value)}
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="flex gap-3">
           <button
-            className="btn-primary"
-            style={{ flex: 1 }}
+            type="button"
+            className="flex-1 bg-[#0F766E] text-white rounded-md py-2 text-sm font-medium disabled:opacity-60"
             onClick={handleSubmit}
             disabled={saving}
           >
-            {saving ? 'Saving…' : mode === 'add' ? 'Add Floor' : 'Save Changes'}
+            {saving ? 'Đang lưu…' : mode === 'add' ? 'Thêm tầng' : 'Lưu thay đổi'}
           </button>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={onClose} disabled={saving}>
-            Cancel
+          <button
+            type="button"
+            className="flex-1 border border-[#E2E8F0] rounded-md py-2 text-sm text-[#64748B]"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Hủy
           </button>
         </div>
       </div>
@@ -157,467 +136,110 @@ function FloorModal({ mode, propertyId, initial, onClose, onSuccess }: FloorModa
   );
 }
 
-// ── Tree Panel ────────────────────────────────────────────────────────────────
+// ── Tree View ─────────────────────────────────────────────────────────────────
 
-interface TreePanelProps {
+interface TreeViewProps {
   structure: PropertyStructure;
-  selected: SelectedNode | null;
-  onSelectFloor: (floor: FloorNode) => void;
-  onSelectRoom:  (room: RoomNode, floor: FloorNode) => void;
-}
-
-function TreePanel({ structure, selected, onSelectFloor, onSelectRoom }: TreePanelProps) {
-  const [expandedFloors, setExpandedFloors] = useState<Set<string>>(() => {
-    // Auto-expand all floors if ≤ 5, otherwise collapsed
-    const s = new Set<string>();
-    if (structure.floors.length <= 5) {
-      structure.floors.forEach(f => s.add(f.id));
-    }
-    return s;
-  });
-
-  // Re-sync when structure changes (new property selected)
-  useEffect(() => {
-    const s = new Set<string>();
-    if (structure.floors.length <= 5) {
-      structure.floors.forEach(f => s.add(f.id));
-    }
-    setExpandedFloors(s);
-  }, [structure.propertyId]);
-
-  function toggleFloor(id: string) {
-    setExpandedFloors(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
-
-  const isFloorSelected = (floor: FloorNode) =>
-    selected?.type === 'floor' && selected.data.id === floor.id;
-
-  const isRoomSelected = (room: RoomNode) =>
-    selected?.type === 'room' && selected.data.id === room.id;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Property root node */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 12px',
-          borderRadius: 8,
-          background: 'var(--surface-bone)',
-          marginBottom: 8,
-        }}
-      >
-        <span style={{ fontSize: 18 }}>🏢</span>
-        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
-          {structure.propertyName}
-        </span>
-      </div>
-
-      {structure.floors.length === 0 ? (
-        <p className="body-sm text-mute" style={{ padding: '12px 8px' }}>
-          No floors yet. Add a floor to get started.
-        </p>
-      ) : (
-        structure.floors.map(floor => {
-          const expanded = expandedFloors.has(floor.id);
-          const floorSelected = isFloorSelected(floor);
-
-          return (
-            <div key={floor.id} style={{ marginLeft: 12 }}>
-              {/* Floor node */}
-              <button
-                onClick={() => { toggleFloor(floor.id); onSelectFloor(floor); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '8px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: floorSelected ? 'rgba(15,118,110,0.08)' : 'transparent',
-                  color: floorSelected ? 'var(--primary)' : 'var(--ink)',
-                  fontWeight: floorSelected ? 700 : 600,
-                  fontSize: 13,
-                  marginBottom: 2,
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => {
-                  if (!floorSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface-bone)';
-                }}
-                onMouseLeave={e => {
-                  if (!floorSelected) (e.currentTarget as HTMLElement).style.background = 'transparent';
-                }}
-              >
-                {/* Chevron */}
-                <span
-                  style={{
-                    fontSize: 10,
-                    transition: 'transform 0.2s',
-                    transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                    color: 'var(--charcoal)',
-                    lineHeight: 1,
-                    width: 12,
-                    flexShrink: 0,
-                  }}
-                >
-                  ▶
-                </span>
-                <span style={{ fontSize: 15 }}>🏗</span>
-                <span style={{ flex: 1 }}>
-                  Floor {floor.floorNumber}
-                  {floor.description && (
-                    <span style={{ fontWeight: 400, color: 'var(--charcoal)', marginLeft: 4 }}>
-                      — {floor.description}
-                    </span>
-                  )}
-                </span>
-                <span className="badge badge-neutral" style={{ fontSize: 10, padding: '2px 7px' }}>
-                  {floor.rooms.length}
-                </span>
-              </button>
-
-              {/* Room nodes */}
-              {expanded && floor.rooms.length > 0 && (
-                <div style={{ marginLeft: 28, marginBottom: 4 }}>
-                  {floor.rooms.map(room => {
-                    const roomSelected = isRoomSelected(room);
-                    return (
-                      <button
-                        key={room.id}
-                        onClick={() => onSelectRoom(room, floor)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 7,
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '6px 10px',
-                          borderRadius: 6,
-                          border: 'none',
-                          cursor: 'pointer',
-                          background: roomSelected ? 'rgba(15,118,110,0.08)' : 'transparent',
-                          color: roomSelected ? 'var(--primary)' : 'var(--body)',
-                          fontWeight: roomSelected ? 700 : 400,
-                          fontSize: 13,
-                          marginBottom: 2,
-                          transition: 'background 0.15s',
-                        }}
-                        onMouseEnter={e => {
-                          if (!roomSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface-bone)';
-                        }}
-                        onMouseLeave={e => {
-                          if (!roomSelected) (e.currentTarget as HTMLElement).style.background = 'transparent';
-                        }}
-                      >
-                        <StatusDot status={room.status} />
-                        <span>🚪</span>
-                        <span style={{ flex: 1 }}>{room.roomNumber}</span>
-                        <span style={{ fontSize: 10, color: 'var(--charcoal)' }}>{room.roomType}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {expanded && floor.rooms.length === 0 && (
-                <p className="body-sm text-mute" style={{ marginLeft: 40, marginBottom: 4, fontSize: 12 }}>
-                  No rooms on this floor.
-                </p>
-              )}
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-}
-
-// ── Detail Panel ──────────────────────────────────────────────────────────────
-
-interface DetailPanelProps {
-  selected: SelectedNode | null;
-  propertyId: string;
+  expandedFloors: Set<string>;
+  onToggleFloor: (id: string) => void;
   onEditFloor: (floor: FloorNode) => void;
   onDeleteFloor: (floor: FloorNode) => void;
 }
 
-function DetailPanel({ selected, propertyId, onEditFloor, onDeleteFloor }: DetailPanelProps) {
-  if (!selected) {
+function TreeView({ structure, expandedFloors, onToggleFloor, onEditFloor, onDeleteFloor }: TreeViewProps) {
+  if (structure.floors.length === 0) {
     return (
-      <div
-        className="card"
-        style={{
-          padding: 48,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: 320,
-          gap: 12,
-          textAlign: 'center',
-        }}
-      >
-        <span style={{ fontSize: 48 }}>🏗</span>
-        <p className="heading-sm" style={{ color: 'var(--charcoal)' }}>
-          Select a floor or room
-        </p>
-        <p className="body-sm text-mute">
-          Click any node in the tree to view details and actions.
-        </p>
-      </div>
+      <p className="text-sm text-[#64748B] py-6 text-center">
+        Chưa có tầng nào. Nhấn &quot;Thêm tầng&quot; để bắt đầu.
+      </p>
     );
   }
-
-  if (selected.type === 'floor') {
-    const floor = selected.data;
-    return (
-      <div className="card" style={{ padding: 28 }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                background: 'var(--surface-bone)',
-                borderRadius: 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: 16,
-                color: 'var(--ink)',
-                flexShrink: 0,
-              }}
-            >
-              F{floor.floorNumber}
-            </div>
-            <div>
-              <h2 className="heading-md">Floor {floor.floorNumber}</h2>
-              {floor.description && (
-                <p className="body-sm text-charcoal">{floor.description}</p>
-              )}
-            </div>
-          </div>
-          <span className="badge badge-neutral">{floor.rooms.length} room{floor.rooms.length !== 1 ? 's' : ''}</span>
-        </div>
-
-        {/* Stats */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 12,
-            marginBottom: 24,
-          }}
-        >
-          {(
-            [
-              { status: 'AVAILABLE',  label: 'Available' },
-              { status: 'OCCUPIED',   label: 'Occupied'  },
-              { status: 'MAINTENANCE', label: 'Maintenance' },
-            ] as const
-          ).map(({ status, label }) => {
-            const count = floor.rooms.filter(r => r.status === status).length;
-            const cfg   = STATUS_CONFIG[status];
-            return (
-              <div
-                key={status}
-                style={{
-                  background: 'var(--surface-bone)',
-                  borderRadius: 10,
-                  padding: '12px 16px',
-                  textAlign: 'center',
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: cfg.dot,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {count}
-                </p>
-                <p className="body-sm text-charcoal">{label}</p>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Room list preview */}
-        {floor.rooms.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <p className="body-sm text-charcoal" style={{ marginBottom: 8, fontWeight: 600 }}>
-              Rooms on this floor
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {floor.rooms.map(r => (
-                <Link
-                  key={r.id}
-                  to={`/manager/rooms/${r.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '5px 12px',
-                    borderRadius: 999,
-                    border: '1px solid var(--hairline)',
-                    background: 'var(--surface-card)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    textDecoration: 'none',
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-bone)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-card)')}
-                >
-                  <StatusDot status={r.status} />
-                  {r.roomNumber}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link
-            to={`/manager/rooms/add?propertyId=${propertyId}&floorId=${floor.id}`}
-            className="btn-primary btn-sm"
-          >
-            + Add Room
-          </Link>
-          <Link to={`/manager/rooms?floorId=${floor.id}`} className="btn-outline btn-sm">
-            View All Rooms
-          </Link>
-          <button className="btn-ghost btn-sm" onClick={() => onEditFloor(floor)}>
-            Edit Floor
-          </button>
-          <button
-            className="btn-ghost btn-sm"
-            style={{ color: 'var(--error)' }}
-            onClick={() => onDeleteFloor(floor)}
-          >
-            Delete Floor
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Room detail
-  const { data: room, floor } = selected;
-  const cfg = STATUS_CONFIG[room.status] ?? STATUS_CONFIG.AVAILABLE;
 
   return (
-    <div className="card" style={{ padding: 28 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              background: `${cfg.dot}18`,
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 22,
-              flexShrink: 0,
-            }}
-          >
-            🚪
-          </div>
-          <div>
-            <h2 className="heading-md">{room.roomNumber}</h2>
-            <p className="body-sm text-charcoal">
-              Floor {floor.floorNumber}
-              {floor.description && ` — ${floor.description}`}
-            </p>
-          </div>
-        </div>
-        <StatusBadge status={room.status} />
+    <div className="flex flex-col">
+      {/* Property root */}
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F8FAFC] rounded-lg mb-3 border border-[#E2E8F0]">
+        <span className="font-semibold text-[#1E293B] text-sm">{structure.propertyName}</span>
       </div>
 
-      {/* Info grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
-        {[
-          { label: 'Room Type',     value: room.roomType },
-          { label: 'Status',        value: cfg.label },
-          ...(room.pricePerNight !== undefined
-            ? [{ label: 'Price / night', value: `₫ ${room.pricePerNight.toLocaleString('vi-VN')}` }]
-            : []),
-          ...(room.capacity !== undefined
-            ? [{ label: 'Capacity', value: `${room.capacity} guest${room.capacity !== 1 ? 's' : ''}` }]
-            : []),
-        ].map(item => (
-          <div
-            key={item.label}
-            style={{
-              background: 'var(--surface-bone)',
-              borderRadius: 10,
-              padding: '12px 16px',
-            }}
-          >
-            <p className="body-sm text-charcoal" style={{ marginBottom: 2 }}>{item.label}</p>
-            <p className="body-md" style={{ fontWeight: 600 }}>{item.value}</p>
-          </div>
-        ))}
-      </div>
+      {structure.floors.map(floor => {
+        const expanded = expandedFloors.has(floor.id);
+        const roomCount = floor.roomCount ?? floor.rooms.length;
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <Link to={`/manager/rooms/${room.id}`} className="btn-primary btn-sm">
-          View Room Detail
-        </Link>
-        <Link to={`/manager/rooms/${room.id}/edit`} className="btn-outline btn-sm">
-          Edit Room
-        </Link>
-        <Link to={`/manager/rooms/${room.id}/status`} className="btn-ghost btn-sm">
-          Update Status
-        </Link>
-      </div>
+        return (
+          <div key={floor.id} className="relative ml-3 pl-4 border-l border-[#E2E8F0]">
+            {/* Floor row */}
+            <div className="flex items-center gap-2 py-2 group">
+              <button
+                type="button"
+                onClick={() => onToggleFloor(floor.id)}
+                className="text-[#64748B] text-xs w-4 flex-shrink-0"
+                aria-label={expanded ? 'Thu gọn' : 'Mở rộng'}
+              >
+                {expanded ? '▼' : '▶'}
+              </button>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold text-[#1E293B]">
+                  Tầng {floor.floorNumber}
+                </span>
+                {floor.description && (
+                  <span className="text-sm text-[#64748B] ml-2">— {floor.description}</span>
+                )}
+                <span className="text-xs text-[#94A3B8] ml-2">({roomCount} phòng)</span>
+              </div>
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  className="text-xs text-[#0F766E] px-2 py-1 rounded hover:bg-[#CCFBF1]"
+                  onClick={() => onEditFloor(floor)}
+                >
+                  Sửa
+                </button>
+                <button
+                  type="button"
+                  className="text-xs text-[#EF4444] px-2 py-1 rounded hover:bg-[#FEE2E2]"
+                  onClick={() => onDeleteFloor(floor)}
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+
+            {/* Room leaves (read-only) */}
+            {expanded && (
+              <div className="ml-6 border-l border-[#E2E8F0] pl-3 mb-2">
+                {floor.rooms.length === 0 ? (
+                  <p className="text-xs text-[#94A3B8] py-1">Chưa có phòng trên tầng này.</p>
+                ) : (
+                  floor.rooms.map(room => (
+                    <div
+                      key={room.id}
+                      className="flex items-center gap-2 py-1.5 text-sm text-[#475569]"
+                    >
+                      <span className="text-[#1E293B]">Phòng {room.roomNumber}</span>
+                      {room.roomType && (
+                        <span className="text-xs text-[#94A3B8]">{room.roomType}</span>
+                      )}
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#64748B]">
+                        {ROOM_STATUS_VI[room.status] ?? room.status}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// ── Loading skeleton ──────────────────────────────────────────────────────────
-
 function TreeSkeleton() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {[...Array(4)].map((_, i) => (
-        <div
-          key={i}
-          style={{
-            height: 36,
-            borderRadius: 8,
-            background: 'var(--surface-bone)',
-            opacity: 1 - i * 0.15,
-            animation: 'pulse 1.4s ease-in-out infinite',
-            marginLeft: i % 2 === 0 ? 0 : 28,
-          }}
-        />
+    <div className="space-y-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-10 bg-[#F1F5F9] rounded-lg animate-pulse" style={{ marginLeft: i % 2 * 16 }} />
       ))}
     </div>
   );
@@ -629,57 +251,72 @@ export default function StructureTreePage() {
   const [searchParams] = useSearchParams();
   const initPropertyId = searchParams.get('propertyId') ?? '';
 
-  // ── State
-  const [properties, setProperties]       = useState<PropertySummary[]>([]);
-  const [propLoading, setPropLoading]      = useState(true);
-  const [propError, setPropError]          = useState('');
+  const [properties, setProperties] = useState<AssignedProperty[]>([]);
+  const [propLoading, setPropLoading] = useState(true);
+  const [propError, setPropError] = useState<string | null>(null);
 
   const [selectedPropId, setSelectedPropId] = useState(initPropertyId);
-
-  const [structure, setStructure]     = useState<PropertyStructure | null>(null);
+  const [structure, setStructure] = useState<PropertyStructure | null>(null);
   const [treeLoading, setTreeLoading] = useState(false);
-  const [treeError, setTreeError]     = useState('');
+  const [treeError, setTreeError] = useState<string | null>(null);
 
-  const [selected, setSelected]       = useState<SelectedNode | null>(null);
+  const [expandedFloors, setExpandedFloors] = useState<Set<string>>(new Set());
 
-  // Floor modal
   const [floorModal, setFloorModal] = useState<{
     open: boolean;
     mode: 'add' | 'edit';
     floor?: FloorNode;
   }>({ open: false, mode: 'add' });
 
-  // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<FloorNode | null>(null);
-  const [deleting, setDeleting]         = useState(false);
-  const [deleteError, setDeleteError]   = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // ── Load property list ──────────────────────────────────────────────────────
+  // Load assigned properties
   useEffect(() => {
     setPropLoading(true);
-    propertyApi
-      .getAll({ page: 0, size: 100 })
+    managerApi.getMyAssignedProperties()
       .then(res => {
-        const list = res.data.content ?? [];
-        setProperties(list);
-        if (!selectedPropId && list.length > 0) {
-          setSelectedPropId(list[0].id);
+        if (res.success && res.data) {
+          setProperties(res.data);
+          const validInit = initPropertyId && res.data.some(p => p.id === initPropertyId);
+          if (validInit) {
+            setSelectedPropId(initPropertyId);
+          } else if (!selectedPropId && res.data.length > 0) {
+            setSelectedPropId(res.data[0].id);
+          }
         }
       })
-      .catch(() => setPropError('Failed to load properties.'))
+      .catch(() => setPropError('Không thể tải danh sách homestay.'))
       .finally(() => setPropLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Load structure tree ─────────────────────────────────────────────────────
   const loadStructure = useCallback((propId: string) => {
     if (!propId) return;
     setTreeLoading(true);
-    setTreeError('');
-    setSelected(null);
-    propertyApi
-      .getStructure(propId)
-      .then(res => setStructure(res.data))
-      .catch(() => setTreeError('Failed to load structure. Please try again.'))
+    setTreeError(null);
+    propertyApi.getStructureTree(propId)
+      .then(res => {
+        if (res.success && res.data) {
+          setStructure(res.data);
+          const expanded = new Set<string>();
+          if (res.data.floors.length <= 5) {
+            res.data.floors.forEach(f => expanded.add(f.id));
+          }
+          setExpandedFloors(expanded);
+        }
+      })
+      .catch((err: unknown) => {
+        const ax = err as { response?: { status?: number; data?: { message?: string } } };
+        if (ax?.response?.status === 403) {
+          setTreeError('Bạn không có quyền xem homestay này.');
+        } else if (ax?.response?.status === 404) {
+          setTreeError('Không tìm thấy homestay.');
+        } else {
+          setTreeError(ax?.response?.data?.message ?? 'Không thể tải cây cấu trúc. Vui lòng thử lại.');
+        }
+        setStructure(null);
+      })
       .finally(() => setTreeLoading(false));
   }, []);
 
@@ -687,165 +324,106 @@ export default function StructureTreePage() {
     if (selectedPropId) loadStructure(selectedPropId);
   }, [selectedPropId, loadStructure]);
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
-  function handlePropertyChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    setSelectedPropId(e.target.value);
-  }
-
-  function handleSelectFloor(floor: FloorNode) {
-    setSelected({ type: 'floor', data: floor });
-  }
-
-  function handleSelectRoom(room: RoomNode, floor: FloorNode) {
-    setSelected({ type: 'room', data: room, floor });
-  }
-
-  async function handleDeleteFloor(floor: FloorNode) {
-    setDeleteTarget(floor);
-    setDeleteError('');
+  function toggleFloor(id: string) {
+    setExpandedFloors(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   async function confirmDeleteFloor() {
     if (!deleteTarget) return;
     setDeleting(true);
-    setDeleteError('');
+    setDeleteError(null);
     try {
       await floorApi.remove(deleteTarget.id);
       setDeleteTarget(null);
-      setSelected(null);
       if (selectedPropId) loadStructure(selectedPropId);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? 'Failed to delete floor.';
-      setDeleteError(msg);
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      const msg = ax?.response?.data?.message ?? 'Không thể xóa tầng.';
+      setDeleteError(
+        msg.includes('phòng') ? 'Không thể xóa tầng đang có phòng.' : msg
+      );
     } finally {
       setDeleting(false);
     }
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
-  const currentProperty = properties.find(p => p.id === selectedPropId);
-
   return (
     <ManagerLayout>
-      {/* Page header */}
-      <div
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}
-      >
-        <div>
-          <h1 className="display-md" style={{ marginBottom: 4 }}>
-            Structure Management
+      <div className="space-y-6 max-w-3xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="font-display text-[28px] font-bold text-[#1E293B]">
+            Cây cấu trúc
           </h1>
-          <p className="body-sm text-charcoal">
-            Manage Property → Floor → Room hierarchy
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Link to="/manager/floors" className="btn-outline btn-sm">
-            Manage Floors
-          </Link>
-          <Link to="/manager/properties" className="btn-ghost btn-sm">
-            All Properties
-          </Link>
-        </div>
-      </div>
-
-      {/* Property selector */}
-      {propError ? (
-        <div className="alert-error" style={{ marginBottom: 20, padding: '10px 16px', borderRadius: 10 }}>
-          {propError}
-        </div>
-      ) : (
-        <div style={{ marginBottom: 24, maxWidth: 420 }}>
-          <label className="form-label" style={{ marginBottom: 6, display: 'block' }}>
-            Select Property
-          </label>
-          <select
-            className="select"
-            value={selectedPropId}
-            onChange={handlePropertyChange}
-            disabled={propLoading}
-          >
-            {propLoading ? (
-              <option>Loading properties…</option>
-            ) : properties.length === 0 ? (
-              <option>No properties available</option>
-            ) : (
-              properties.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-      )}
-
-      {/* Main two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20, alignItems: 'flex-start' }}>
-
-        {/* ── Tree Panel ── */}
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h3 className="heading-sm">
-              {currentProperty?.name ?? 'Structure'}
-            </h3>
-            {currentProperty && (
-              <Link
-                to={`/manager/properties/${currentProperty.id}`}
-                className="btn-ghost btn-sm"
-                style={{ fontSize: 12 }}
-              >
-                View Property
-              </Link>
-            )}
-          </div>
-
-          {treeLoading ? (
-            <TreeSkeleton />
-          ) : treeError ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <p className="body-sm" style={{ color: 'var(--error)', marginBottom: 10 }}>
-                {treeError}
-              </p>
-              <button
-                className="btn-outline btn-sm"
-                onClick={() => selectedPropId && loadStructure(selectedPropId)}
-              >
-                Retry
-              </button>
-            </div>
-          ) : structure ? (
-            <TreePanel
-              structure={structure}
-              selected={selected}
-              onSelectFloor={handleSelectFloor}
-              onSelectRoom={handleSelectRoom}
-            />
-          ) : null}
-
-          {/* Add Floor */}
-          {!treeLoading && !treeError && selectedPropId && (
+          {selectedPropId && properties.length > 0 && (
             <button
-              className="btn-outline btn-sm"
-              style={{ width: '100%', justifyContent: 'center', marginTop: 14 }}
+              type="button"
+              className="bg-[#0F766E] text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-[#0D6B63]"
               onClick={() => setFloorModal({ open: true, mode: 'add' })}
+              disabled={treeLoading}
             >
-              + Add Floor
+              Thêm tầng
             </button>
           )}
         </div>
 
-        {/* ── Detail Panel ── */}
-        <DetailPanel
-          selected={selected}
-          propertyId={selectedPropId}
-          onEditFloor={floor => setFloorModal({ open: true, mode: 'edit', floor })}
-          onDeleteFloor={handleDeleteFloor}
-        />
+        {/* Alerts */}
+        {propError && <Alert variant="error" message={propError} />}
+        {treeError && <Alert variant="error" message={treeError} />}
+
+        {/* Empty: no assigned properties */}
+        {!propLoading && properties.length === 0 && (
+          <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-10 text-center">
+            <p className="text-[#64748B]">Bạn chưa được gán homestay nào.</p>
+          </div>
+        )}
+
+        {properties.length > 0 && (
+          <>
+            {/* Property selector */}
+            <div className="max-w-md">
+              <label className="block text-sm text-[#64748B] mb-1.5">Chọn homestay</label>
+              <select
+                className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm bg-white"
+                value={selectedPropId}
+                onChange={e => setSelectedPropId(e.target.value)}
+                disabled={propLoading}
+              >
+                {propLoading ? (
+                  <option>Đang tải…</option>
+                ) : (
+                  properties.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            {/* Tree card */}
+            <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-sm">
+              {treeLoading ? (
+                <TreeSkeleton />
+              ) : structure ? (
+                <TreeView
+                  structure={structure}
+                  expandedFloors={expandedFloors}
+                  onToggleFloor={toggleFloor}
+                  onEditFloor={floor => setFloorModal({ open: true, mode: 'edit', floor })}
+                  onDeleteFloor={floor => { setDeleteTarget(floor); setDeleteError(null); }}
+                />
+              ) : null}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* ── Floor Modal ── */}
-      {floorModal.open && (
+      {/* Floor modal */}
+      {floorModal.open && selectedPropId && (
         <FloorModal
           mode={floorModal.mode}
           propertyId={selectedPropId}
@@ -863,69 +441,51 @@ export default function StructureTreePage() {
         />
       )}
 
-      {/* ── Delete Confirmation Modal ── */}
+      {/* Delete confirm */}
       {deleteTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+          style={{ background: 'rgba(0,0,0,0.45)' }}
           onClick={() => !deleting && setDeleteTarget(null)}
         >
           <div
-            className="card-lg"
-            style={{ padding: 28, width: 440, maxWidth: '90vw' }}
+            className="bg-white rounded-[16px] shadow-lg border border-[#E2E8F0] p-7 w-full max-w-md"
             onClick={e => e.stopPropagation()}
           >
-            <h2 className="heading-sm" style={{ marginBottom: 12 }}>
-              Delete Floor {deleteTarget.floorNumber}?
+            <h2 className="text-lg font-semibold text-[#1E293B] mb-3">
+              Xóa Tầng {deleteTarget.floorNumber}?
             </h2>
-            <p className="body-md text-charcoal" style={{ marginBottom: 16 }}>
-              This will permanently delete <strong>Floor {deleteTarget.floorNumber}</strong>
-              {deleteTarget.description && ` (${deleteTarget.description})`}.
-              This action cannot be undone.
+            <p className="text-sm text-[#64748B] mb-4">
+              Hành động này không thể hoàn tác.
+              {(deleteTarget.roomCount ?? deleteTarget.rooms.length) > 0 && (
+                <span className="block mt-2 text-[#B45309]">
+                  Tầng này có {deleteTarget.roomCount ?? deleteTarget.rooms.length} phòng — cần xóa hết phòng trước.
+                </span>
+              )}
             </p>
 
-            {deleteTarget.rooms.length > 0 && (
-              <div
-                style={{
-                  background: '#FEF3C7',
-                  border: '1px solid #F59E0B',
-                  borderRadius: 8,
-                  padding: '10px 14px',
-                  marginBottom: 16,
-                }}
-              >
-                <p className="body-sm" style={{ color: '#92400E' }}>
-                  ⚠️ This floor has {deleteTarget.rooms.length} room(s). You must remove all rooms
-                  before deleting this floor.
-                </p>
-              </div>
-            )}
-
             {deleteError && (
-              <div
-                className="alert-error"
-                style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 8 }}
-              >
-                {deleteError}
+              <div className="mb-4">
+                <Alert variant="error" message={deleteError} />
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="flex gap-3">
               <button
-                className="btn-primary"
-                style={{ flex: 1, background: 'var(--error)' }}
+                type="button"
+                className="flex-1 bg-[#EF4444] text-white rounded-md py-2 text-sm font-medium disabled:opacity-60"
                 onClick={confirmDeleteFloor}
-                disabled={deleting || deleteTarget.rooms.length > 0}
+                disabled={deleting || (deleteTarget.roomCount ?? deleteTarget.rooms.length) > 0}
               >
-                {deleting ? 'Deleting…' : 'Delete Floor'}
+                {deleting ? 'Đang xóa…' : 'Xóa tầng'}
               </button>
               <button
-                className="btn-ghost"
-                style={{ flex: 1 }}
+                type="button"
+                className="flex-1 border border-[#E2E8F0] rounded-md py-2 text-sm"
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
               >
-                Cancel
+                Hủy
               </button>
             </div>
           </div>

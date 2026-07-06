@@ -25,27 +25,27 @@ export interface UpdateFloorPayload {
 
 export const floorApi = {
 
-  /** SCR-37/38: List floors by property */
+  /** SCR-28: List floors by property (v1) */
   getByProperty: async (propertyId: string): Promise<{ success: boolean; data: FloorSummary[] }> => {
-    const res = await api.get('/api/floors', { params: { propertyId } });
+    const res = await api.get('/api/v1/manager/floors', { params: { propertyId } });
     return res.data;
   },
 
-  /** SCR-37/38: Add floor to a property */
+  /** SCR-28: Add floor to a property (v1) */
   create: async (payload: CreateFloorPayload): Promise<{ success: boolean; data: FloorSummary }> => {
-    const res = await api.post('/api/floors', payload);
+    const res = await api.post('/api/v1/manager/floors', payload);
     return res.data;
   },
 
-  /** SCR-38: Update floor info */
+  /** SCR-28: Update floor info (v1) */
   update: async (id: string, payload: UpdateFloorPayload): Promise<{ success: boolean; data: FloorSummary }> => {
-    const res = await api.put(`/api/floors/${id}`, payload);
+    const res = await api.put(`/api/v1/manager/floors/${id}`, payload);
     return res.data;
   },
 
-  /** SCR-38: Delete floor — only if no rooms exist (409 otherwise) */
+  /** SCR-28: Delete floor — only if no rooms exist */
   remove: async (id: string): Promise<{ success: boolean }> => {
-    const res = await api.delete(`/api/floors/${id}`);
+    const res = await api.delete(`/api/v1/manager/floors/${id}`);
     return res.data;
   },
 };

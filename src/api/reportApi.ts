@@ -46,6 +46,29 @@ export interface RevenueReportData {
   byProperty: PropertyRevenue[];
 }
 
+/** SCR-27 — KPI dashboard theo property */
+export interface PropertyKpis {
+  propertyId: string;
+  totalRooms: number;
+  occupancyRate: number;
+  revenue: number;
+  pendingCheckIns: number;
+  pendingApprovals: number;
+}
+
+/** SCR-27 — Phân bổ booking theo trạng thái (pie chart) */
+export interface BookingStatusCount {
+  status: string;
+  count: number;
+}
+
+/** Property được gán cho Manager (selector) */
+export interface AssignedProperty {
+  id: string;
+  name: string;
+  status: string;
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const reportApi = {
@@ -63,6 +86,18 @@ export const reportApi = {
     if (params.groupBy)    cleanParams.groupBy    = params.groupBy;
 
     const res = await api.get('/api/reports/revenue', { params: cleanParams });
+    return res.data;
+  },
+
+  /** SCR-27 — KPI dashboard theo property */
+  getPropertyKpis: async (propertyId: string): Promise<ApiResponse<PropertyKpis>> => {
+    const res = await api.get('/api/v1/reports/property-kpis', { params: { propertyId } });
+    return res.data;
+  },
+
+  /** SCR-27 — Phân bổ booking theo trạng thái tháng hiện tại */
+  getBookingStatusBreakdown: async (propertyId: string): Promise<ApiResponse<BookingStatusCount[]>> => {
+    const res = await api.get('/api/v1/reports/booking-status-breakdown', { params: { propertyId } });
     return res.data;
   },
 };

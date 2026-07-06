@@ -52,6 +52,10 @@ import {
 } from './pages/manager/RoomManagementPages';
 import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
 import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
+import BookingCheckInOutPage from './pages/manager/BookingCheckInOutPage';
+import HousekeepingSchedulePage from './pages/manager/HousekeepingSchedulePage';
+import HousekeepingTasksPage from './pages/manager/HousekeepingTasksPage';
+import EmployeeMgmtPage from './pages/manager/EmployeeMgmtPage';
 import PaymentMgmtListPage from './pages/manager/PaymentMgmtListPage';
 import PaymentMgmtVerificationPage from './pages/manager/PaymentMgmtVerificationPage';
 import PaymentMgmtDetailPage from './pages/manager/PaymentMgmtDetailPage';
@@ -234,8 +238,21 @@ function App() {
         {/* Bookings (SCR-45,46) */}
         <Route path="/manager/bookings"
           element={<ProtectedRoute role="MANAGER"><BookingMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id/check-in"
+          element={<ProtectedRoute role="MANAGER"><BookingCheckInOutPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id/check-out"
+          element={<ProtectedRoute role="MANAGER"><BookingCheckInOutPage /></ProtectedRoute>} />
         <Route path="/manager/bookings/:id"
           element={<ProtectedRoute role="MANAGER"><BookingMgmtDetailPage /></ProtectedRoute>} />
+
+        <Route path="/manager/housekeeping/schedule"
+          element={<ProtectedRoute role="MANAGER"><HousekeepingSchedulePage /></ProtectedRoute>} />
+
+        <Route path="/manager/housekeeping/tasks"
+          element={<ProtectedRoute role="MANAGER"><HousekeepingTasksPage /></ProtectedRoute>} />
+
+        <Route path="/manager/employees"
+          element={<ProtectedRoute role="MANAGER"><EmployeeMgmtPage /></ProtectedRoute>} />
 
         {/* Payments (SCR-47,48,49) */}
         <Route path="/manager/payments"

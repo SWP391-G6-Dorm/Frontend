@@ -27,9 +27,10 @@ interface DataTableProps<T> {
   actions?: Action<T>[];
   className?: string;
   footer?: React.ReactNode;
+  getRowClassName?: (row: T) => string;
 }
 
-export function DataTable<T>({ columns, data, keyExtractor, actions, className = '', footer }: DataTableProps<T>) {
+export function DataTable<T>({ columns, data, keyExtractor, actions, className = '', footer, getRowClassName }: DataTableProps<T>) {
   const [openDropdownId, setOpenDropdownId] = useState<string | number | null>(null);
 
   const toggleDropdown = (id: string | number) => {
@@ -60,7 +61,7 @@ export function DataTable<T>({ columns, data, keyExtractor, actions, className =
           {data.map((row) => {
             const rowKey = keyExtractor(row);
             return (
-              <tr key={rowKey} className="group transition-colors duration-150 bg-white hover:bg-[#F8FAFC]">
+              <tr key={rowKey} className={`group transition-colors duration-150 bg-white hover:bg-[#F8FAFC] ${getRowClassName?.(row) ?? ''}`}>
                 {columns.map((col, idx) => (
                   <td key={idx} className={`px-4 py-3 text-sm text-[#334155] border-b border-[#F1F5F9] group-last:border-none ${col.className || ''}`}>
                     {typeof col.accessor === 'function' ? col.accessor(row) : (row[col.accessor] as React.ReactNode)}
