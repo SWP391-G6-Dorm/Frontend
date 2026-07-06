@@ -114,9 +114,9 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 style={{
                   textDecoration: 'none',
                   fontSize: 14, fontWeight: 500,
-                  color: active ? 'var(--primary)' : 'rgba(252,252,252,0.65)',
-                  background: active ? 'rgba(234,40,4,0.12)' : 'transparent',
-                  borderLeft: active ? '3px solid var(--primary)' : '3px solid transparent',
+                  color: active ? 'var(--primary-light)' : 'rgba(255,255,255,0.65)',
+                  background: active ? 'rgba(15,118,110,0.18)' : 'transparent',
+                  borderLeft: active ? '3px solid var(--primary-light)' : '3px solid transparent',
                 }}
                 onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
                 onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}

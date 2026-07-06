@@ -5,7 +5,7 @@ import { promotionApi, type PromotionItem, type PromotionPayload } from '../../a
 // ── Màu sắc hỗ trợ ────────────────────────────────────────────────────────
 
 const COLOR_OPTIONS = [
-  { value: 'red',    label: 'Đỏ',    gradient: 'linear-gradient(135deg, #ea2804 0%, #ff6a3d 100%)' },
+  { value: 'red',    label: 'Teal (Mặc định)', gradient: 'linear-gradient(135deg, #0F766E 0%, #0D9488 100%)' },
   { value: 'blue',   label: 'Xanh dương', gradient: 'linear-gradient(135deg, #1a3c5e 0%, #2d6a9f 100%)' },
   { value: 'green',  label: 'Xanh lá', gradient: 'linear-gradient(135deg, #1a5c3a 0%, #2e9c5e 100%)' },
   { value: 'purple', label: 'Tím',    gradient: 'linear-gradient(135deg, #4c1d8f 0%, #7c3aed 100%)' },

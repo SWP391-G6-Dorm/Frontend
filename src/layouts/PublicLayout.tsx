@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 const NAV_LINKS = [
-  { label: 'Home', path: '/' },
   { label: 'Rooms', path: '/rooms' },
+  { label: 'Properties', path: '/#properties' },
   { label: 'About', path: '/about' },
 ];
 
@@ -113,7 +113,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                     fontSize: 14, fontWeight: 600,
                     textDecoration: 'none',
                     color: active ? 'var(--primary)' : 'var(--charcoal)',
-                    background: active ? '#fff1ee' : 'transparent',
+                    background: active ? 'rgba(15,118,110,0.08)' : 'transparent',
                     transition: 'all 0.15s',
                   }}
                   onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--ink)'; }}

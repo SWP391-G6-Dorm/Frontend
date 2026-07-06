@@ -27,27 +27,28 @@ export interface ApiResponse<T = null> {
 }
 
 export const reviewApi = {
-  // Tạo đánh giá mới (C)
   createReview: async (request: { bookingId: string; rating: number; comment: string }): Promise<ApiResponse<Review>> => {
-    const res = await api.post('/api/reviews', request);
+    const res = await api.post('/api/v1/reviews', request);
     return res.data;
   },
 
-  // Xem danh sách đánh giá của tôi (R)
+  getReviewById: async (id: string): Promise<ApiResponse<Review>> => {
+    const res = await api.get(`/api/v1/reviews/${id}`);
+    return res.data;
+  },
+
   getMyReviews: async (params?: { page?: number; size?: number }): Promise<ApiResponse<PageResponse<Review>>> => {
-    const res = await api.get('/api/reviews/my', { params });
+    const res = await api.get('/api/v1/customers/me/reviews', { params });
     return res.data;
   },
 
-  // Cập nhật đánh giá (U)
   updateReview: async (id: string, request: { rating: number; comment: string }): Promise<ApiResponse<Review>> => {
-    const res = await api.put(`/api/reviews/${id}`, request);
+    const res = await api.put(`/api/v1/reviews/${id}`, request);
     return res.data;
   },
 
-  // Xóa đánh giá (D)
   deleteReview: async (id: string): Promise<ApiResponse<void>> => {
-    const res = await api.delete(`/api/reviews/${id}`);
+    const res = await api.delete(`/api/v1/reviews/${id}`);
     return res.data;
   },
 };

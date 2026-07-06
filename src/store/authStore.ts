@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { AuthResponse } from '../api/authApi';
 
-// Trạng thái xác thực người dùng — lưu vào localStorage để giữ phiên
+// Trạng thái xác thực người dùng — lưu vào sessionStorage (xóa khi đóng browser)
 interface AuthState {
   isAuthenticated: boolean;
   role:      string | null;  // 'CUSTOMER' | 'MANAGER'
@@ -18,26 +18,39 @@ interface AuthState {
 
 const STORAGE_KEYS = ['accessToken', 'refreshToken', 'userRole', 'userId', 'fullName', 'userEmail', 'userPhone', 'avatarUrl'] as const;
 
+export function getRoleDashboardPath(role: string | null | undefined): string {
+  switch (role) {
+    case 'MANAGER':
+      return '/manager/dashboard';
+    case 'ADMIN':
+      return '/admin/dashboard';
+    case 'EMPLOYEE':
+      return '/employee/dashboard';
+    default:
+      return '/customer/dashboard';
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
-  // Khôi phục state từ localStorage khi load lại trang
-  isAuthenticated: !!localStorage.getItem('accessToken'),
-  role:      localStorage.getItem('userRole'),
-  userId:    localStorage.getItem('userId'),
-  fullName:  localStorage.getItem('fullName'),
-  email:     localStorage.getItem('userEmail'),
-  phone:     localStorage.getItem('userPhone'),
-  avatarUrl: localStorage.getItem('avatarUrl'),
+  // Khôi phục state từ sessionStorage khi reload trang (giữ phiên trong cùng tab)
+  isAuthenticated: !!sessionStorage.getItem('accessToken'),
+  role:      sessionStorage.getItem('userRole'),
+  userId:    sessionStorage.getItem('userId'),
+  fullName:  sessionStorage.getItem('fullName'),
+  email:     sessionStorage.getItem('userEmail'),
+  phone:     sessionStorage.getItem('userPhone'),
+  avatarUrl: sessionStorage.getItem('avatarUrl'),
 
   login: (data: AuthResponse) => {
-    // Persist tokens và thông tin user vào localStorage
-    localStorage.setItem('accessToken',  data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    localStorage.setItem('userRole',     data.user.role);
-    localStorage.setItem('userId',       data.user.id       ?? '');
-    localStorage.setItem('fullName',     data.user.fullName ?? '');
-    localStorage.setItem('userEmail',    data.user.email    ?? '');
-    localStorage.setItem('userPhone',    data.user.phone    ?? '');
-    localStorage.setItem('avatarUrl',    data.user.avatarUrl ?? '');
+    // Persist tokens và thông tin user vào sessionStorage (bị xóa khi đóng browser)
+    sessionStorage.setItem('accessToken',  data.accessToken);
+    sessionStorage.setItem('refreshToken', data.refreshToken);
+    sessionStorage.setItem('userRole',     data.user.role);
+    sessionStorage.setItem('userId',       data.user.id       ?? '');
+    sessionStorage.setItem('fullName',     data.user.fullName ?? '');
+    sessionStorage.setItem('userEmail',    data.user.email    ?? '');
+    sessionStorage.setItem('userPhone',    data.user.phone    ?? '');
+    sessionStorage.setItem('avatarUrl',    data.user.avatarUrl ?? '');
 
     set({
       isAuthenticated: true,
@@ -51,6 +64,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
+    STORAGE_KEYS.forEach((k) => sessionStorage.removeItem(k));
+    // Dọn sạch cả localStorage phòng trường hợp còn sót từ version cũ
     STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
     set({
       isAuthenticated: false,
@@ -65,9 +80,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   // Cập nhật profile mà không cần logout/login lại
   updateProfile: (data) => {
-    if (data.fullName  !== undefined) localStorage.setItem('fullName',  data.fullName);
-    if (data.avatarUrl !== undefined) localStorage.setItem('avatarUrl', data.avatarUrl);
-    if (data.phone     !== undefined) localStorage.setItem('userPhone', data.phone);
+    if (data.fullName  !== undefined) sessionStorage.setItem('fullName',  data.fullName);
+    if (data.avatarUrl !== undefined) sessionStorage.setItem('avatarUrl', data.avatarUrl);
+    if (data.phone     !== undefined) sessionStorage.setItem('userPhone', data.phone);
 
     set((prev) => ({
       fullName:  data.fullName  !== undefined ? data.fullName  : prev.fullName,

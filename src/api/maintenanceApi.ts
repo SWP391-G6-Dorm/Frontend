@@ -26,16 +26,12 @@ export interface PageResponse<T> {
 
 export const maintenanceApi = {
   createTicket: async (formData: FormData): Promise<{ success: boolean; data: MaintenanceTicket }> => {
-    const res = await api.post('/api/maintenance-tickets', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const res = await api.post('/api/v1/maintenance-tickets', formData);
     return res.data;
   },
 
   getCustomerTickets: async (params: { page?: number; size?: number; status?: string }): Promise<{ success: boolean; data: PageResponse<MaintenanceTicket> }> => {
-    const res = await api.get('/api/maintenance-tickets', { params });
+    const res = await api.get('/api/v1/maintenance-tickets/me', { params });
     return res.data;
   },
 
@@ -45,11 +41,7 @@ export const maintenanceApi = {
   },
 
   updateTicket: async (id: string, formData: FormData): Promise<{ success: boolean; data: MaintenanceTicket }> => {
-    const res = await api.put(`/api/maintenance-tickets/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const res = await api.put(`/api/maintenance-tickets/${id}`, formData);
     return res.data;
   },
 

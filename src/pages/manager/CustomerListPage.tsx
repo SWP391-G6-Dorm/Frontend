@@ -5,6 +5,7 @@ import ManagerLayout from '../../layouts/ManagerLayout';
 import { Badge } from './_sharedAdminData';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../../api/usersApi';
+import DataTable from '../../components/ui/DataTable';
 
 export function CustomerListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -85,6 +86,29 @@ export function CustomerListPage() {
 
   const list = data?.data?.content || [];
 
+  const columns = [
+    { header: 'Customer', accessor: (c: any) => (
+      <div>
+        <p style={{ fontWeight: 700, fontSize: 13, margin: 0 }}>{c.fullName}</p>
+        <p style={{ fontSize: 11, color: 'var(--ash)', margin: 0 }}>{c.email}</p>
+      </div>
+    )},
+    { header: 'Phone', accessor: (c: any) => <span className="text-charcoal">{c.phone || 'N/A'}</span> },
+    { header: 'Bookings', accessor: (c: any) => <span className="badge badge-neutral">{c.bookingCount} bookings</span> },
+    { header: 'Status', accessor: (c: any) => <Badge s={c.status} /> },
+    { header: 'Joined', accessor: (c: any) => <span className="text-charcoal">{new Date(c.createdAt).toLocaleDateString('en-US')}</span> },
+    { header: 'Actions', accessor: (c: any) => (
+      <div style={{ display: 'flex', gap: 4 }}>
+        <Link to={`/manager/customers/${c.id}`} className="btn-ghost btn-sm">View</Link>
+        {c.status === 'ACTIVE' ? (
+          <button className="btn-ghost btn-sm" style={{ color: 'var(--error)' }} onClick={() => statusMutation.mutate({ id: c.id, status: 'SUSPENDED' })} disabled={statusMutation.isPending}>Suspend</button>
+        ) : (
+          <button className="btn-ghost btn-sm" style={{ color: 'var(--success)' }} onClick={() => statusMutation.mutate({ id: c.id, status: 'ACTIVE' })} disabled={statusMutation.isPending}>Activate</button>
+        )}
+      </div>
+    )}
+  ];
+
   return (
     <ManagerLayout>
       <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
@@ -115,44 +139,18 @@ export function CustomerListPage() {
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr><th>Customer</th><th>Phone</th><th>Bookings</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20 }}>Loading...</td></tr>
-            ) : isError ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20, color: 'var(--error)' }}>Error loading data</td></tr>
-            ) : list.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20 }}>No customers found</td></tr>
-            ) : (
-              list.map((c: any) => (
-                <tr key={c.id}>
-                  <td>
-                    <p style={{ fontWeight: 700, fontSize: 13 }}>{c.fullName}</p>
-                    <p style={{ fontSize: 11, color: 'var(--ash)' }}>{c.email}</p>
-                  </td>
-                  <td className="text-charcoal">{c.phone || 'N/A'}</td>
-                  <td><span className="badge badge-neutral">{c.bookingCount} bookings</span></td>
-                  <td><Badge s={c.status} /></td>
-                  <td className="text-charcoal">{new Date(c.createdAt).toLocaleDateString('en-US')}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <Link to={`/manager/customers/${c.id}`} className="btn-ghost btn-sm">View</Link>
-                      {c.status === 'ACTIVE' ? (
-                        <button className="btn-ghost btn-sm" style={{ color: 'var(--error)' }} onClick={() => statusMutation.mutate({ id: c.id, status: 'SUSPENDED' })} disabled={statusMutation.isPending}>Suspend</button>
-                      ) : (
-                        <button className="btn-ghost btn-sm" style={{ color: 'var(--success)' }} onClick={() => statusMutation.mutate({ id: c.id, status: 'ACTIVE' })} disabled={statusMutation.isPending}>Activate</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div style={{ marginBottom: 20 }}>
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>Loading...</div>
+        ) : isError ? (
+          <div style={{ textAlign: 'center', padding: 48, color: 'var(--error)' }}>Error loading data</div>
+        ) : (
+          <DataTable 
+            columns={columns}
+            data={list}
+            keyExtractor={(c) => c.id}
+          />
+        )}
       </div>
 
       {data?.data && data.data.totalPages > 1 && (
