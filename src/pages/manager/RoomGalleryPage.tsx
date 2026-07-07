@@ -1,195 +1,161 @@
 import { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
+import Alert from '../../components/ui/Alert';
 import {
   GalleryImage,
-  fetchGalleryImages,
-  uploadRoomImages,
-  setPrimaryImage,
-  deleteRoomImage,
+  fetchGalleryImagesV1,
+  uploadRoomImagesV1,
+  setPrimaryImageV1,
+  deleteRoomImageV1,
+  reorderRoomImagesV1,
 } from '../../api/galleryApi';
 
-// ── Constants ──────────────────────────────────────────────────────────────────
-
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-
-// ── Validation ────────────────────────────────────────────────────────────────
+const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 
 function validateFiles(files: File[]): string | null {
   for (const file of files) {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return `"${file.name}" is not a valid format. Use JPG, PNG or WebP.`;
+      return `"${file.name}" không đúng định dạng. Chỉ chấp nhận JPG, PNG hoặc WebP.`;
     }
     if (file.size > MAX_SIZE_BYTES) {
-      return `"${file.name}" exceeds 5 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`;
+      return `"${file.name}" vượt quá 5 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`;
     }
   }
   return null;
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
 function LoadingSkeleton() {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-      {[1, 2, 3, 4, 5, 6].map(i => (
-        <div
-          key={i}
-          style={{
-            aspectRatio: '1',
-            borderRadius: 12,
-            background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.4s infinite',
-          }}
-        />
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="aspect-square rounded-lg bg-[#F1F5F9] animate-pulse" />
       ))}
     </div>
   );
 }
 
-function EmptyState({ onUpload }: { onUpload: () => void }) {
+function ConfirmModal({
+  open,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading?: boolean;
+}) {
+  if (!open) return null;
   return (
-    <div style={{ textAlign: 'center', padding: '60px 24px' }}>
-      <div style={{ fontSize: 56, marginBottom: 16 }}>📷</div>
-      <h2 className="heading-sm" style={{ marginBottom: 8 }}>No images yet</h2>
-      <p className="body-md" style={{ color: 'var(--charcoal)', marginBottom: 24 }}>
-        Upload the first photo to showcase this room.
-      </p>
-      <button className="btn-primary" onClick={onUpload}>
-        + Upload First Photo
-      </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="card p-6 max-w-sm w-full">
+        <h3 className="font-semibold text-[#0F172A] mb-2">{title}</h3>
+        <p className="text-sm text-[#64748B] mb-6">{message}</p>
+        <div className="flex gap-3 justify-end">
+          <button type="button" className="btn-ghost" onClick={onCancel} disabled={loading}>
+            Hủy
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            style={{ background: '#DC2626', borderColor: '#DC2626' }}
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? 'Đang xóa…' : 'Xóa'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-// Image card with hover overlay
 function ImageCard({
   image,
+  index,
   onSetPrimary,
   onDelete,
+  onDragStart,
+  onDragOver,
+  onDrop,
   settingPrimaryId,
   deletingId,
+  dragOverIndex,
 }: {
   image: GalleryImage;
+  index: number;
   onSetPrimary: (id: string) => void;
   onDelete: (id: string) => void;
+  onDragStart: (index: number) => void;
+  onDragOver: (e: DragEvent, index: number) => void;
+  onDrop: (index: number) => void;
   settingPrimaryId: string | null;
   deletingId: string | null;
+  dragOverIndex: number | null;
 }) {
   const [hovered, setHovered] = useState(false);
   const isProcessing = settingPrimaryId === image.id || deletingId === image.id;
 
   return (
     <div
-      style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', cursor: 'default', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}
+      draggable={!isProcessing}
+      onDragStart={() => onDragStart(index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDrop={() => onDrop(index)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className={`relative aspect-square rounded-lg overflow-hidden shadow-sm cursor-grab active:cursor-grabbing ${
+        dragOverIndex === index ? 'ring-2 ring-primary' : ''
+      }`}
     >
-      {/* Image */}
       <img
         src={image.imageUrl}
-        alt="Room"
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        alt="Phòng"
+        className="w-full h-full object-cover block"
         loading="lazy"
-        onError={e => {
-            const target = e.currentTarget as HTMLImageElement;
-            target.onerror = null; // prevent infinite loop
-            target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='14' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
-          }}
+        draggable={false}
+        onError={(e) => {
+          const target = e.currentTarget;
+          target.onerror = null;
+          target.src =
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='14'%3EẢnh lỗi%3C/text%3E%3C/svg%3E";
+        }}
       />
 
-      {/* Primary badge */}
       {image.isPrimary && (
-        <div style={{ position: 'absolute', top: 8, left: 8 }}>
-          <span
-            style={{
-              background: '#2b9a66',
-              color: '#fff',
-              fontSize: 11,
-              fontWeight: 700,
-              borderRadius: 9999,
-              padding: '3px 10px',
-              letterSpacing: 0.3,
-            }}
-          >
-            PRIMARY
-          </span>
-        </div>
+        <span className="absolute top-2 left-2 bg-[#2b9a66] text-white text-[11px] font-bold rounded-full px-2.5 py-0.5">
+          Ảnh đại diện
+        </span>
       )}
 
-      {/* Processing spinner overlay */}
       {isProcessing && (
-        <div
-          style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(0,0,0,0.45)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <span className="spinner" style={{ width: 28, height: 28, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />
+        <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
+          <span className="spinner w-7 h-7 border-white/30 border-t-white" />
         </div>
       )}
 
-      {/* Hover action overlay */}
       {hovered && !isProcessing && (
-        <div
-          style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(0,0,0,0.48)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            transition: 'opacity 0.15s',
-          }}
-        >
-          {/* Set Primary button */}
+        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2">
           {!image.isPrimary && (
             <button
+              type="button"
               onClick={() => onSetPrimary(image.id)}
-              style={{
-                background: 'rgba(255,255,255,0.92)',
-                border: 'none',
-                borderRadius: 8,
-                padding: '7px 14px',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                color: '#1a1a1a',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-              }}
+              className="bg-white/90 border-0 rounded-lg px-3 py-1.5 text-xs font-semibold cursor-pointer"
             >
-              ☆ Set Primary
+              ☆ Đặt làm đại diện
             </button>
           )}
-
-          {/* Delete button */}
           <button
+            type="button"
             onClick={() => onDelete(image.id)}
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: 'rgba(220,38,38,0.90)',
-              border: 'none',
-              borderRadius: '50%',
-              width: 30,
-              height: 30,
-              cursor: 'pointer',
-              color: '#fff',
-              fontSize: 16,
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              lineHeight: 1,
-            }}
-            title="Delete image"
+            className="absolute top-2 right-2 bg-red-600/90 border-0 rounded-full w-7 h-7 text-white text-lg font-bold cursor-pointer flex items-center justify-center"
+            title="Xóa ảnh"
           >
             ×
           </button>
@@ -199,136 +165,70 @@ function ImageCard({
   );
 }
 
-// Upload drop zone
-function DropZone({
-  dragOver,
-  uploading,
-  uploadingCount,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  onClick,
-}: {
-  dragOver: boolean;
-  uploading: boolean;
-  uploadingCount: number;
-  onDragOver: (e: DragEvent) => void;
-  onDragLeave: () => void;
-  onDrop: (e: DragEvent) => void;
-  onClick: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-      style={{
-        border: `2px dashed ${dragOver ? '#D41B2C' : 'var(--hairline)'}`,
-        borderRadius: 12,
-        padding: '28px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        cursor: uploading ? 'not-allowed' : 'pointer',
-        background: dragOver ? 'rgba(212,27,44,0.04)' : 'var(--surface-bone)',
-        transition: 'all 0.15s ease',
-        marginBottom: 24,
-        userSelect: 'none',
-      }}
-    >
-      {uploading ? (
-        <>
-          <span className="spinner" style={{ width: 24, height: 24 }} />
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--charcoal)' }}>
-            Uploading {uploadingCount} file{uploadingCount !== 1 ? 's' : ''}…
-          </p>
-        </>
-      ) : dragOver ? (
-        <>
-          <span style={{ fontSize: 32 }}>📂</span>
-          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>Drop files here</p>
-        </>
-      ) : (
-        <>
-          <span style={{ fontSize: 32 }}>📷</span>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--charcoal)' }}>
-            Drag & drop JPG / PNG / WebP here, or click to select
-          </p>
-          <p className="body-sm" style={{ color: 'var(--stone)' }}>Max 5 MB per file</p>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── Main Page ──────────────────────────────────────────────────────────────────
-
 export default function RoomGalleryPage() {
   const { id } = useParams<{ id: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  const [roomName, setRoomName] = useState('');
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [roomName, setRoomName]         = useState('');
-  const [images, setImages]             = useState<GalleryImage[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [loadError, setLoadError]       = useState('');
-
-  const [uploading, setUploading]       = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [uploadingCount, setUploadingCount] = useState(0);
-  const [uploadError, setUploadError]   = useState('');
-  const [dragOver, setDragOver]         = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fileDragOver, setFileDragOver] = useState(false);
 
   const [settingPrimaryId, setSettingPrimaryId] = useState<string | null>(null);
-  const [deletingId, setDeletingId]             = useState<string | null>(null);
-  const [actionError, setActionError]           = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  // ── Load images on mount ──────────────────────────────────────────────────
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [reordering, setReordering] = useState(false);
 
   const loadImages = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    setLoadError('');
+    setLoadError(null);
     try {
-      const data = await fetchGalleryImages(id);
+      const data = await fetchGalleryImagesV1(id);
       setRoomName(data.roomName);
       setImages(data.images.sort((a, b) => a.sortOrder - b.sortOrder));
-    } catch (err: any) {
-      setLoadError(err?.response?.data?.message ?? 'Failed to load gallery.');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setLoadError(axiosErr?.response?.data?.message ?? 'Không tải được thư viện ảnh.');
     } finally {
       setLoading(false);
     }
   }, [id]);
 
-  useEffect(() => { loadImages(); }, [loadImages]);
-
-  // ── Upload ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    loadImages();
+  }, [loadImages]);
 
   async function handleUpload(files: File[]) {
     if (!id || files.length === 0) return;
 
-    setUploadError('');
-    const err = validateFiles(files);
-    if (err) { setUploadError(err); return; }
+    setError(null);
+    const validationError = validateFiles(files);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setUploading(true);
     setUploadingCount(files.length);
     try {
-      // First-ever upload → backend auto-sets primary via isFirstEver logic
-      const newImages = await uploadRoomImages(id, files);
-      setImages(prev => {
-        // If any of newImages is primary, clear previous primary in local state
-        const hasPrimaryInNew = newImages.some(i => i.isPrimary);
-        const updated = hasPrimaryInNew
-          ? prev.map(i => ({ ...i, isPrimary: false }))
-          : [...prev];
+      const newImages = await uploadRoomImagesV1(id, files);
+      setImages((prev) => {
+        const hasPrimaryInNew = newImages.some((i) => i.isPrimary);
+        const updated = hasPrimaryInNew ? prev.map((i) => ({ ...i, isPrimary: false })) : [...prev];
         return [...updated, ...newImages].sort((a, b) => a.sortOrder - b.sortOrder);
       });
-    } catch (err: any) {
-      setUploadError(err?.response?.data?.message ?? 'Upload failed. Please try again.');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr?.response?.data?.message ?? 'Tải ảnh thất bại. Vui lòng thử lại.');
     } finally {
       setUploading(false);
       setUploadingCount(0);
@@ -338,211 +238,246 @@ export default function RoomGalleryPage() {
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (files.length > 0) handleUpload(files);
-    e.target.value = ''; // reset so same file can be re-selected
+    e.target.value = '';
   }
 
-  function handleDragOver(e: DragEvent) {
+  function handleFileDragOver(e: DragEvent) {
     e.preventDefault();
-    setDragOver(true);
+    setFileDragOver(true);
   }
 
-  function handleDragLeave() {
-    setDragOver(false);
-  }
-
-  function handleDrop(e: DragEvent) {
+  function handleFileDrop(e: DragEvent) {
     e.preventDefault();
-    setDragOver(false);
+    setFileDragOver(false);
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) handleUpload(files);
   }
 
-  // ── Set Primary ───────────────────────────────────────────────────────────
-
   async function handleSetPrimary(imageId: string) {
-    setActionError('');
+    if (!id) return;
+    setError(null);
     setSettingPrimaryId(imageId);
     try {
-      await setPrimaryImage(imageId);
-      // Optimistic update — clear all, set this one
-      setImages(prev => prev.map(img => ({ ...img, isPrimary: img.id === imageId })));
-    } catch (err: any) {
-      setActionError(err?.response?.data?.message ?? 'Failed to set primary image.');
+      await setPrimaryImageV1(id, imageId);
+      setImages((prev) => prev.map((img) => ({ ...img, isPrimary: img.id === imageId })));
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr?.response?.data?.message ?? 'Không thể đặt ảnh đại diện.');
     } finally {
       setSettingPrimaryId(null);
     }
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
-
-  async function handleDelete(imageId: string) {
-    if (!window.confirm('Delete this image? This cannot be undone.')) return;
-    setActionError('');
-    setDeletingId(imageId);
+  async function confirmDelete() {
+    if (!id || !deleteTarget) return;
+    setError(null);
+    setDeletingId(deleteTarget);
     try {
-      await deleteRoomImage(imageId);
-      setImages(prev => prev.filter(img => img.id !== imageId));
-    } catch (err: any) {
-      setActionError(err?.response?.data?.message ?? 'Failed to delete image.');
+      await deleteRoomImageV1(id, deleteTarget);
+      const remaining = images.filter((img) => img.id !== deleteTarget);
+      const hadPrimary = images.find((img) => img.id === deleteTarget)?.isPrimary;
+      if (hadPrimary && remaining.length > 0 && !remaining.some((i) => i.isPrimary)) {
+        remaining[0] = { ...remaining[0], isPrimary: true };
+      }
+      setImages(remaining);
+      setDeleteTarget(null);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr?.response?.data?.message ?? 'Xóa ảnh thất bại.');
     } finally {
       setDeletingId(null);
     }
   }
 
-  // ── Render: Load error ───────────────────────────────────────────────────
+  function handleImageDragStart(index: number) {
+    setDragIndex(index);
+  }
+
+  function handleImageDragOver(e: DragEvent, index: number) {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }
+
+  async function handleImageDrop(targetIndex: number) {
+    if (!id || dragIndex === null || dragIndex === targetIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const prev = [...images];
+    const reordered = [...images];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+    const withOrder = reordered.map((img, i) => ({ ...img, sortOrder: i }));
+
+    setImages(withOrder);
+    setDragIndex(null);
+    setDragOverIndex(null);
+    setReordering(true);
+
+    try {
+      const result = await reorderRoomImagesV1(
+        id,
+        withOrder.map((img) => img.id),
+      );
+      setImages(result.sort((a, b) => a.sortOrder - b.sortOrder));
+    } catch (err: unknown) {
+      setImages(prev);
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr?.response?.data?.message ?? 'Sắp xếp ảnh thất bại.');
+    } finally {
+      setReordering(false);
+    }
+  }
+
+  const primaryCount = images.filter((i) => i.isPrimary).length;
 
   if (loadError) {
     return (
       <ManagerLayout>
-        <div className="card" style={{ padding: 40, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
-          <h2 className="heading-sm" style={{ marginBottom: 8 }}>Failed to load gallery</h2>
-          <p className="body-md" style={{ color: 'var(--charcoal)', marginBottom: 24 }}>{loadError}</p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <button className="btn-primary" onClick={loadImages}>Retry</button>
-            <Link to="/manager/rooms" className="btn-ghost">Back to Rooms</Link>
+        <div className="card p-10 text-center max-w-md mx-auto">
+          <Alert variant="error" message={loadError} />
+          <div className="flex gap-3 justify-center mt-6">
+            <button type="button" className="btn-primary" onClick={loadImages}>
+              Thử lại
+            </button>
+            <Link to="/manager/rooms" className="btn-ghost">
+              Quay lại
+            </Link>
           </div>
         </div>
       </ManagerLayout>
     );
   }
 
-  // ── Render: Main ─────────────────────────────────────────────────────────
-
-  const primaryCount = images.filter(i => i.isPrimary).length;
-
   return (
     <ManagerLayout>
-      {/* Hidden file input */}
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Xóa ảnh?"
+        message="Hành động này không thể hoàn tác. Ảnh sẽ bị xóa vĩnh viễn."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deletingId !== null}
+      />
+
       <input
         ref={fileInputRef}
         type="file"
         accept=".jpg,.jpeg,.png,.webp"
         multiple
-        style={{ display: 'none' }}
+        className="hidden"
         onChange={handleFileInput}
       />
 
-      {/* ── Breadcrumb ── */}
-      <div className="flex items-center gap-2 body-sm" style={{ marginBottom: 20, color: 'var(--charcoal)' }}>
-        <Link to="/manager/rooms" className="text-primary" style={{ textDecoration: 'none' }}>Rooms</Link>
-        <span style={{ color: 'var(--stone)' }}>›</span>
-        <Link to={`/manager/rooms/${id}`} className="text-primary" style={{ textDecoration: 'none' }}>
-          {roomName || id}
+      <div className="flex items-center gap-2 text-sm text-[#64748B] mb-5">
+        <Link to="/manager/rooms" className="text-primary no-underline hover:underline">
+          Danh sách phòng
         </Link>
-        <span style={{ color: 'var(--stone)' }}>›</span>
-        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>Gallery</span>
+        <span>›</span>
+        <span className="text-[#64748B]">{roomName || id}</span>
+        <span>›</span>
+        <span className="font-semibold text-[#0F172A]">Thư viện ảnh</span>
       </div>
 
-      {/* ── Header row ── */}
-      <div
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}
-      >
-        <div>
-          <h1 className="heading-md" style={{ marginBottom: 4 }}>
-            Room Gallery: {roomName}
-          </h1>
-          {!loading && images.length > 0 && (
-            <p className="body-sm" style={{ color: 'var(--charcoal)' }}>
-              {images.length} image{images.length !== 1 ? 's' : ''} total
-              {primaryCount > 0 ? ' · 1 primary set' : ' · ⚠ No primary set'}
+      <div className="card p-8 max-w-4xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="heading-md mb-1">Thư viện ảnh — Phòng {roomName}</h1>
+            {!loading && images.length > 0 && (
+              <p className="text-sm text-[#64748B]">
+                {images.length} ảnh
+                {primaryCount > 0 ? ' · Đã có ảnh đại diện' : ' · Chưa có ảnh đại diện'}
+                {reordering ? ' · Đang sắp xếp…' : ''}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            + Tải ảnh lên
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-5">
+            <Alert variant="error" message={error} closeable onClose={() => setError(null)} />
+          </div>
+        )}
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+          onDragOver={handleFileDragOver}
+          onDragLeave={() => setFileDragOver(false)}
+          onDrop={handleFileDrop}
+          className={`border-2 border-dashed rounded-xl p-8 mb-6 text-center cursor-pointer transition-colors ${
+            fileDragOver ? 'border-primary bg-primary/5' : 'border-[#E2E8F0] bg-[#F8FAFC]'
+          } ${uploading ? 'opacity-60 cursor-not-allowed' : ''}`}
+        >
+          {uploading ? (
+            <p className="text-sm font-medium text-[#64748B]">
+              Đang tải {uploadingCount} ảnh…
             </p>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-[#334155] mb-1">
+                Kéo thả JPG / PNG / WebP vào đây, hoặc bấm để chọn
+              </p>
+              <p className="text-xs text-[#94A3B8]">Tối đa 5 MB mỗi ảnh</p>
+            </>
           )}
         </div>
-        <button
-          id="scr43-upload-btn"
-          className="btn-primary"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          + Upload Images
-        </button>
-      </div>
 
-      {/* ── Error banners ── */}
-      {(uploadError || actionError) && (
-        <div
-          style={{
-            background: '#FEF2F2',
-            border: '1px solid #FECACA',
-            borderRadius: 10,
-            padding: '12px 16px',
-            marginBottom: 20,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 10,
-          }}
-        >
-          <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-          <div>
-            <p style={{ fontSize: 14, color: '#991B1B', fontWeight: 500 }}>
-              {uploadError || actionError}
-            </p>
-            <button
-              style={{ fontSize: 12, color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 2 }}
-              onClick={() => { setUploadError(''); setActionError(''); }}
-            >
-              Dismiss ×
+        {loading ? (
+          <LoadingSkeleton />
+        ) : images.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-5xl mb-4">📷</p>
+            <h2 className="font-semibold text-[#0F172A] mb-2">Chưa có ảnh nào</h2>
+            <p className="text-sm text-[#64748B] mb-6">Tải ảnh đầu tiên để giới thiệu phòng.</p>
+            <button type="button" className="btn-primary" onClick={() => fileInputRef.current?.click()}>
+              + Tải ảnh đầu tiên
             </button>
           </div>
-        </div>
-      )}
-
-      {/* ── Upload drop zone ── */}
-      <DropZone
-        dragOver={dragOver}
-        uploading={uploading}
-        uploadingCount={uploadingCount}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => !uploading && fileInputRef.current?.click()}
-      />
-
-      {/* ── Gallery grid or states ── */}
-      {loading ? (
-        <LoadingSkeleton />
-      ) : images.length === 0 ? (
-        <EmptyState onUpload={() => fileInputRef.current?.click()} />
-      ) : (
-        <>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: 16,
-            }}
-          >
-            {images.map(img => (
-              <ImageCard
-                key={img.id}
-                image={img}
-                onSetPrimary={handleSetPrimary}
-                onDelete={handleDelete}
-                settingPrimaryId={settingPrimaryId}
-                deletingId={deletingId}
-              />
-            ))}
-          </div>
-
-          {/* Hint */}
-          {primaryCount === 0 && images.length > 0 && (
-            <div
-              style={{
-                background: '#FFF7ED',
-                border: '1px solid #FED7AA',
-                borderRadius: 10,
-                padding: '10px 16px',
-                marginTop: 20,
-              }}
-            >
-              <p style={{ fontSize: 13, color: '#92400E' }}>
-                ⚠ No primary image set. Hover over an image and click "☆ Set Primary" to choose the cover photo.
-              </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {images.map((img, index) => (
+                <ImageCard
+                  key={img.id}
+                  image={img}
+                  index={index}
+                  onSetPrimary={handleSetPrimary}
+                  onDelete={setDeleteTarget}
+                  onDragStart={handleImageDragStart}
+                  onDragOver={handleImageDragOver}
+                  onDrop={handleImageDrop}
+                  settingPrimaryId={settingPrimaryId}
+                  deletingId={deletingId}
+                  dragOverIndex={dragOverIndex}
+                />
+              ))}
             </div>
-          )}
-        </>
-      )}
+
+            {primaryCount === 0 && (
+              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-5">
+                Chưa có ảnh đại diện. Di chuột vào ảnh và chọn &quot;Đặt làm đại diện&quot;.
+              </p>
+            )}
+
+            <p className="text-xs text-[#94A3B8] mt-4">
+              Kéo thả ảnh để thay đổi thứ tự hiển thị.
+            </p>
+          </>
+        )}
+      </div>
     </ManagerLayout>
   );
 }
