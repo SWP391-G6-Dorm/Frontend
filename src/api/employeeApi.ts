@@ -72,7 +72,7 @@ export async function updateMaintenanceTicketStatus(
   await api.put(`/api/v1/employees/maintenance/${id}/status`, { status });
 }
 
-// ── SCR-62: Room Inspection ──────────────────────────────────────────────────
+// ── SCR-62: Room Inspection Hub ──────────────────────────────────────────────
 
 export interface InspectionChecklist {
   tv: boolean;
@@ -82,13 +82,38 @@ export interface InspectionChecklist {
   beds: boolean;
 }
 
-export async function submitRoomInspection(payload: {
+export interface InspectionSummary {
+  id: string;
   roomId: string;
-  status: 'PASS' | 'FAIL';
-  checklist: InspectionChecklist;
-  notes?: string;
-}): Promise<{ success: boolean }> {
-  const res = await api.post('/api/v1/employees/inspections', payload);
+  roomNumber?: string;
+  roomName?: string;
+  bookingId?: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'PASSED' | 'FAILED_WITH_DAMAGE';
+  createdAt?: string;
+  note?: string | null;
+}
+
+export async function getEmployeeInspections(params?: {
+  page?: number;
+  size?: number;
+}): Promise<{ success: boolean; data: { content: InspectionSummary[]; totalPages: number } }> {
+  const res = await api.get('/api/v1/employees/inspections', { params });
+  return res.data;
+}
+
+export async function passInspection(
+  id: string,
+  body?: { notes?: string; checklist?: InspectionChecklist },
+): Promise<{ success: boolean; data?: InspectionSummary }> {
+  const res = await api.post(`/api/v1/employees/inspections/${id}/pass`, body ?? {});
+  return res.data;
+}
+
+export async function failInspection(
+  id: string,
+  body: { notes: string; checklist?: InspectionChecklist },
+): Promise<{ success: boolean; data?: InspectionSummary }> {
+  const res = await api.post(`/api/v1/employees/inspections/${id}/fail`, body);
   return res.data;
 }
 

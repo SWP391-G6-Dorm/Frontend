@@ -55,6 +55,10 @@ import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
 import BookingCheckInOutPage from './pages/manager/BookingCheckInOutPage';
 import HousekeepingSchedulePage from './pages/manager/HousekeepingSchedulePage';
 import HousekeepingTasksPage from './pages/manager/HousekeepingTasksPage';
+import MaintenanceTasksPage from './pages/manager/MaintenanceTasksPage';
+import InspectionsPage from './pages/manager/InspectionsPage';
+import DamageReportsPage from './pages/manager/DamageReportsPage';
+import PropertyReportsPage from './pages/manager/PropertyReportsPage';
 import EmployeeMgmtPage from './pages/manager/EmployeeMgmtPage';
 import PaymentMgmtListPage from './pages/manager/PaymentMgmtListPage';
 import PaymentMgmtVerificationPage from './pages/manager/PaymentMgmtVerificationPage';
@@ -282,11 +286,27 @@ function App() {
         <Route path="/manager/complaints/:id"
           element={<ProtectedRoute role="MANAGER"><ComplaintDetailPage /></ProtectedRoute>} />
 
+        {/* Maintenance Tasks (SCR-41) */}
+        <Route path="/manager/maintenance/tasks"
+          element={<ProtectedRoute role="MANAGER"><MaintenanceTasksPage /></ProtectedRoute>} />
+
+        {/* Inspection Management (SCR-42) */}
+        <Route path="/manager/inspections"
+          element={<ProtectedRoute role="MANAGER"><InspectionsPage /></ProtectedRoute>} />
+
+        {/* Damage Report Management (SCR-43) */}
+        <Route path="/manager/damage-reports"
+          element={<ProtectedRoute role="MANAGER"><DamageReportsPage /></ProtectedRoute>} />
+
         {/* Maintenance (SCR-57,58) */}
         <Route path="/manager/maintenance"
           element={<ProtectedRoute role="MANAGER"><MaintenanceMgmtListPage /></ProtectedRoute>} />
         <Route path="/manager/maintenance/:id"
           element={<ProtectedRoute role="MANAGER"><MaintenanceMgmtDetailPage /></ProtectedRoute>} />
+
+        {/* Property Reports (SCR-44) — gộp Doanh thu · Lấp đầy · Xu hướng theo Tabs */}
+        <Route path="/manager/reports/property"
+          element={<ProtectedRoute role="MANAGER"><PropertyReportsPage /></ProtectedRoute>} />
 
         {/* Reports (SCR-59,60,61) */}
         <Route path="/manager/reports"

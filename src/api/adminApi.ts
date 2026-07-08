@@ -77,14 +77,30 @@ export interface AdminComplaint {
   createdAt: string;
 }
 
+/** Banner promotion — khop entity Promotion / Manager PromotionItem (SCR-57/58) */
 export interface Promotion {
   id: string;
-  code: string;
-  discountPercent: number;
-  imageUrl?: string;
-  startDate?: string;
-  endDate?: string;
+  subtitle: string;
+  title: string;
+  description?: string;
+  ctaText: string;
+  ctaUrl: string;
+  colorTheme: string;
+  isActive: boolean;
+  sortOrder: number;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface PromotionPayload {
+  subtitle: string;
+  title: string;
+  description?: string;
+  ctaText: string;
+  ctaUrl: string;
+  colorTheme: string;
+  isActive: boolean;
+  sortOrder: number;
 }
 
 export interface SystemSettings {
@@ -233,14 +249,14 @@ export async function getAdminPromotions(params?: { page?: number; size?: number
 
 // ── SCR-58: Add / Edit Promotion ──────────────────────────────────────────────
 
-/** POST /api/admin/promotions */
-export async function createPromotion(payload: { code: string; discountPercent: number; imageUrl?: string; startDate?: string; endDate?: string }): Promise<{ success: boolean; data: Promotion }> {
+/** POST /api/admin/promotions — SCR-58 (BE may not exist yet) */
+export async function createPromotion(payload: PromotionPayload): Promise<{ success: boolean; data: Promotion }> {
   const res = await api.post('/api/admin/promotions', payload);
   return res.data;
 }
 
-/** PUT /api/admin/promotions/{id} */
-export async function updatePromotion(id: string, payload: { code?: string; discountPercent?: number; imageUrl?: string; startDate?: string; endDate?: string }): Promise<{ success: boolean }> {
+/** PUT /api/admin/promotions/{id} — SCR-58 (BE may not exist yet) */
+export async function updatePromotion(id: string, payload: Partial<PromotionPayload>): Promise<{ success: boolean }> {
   const res = await api.put(`/api/admin/promotions/${id}`, payload);
   return res.data;
 }

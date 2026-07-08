@@ -1319,10 +1319,11 @@ export function PromotionAdminListPage() {
   useEffect(() => { load(0); }, [load]);
 
   const columns = [
-    { header: 'Code', accessor: (p: Promotion) => <span className="badge badge-success">{p.code}</span> },
-    { header: 'Giảm giá', accessor: (p: Promotion) => <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{p.discountPercent}%</span> },
-    { header: 'Ngày bắt đầu', accessor: (p: Promotion) => fmtDate(p.startDate || '') },
-    { header: 'Ngày kết thúc', accessor: (p: Promotion) => fmtDate(p.endDate || '') },
+    { header: 'Title', accessor: (p: Promotion) => <span style={{ fontWeight: 600 }}>{p.title}</span> },
+    { header: 'Subtitle', accessor: (p: Promotion) => <span className="body-sm text-charcoal">{p.subtitle}</span> },
+    { header: 'Theme', accessor: (p: Promotion) => <span className="badge badge-info">{p.colorTheme}</span> },
+    { header: 'Active', accessor: (p: Promotion) => <StatusBadge status={p.isActive ? 'ACTIVE' : 'INACTIVE'} /> },
+    { header: 'Sort', accessor: (p: Promotion) => p.sortOrder },
     { header: 'Ngày tạo', accessor: (p: Promotion) => fmtDate(p.createdAt) }
   ];
 
@@ -1392,13 +1393,19 @@ export function AddEditPromotionPage() {
   const isEdit = !!id;
 
   const [form, setForm] = useState({
-    code: '', discountPercent: 10, imageUrl: '', startDate: '', endDate: '',
+    subtitle: '',
+    title: '',
+    description: '',
+    ctaText: 'Dat ngay',
+    ctaUrl: '/search',
+    colorTheme: 'red',
+    isActive: true,
+    sortOrder: 0,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
   const [error, setError] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -1409,13 +1416,15 @@ export function AddEditPromotionPage() {
         const promo = res.data?.content?.find(p => p.id === id);
         if (promo) {
           setForm({
-            code: promo.code,
-            discountPercent: promo.discountPercent,
-            imageUrl: promo.imageUrl || '',
-            startDate: promo.startDate || '',
-            endDate: promo.endDate || '',
+            subtitle: promo.subtitle || '',
+            title: promo.title || '',
+            description: promo.description || '',
+            ctaText: promo.ctaText || 'Dat ngay',
+            ctaUrl: promo.ctaUrl || '/search',
+            colorTheme: promo.colorTheme || 'red',
+            isActive: promo.isActive ?? true,
+            sortOrder: promo.sortOrder ?? 0,
           });
-          setImagePreview(promo.imageUrl || '');
         }
       } catch { /* silent */ }
       finally { setFetching(false); }
@@ -1425,10 +1434,11 @@ export function AddEditPromotionPage() {
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!form.code.trim()) e.code = 'Mã không được để trống';
-    if (!/^[A-Z0-9_-]+$/.test(form.code.trim())) e.code = 'Mã chỉ được dùng chữ hoa, số, - hoặc _';
-    if (form.discountPercent < 1 || form.discountPercent > 100) e.discountPercent = 'Giảm giá phải từ 1% đến 100%';
-    if (form.startDate && form.endDate && form.endDate < form.startDate) e.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
+    if (!form.subtitle.trim()) e.subtitle = 'Subtitle bat buoc';
+    if (!form.title.trim()) e.title = 'Title bat buoc';
+    if (!form.ctaText.trim()) e.ctaText = 'CTA text bat buoc';
+    if (!form.ctaUrl.trim()) e.ctaUrl = 'CTA URL bat buoc';
+    if (!form.colorTheme.trim()) e.colorTheme = 'Theme bat buoc';
     return e;
   }
 
@@ -1439,19 +1449,22 @@ export function AddEditPromotionPage() {
     setErrors({}); setError(null); setLoading(true);
     try {
       const payload = {
-        code: form.code.trim(),
-        discountPercent: form.discountPercent,
-        imageUrl: form.imageUrl.trim() || undefined,
-        startDate: form.startDate || undefined,
-        endDate: form.endDate || undefined,
+        subtitle: form.subtitle.trim(),
+        title: form.title.trim(),
+        description: form.description.trim() || undefined,
+        ctaText: form.ctaText.trim(),
+        ctaUrl: form.ctaUrl.trim(),
+        colorTheme: form.colorTheme.trim(),
+        isActive: form.isActive,
+        sortOrder: form.sortOrder,
       };
       if (isEdit && id) {
         await updatePromotion(id, payload);
       } else {
-        await createPromotion(payload as { code: string; discountPercent: number });
+        await createPromotion(payload);
       }
       navigate('/admin/promotions');
-    } catch (err) { setError(extractApiError(err, `${isEdit ? 'Cập nhật' : 'Tạo'} promotion thất bại.`)); }
+    } catch (err) { setError(extractApiError(err, `${isEdit ? 'Cap nhat' : 'Tao'} promotion that bai.`)); }
     finally { setLoading(false); }
   }
 
@@ -1463,61 +1476,68 @@ export function AddEditPromotionPage() {
           <h1 style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 700, color: 'var(--ink)', marginTop: 8, marginBottom: 4 }}>
             {isEdit ? 'Edit Promotion' : 'Add Promotion'}
           </h1>
-          <p className="body-sm text-charcoal">SCR-58 — {isEdit ? 'PUT' : 'POST'} /api/admin/promotions</p>
+          <p className="body-sm text-charcoal">SCR-58 — banner form (POST/PUT BE may come later)</p>
         </div>
         {error && <ErrorBanner msg={error} />}
         {fetching ? <Spinner /> : (
           <form onSubmit={handleSubmit} className="card" style={{ padding: 28 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
-                <label className="form-label form-label-required" htmlFor="promo-code">Mã khuyến mãi</label>
-                <input id="promo-code" className={`input ${errors.code ? 'input-error' : ''}`}
-                  placeholder="VD: SUMMER2026"
-                  value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} />
-                {errors.code && <p className="form-error">{errors.code}</p>}
+                <label className="form-label form-label-required" htmlFor="promo-subtitle">Subtitle</label>
+                <input id="promo-subtitle" className={`input ${errors.subtitle ? 'input-error' : ''}`}
+                  value={form.subtitle} onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))} />
+                {errors.subtitle && <p className="form-error">{errors.subtitle}</p>}
               </div>
               <div>
-                <label className="form-label form-label-required" htmlFor="promo-discount">Giảm giá (%)</label>
-                <input id="promo-discount" type="number" className={`input ${errors.discountPercent ? 'input-error' : ''}`}
-                  min={1} max={100} value={form.discountPercent}
-                  onChange={e => setForm(f => ({ ...f, discountPercent: Number(e.target.value) }))} />
-                {errors.discountPercent && <p className="form-error">{errors.discountPercent}</p>}
+                <label className="form-label form-label-required" htmlFor="promo-title">Title</label>
+                <input id="promo-title" className={`input ${errors.title ? 'input-error' : ''}`}
+                  value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+                {errors.title && <p className="form-error">{errors.title}</p>}
               </div>
               <div>
-                <label className="form-label" htmlFor="promo-start">Ngày bắt đầu</label>
-                <input id="promo-start" type="date" className="input"
-                  value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+                <label className="form-label form-label-required" htmlFor="promo-cta-text">CTA Text</label>
+                <input id="promo-cta-text" className={`input ${errors.ctaText ? 'input-error' : ''}`}
+                  value={form.ctaText} onChange={e => setForm(f => ({ ...f, ctaText: e.target.value }))} />
+                {errors.ctaText && <p className="form-error">{errors.ctaText}</p>}
               </div>
               <div>
-                <label className="form-label" htmlFor="promo-end">Ngày kết thúc</label>
-                <input id="promo-end" type="date" className="input"
-                  value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
-                {errors.endDate && <p className="form-error">{errors.endDate}</p>}
+                <label className="form-label form-label-required" htmlFor="promo-cta-url">CTA URL</label>
+                <input id="promo-cta-url" className={`input ${errors.ctaUrl ? 'input-error' : ''}`}
+                  value={form.ctaUrl} onChange={e => setForm(f => ({ ...f, ctaUrl: e.target.value }))} />
+                {errors.ctaUrl && <p className="form-error">{errors.ctaUrl}</p>}
+              </div>
+              <div>
+                <label className="form-label form-label-required" htmlFor="promo-theme">Color Theme</label>
+                <select id="promo-theme" className={`input ${errors.colorTheme ? 'input-error' : ''}`}
+                  value={form.colorTheme} onChange={e => setForm(f => ({ ...f, colorTheme: e.target.value }))}>
+                  {['red', 'blue', 'green', 'purple', 'orange'].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                {errors.colorTheme && <p className="form-error">{errors.colorTheme}</p>}
+              </div>
+              <div>
+                <label className="form-label" htmlFor="promo-sort">Sort Order</label>
+                <input id="promo-sort" type="number" className="input" min={0}
+                  value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value) }))} />
               </div>
             </div>
 
-            {/* Image URL + Preview */}
-            <div style={{ marginBottom: 20 }}>
-              <label className="form-label" htmlFor="promo-img">Image URL (Banner)</label>
-              <input id="promo-img" className="input" type="url"
-                placeholder="https://example.com/banner.jpg"
-                value={form.imageUrl}
-                onChange={e => { setForm(f => ({ ...f, imageUrl: e.target.value })); setImagePreview(e.target.value); }} />
-              {imagePreview && (
-                <div style={{ marginTop: 12 }}>
-                  <p className="form-hint" style={{ marginBottom: 6 }}>Preview:</p>
-                  <img src={imagePreview} alt="Promotion preview"
-                    onError={() => setImagePreview('')}
-                    style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hairline)' }} />
-                </div>
-              )}
+            <div style={{ marginBottom: 16 }}>
+              <label className="form-label" htmlFor="promo-desc">Description</label>
+              <textarea id="promo-desc" className="textarea" rows={3}
+                value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+
+            <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input id="promo-active" type="checkbox" checked={form.isActive}
+                onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} />
+              <label htmlFor="promo-active" className="body-sm">Active on landing</label>
             </div>
 
             <div style={{ display: 'flex', gap: 12, paddingTop: 8, borderTop: '1px solid var(--hairline)' }}>
               <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Đang lưu...' : isEdit ? '💾 Save Changes' : '✨ Create Promotion'}
+                {loading ? 'Dang luu...' : isEdit ? 'Save Changes' : 'Create Promotion'}
               </button>
-              <Link to="/admin/promotions" className="btn-ghost">Hủy</Link>
+              <Link to="/admin/promotions" className="btn-ghost">Huy</Link>
             </div>
           </form>
         )}
