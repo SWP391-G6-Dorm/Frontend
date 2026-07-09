@@ -43,3 +43,6 @@ lerna-debug.log*
 # Vite cache
 .vite/
 .vite
+
+# Runtime uploads
+uploads/
