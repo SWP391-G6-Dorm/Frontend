@@ -21,21 +21,33 @@ import UnauthorizedPage from './pages/public/UnauthorizedPage';
 
 // ── Customer Portal ───────────────────────────────────────────────────────────
 import CustomerDashboardPage from './pages/customer/CustomerDashboardPage';
-import { UserProfilePage, EditProfilePage, ChangePasswordPage }
-  from './pages/customer/ProfilePages';
+// Profile (SCR-10, 11, 12)
+import UserProfilePage from './pages/customer/UserProfilePage';
+import EditProfilePage from './pages/customer/EditProfilePage';
+import ChangePasswordPage from './pages/customer/ChangePasswordPage';
+// Notifications (SCR-13, 14)
 import { NotificationCenterPage, NotificationDetailPage }
   from './pages/customer/NotificationPages';
-import { BookingFormPage, BookingListPage, BookingDetailPage, BookingCancellationPage }
-  from './pages/customer/BookingPages';
+// Bookings (SCR-17, 18, 19, 20)
+import BookingFormPage from './pages/customer/BookingFormPage';
+import BookingListPage from './pages/customer/BookingListPage';
+import BookingDetailPage from './pages/customer/BookingDetailPage';
+import BookingCancellationPage from './pages/customer/BookingCancellationPage';
 import ContractListPage from './pages/customer/ContractListPage';
 import ContractDetailPage from './pages/customer/ContractDetailPage';
-
-import { DepositPaymentPage, RemainingPaymentPage, PaymentHistoryPage, VNPayResultPage }
-  from './pages/customer/PaymentPages';
-import { MaintenanceListPage, CreateMaintenancePage, MaintenanceDetailPage }
-  from './pages/customer/MaintenancePages';
-import { ReviewRatingPage, MyReviewsPage }
-  from './pages/customer/ReviewPages';
+// Payments (SCR-21, 22, 23, 24)
+import DepositPaymentPage from './pages/customer/DepositPaymentPage';
+import RemainingPaymentPage from './pages/customer/RemainingPaymentPage';
+import PaymentHistoryPage from './pages/customer/PaymentHistoryPage';
+import VNPayResultPage from './pages/customer/VNPayResultPage';
+// Maintenance (SCR-27, 28, 29)
+import MaintenanceListPage from './pages/customer/MaintenanceListPage';
+import CreateMaintenancePage from './pages/customer/CreateMaintenancePage';
+import MaintenanceDetailPage from './pages/customer/MaintenanceDetailPage';
+// Reviews (SCR-30, 31)
+import ReviewRatingPage from './pages/customer/ReviewRatingPage';
+import MyReviewsPage from './pages/customer/MyReviewsPage';
+// Complaints
 import { CustomerComplaintListPage, CreateComplaintPage }
   from './pages/customer/CustomerComplaintPages';
 
@@ -45,11 +57,14 @@ import PropertyListPage from './pages/manager/PropertyListPage';
 import PropertyDetailPage from './pages/manager/PropertyDetailPage';
 import AddPropertyPage from './pages/manager/AddPropertyPage';
 import EditPropertyPage from './pages/manager/EditPropertyPage';
-import {
-  StructureTreePage, FloorManagementPage,
-  RoomListPage, RoomDetailMgmtPage, AddRoomPage, EditRoomPage,
-  RoomGalleryPage, RoomStatusPage,
-} from './pages/manager/RoomManagementPages';
+import StructureTreePage from './pages/manager/StructureTreePage';
+import FloorManagementPage from './pages/manager/FloorManagementPage';
+import RoomListPage from './pages/manager/RoomListPage';
+import RoomDetailMgmtPage from './pages/manager/RoomDetailMgmtPage';
+import AddRoomPage from './pages/manager/AddRoomPage';
+import EditRoomPage from './pages/manager/EditRoomPage';
+import RoomGalleryPage from './pages/manager/RoomGalleryPage';
+import RoomStatusPage from './pages/manager/RoomStatusPage';
 import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
 import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
 import BookingCheckInOutPage from './pages/manager/BookingCheckInOutPage';
@@ -66,29 +81,43 @@ import PaymentMgmtDetailPage from './pages/manager/PaymentMgmtDetailPage';
 import ContractMgmtListPage from './pages/manager/ContractMgmtListPage';
 import ContractMgmtDetailPage from './pages/manager/ContractMgmtDetailPage';
 import ResendContractPage from './pages/manager/ResendContractPage';
-import {
-  CustomerListPage, CustomerDetailPage,
-  ComplaintListPage, ComplaintDetailPage,
-  MaintenanceMgmtListPage, MaintenanceMgmtDetailPage,
-  ReportsDashboardPage, RevenueReportPage, OccupancyReportPage,
-  ActivityLogPage, ReviewMgmtPage,
-} from './pages/manager/AdminPages';
+import { CustomerListPage } from './pages/manager/CustomerListPage';
+import { CustomerDetailPage } from './pages/manager/CustomerDetailPage';
+import { ComplaintListPage } from './pages/manager/ComplaintListPage';
+import { ComplaintDetailPage } from './pages/manager/ComplaintDetailPage';
+import { MaintenanceMgmtListPage } from './pages/manager/MaintenanceMgmtListPage';
+import { MaintenanceMgmtDetailPage } from './pages/manager/MaintenanceMgmtDetailPage';
+import { ReportsDashboardPage } from './pages/manager/ReportsDashboardPage';
+import { RevenueReportPage } from './pages/manager/RevenueReportPage';
+import { OccupancyReportPage } from './pages/manager/OccupancyReportPage';
+import { ActivityLogPage } from './pages/manager/ActivityLogPage';
+import { ReviewMgmtPage } from './pages/manager/ReviewMgmtPage';
 import PromotionMgmtPage from './pages/manager/PromotionMgmtPage';
 
 // ── Admin Portal (SCR-45 → SCR-58) ──────────────────────────────────────────
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
-import {
-  PropertyMgmtListPage, CreatePropertyPage, EditPropertyAdminPage,
-  ManagerAssignmentPage, ManagerDirectoryPage, CustomerDirectoryPage,
-  PaymentReconciliationPage, DamageEscalationPage, AdminComplaintsPage,
-  GlobalReportsPage, SystemAdminPage, PromotionAdminListPage, AddEditPromotionPage,
-} from './pages/admin/AdminPages';
+import { PropertyMgmtListPage } from './pages/admin/PropertyMgmtListPage';
+import { CreatePropertyPage } from './pages/admin/CreatePropertyPage';
+import { EditPropertyAdminPage } from './pages/admin/EditPropertyAdminPage';
+import { ManagerAssignmentPage } from './pages/admin/ManagerAssignmentPage';
+import { ManagerDirectoryPage } from './pages/admin/ManagerDirectoryPage';
+import { CustomerDirectoryPage } from './pages/admin/CustomerDirectoryPage';
+import { PaymentReconciliationPage } from './pages/admin/PaymentReconciliationPage';
+import { DamageEscalationPage } from './pages/admin/DamageEscalationPage';
+import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
+import { GlobalReportsPage } from './pages/admin/GlobalReportsPage';
+import { SystemAdminPage } from './pages/admin/SystemAdminPage';
+import { PromotionAdminListPage } from './pages/admin/PromotionAdminListPage';
+import { AddEditPromotionPage } from './pages/admin/AddEditPromotionPage';
 
 // ── Employee Portal (SCR-59 → SCR-65) ────────────────────────────────────────
-import {
-  EmployeeDashboardPage, HousekeepingWorkspacePage, MaintenanceWorkspacePage,
-  RoomInspectionHubPage, DamageReportListPage, CreateDamageReportPage, PropertyRoomListPage,
-} from './pages/employee/EmployeePages';
+import EmployeeDashboardPage from './pages/employee/EmployeeDashboardPage';
+import HousekeepingWorkspacePage from './pages/employee/HousekeepingWorkspacePage';
+import MaintenanceWorkspacePage from './pages/employee/MaintenanceWorkspacePage';
+import RoomInspectionHubPage from './pages/employee/RoomInspectionHubPage';
+import DamageReportListPage from './pages/employee/DamageReportListPage';
+import CreateDamageReportPage from './pages/employee/CreateDamageReportPage';
+import PropertyRoomListPage from './pages/employee/PropertyRoomListPage';
 
 /** Catch-all: redirect theo role */
 function CatchAllRedirect() {
