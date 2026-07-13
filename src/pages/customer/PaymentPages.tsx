@@ -1,5 +1,5 @@
-// ─── PaymentPages.tsx — SCR-20, 22, 23, 24 ───────────────────────────────────
-// Exports: DepositPaymentPage, RemainingPaymentPage, PaymentHistoryPage, ReceiptUploadPage, VNPayResultPage
+// ─── PaymentPages.tsx — SCR-21, 22, 23, 24 ───────────────────────────────────
+// Exports: DepositPaymentPage, RemainingPaymentPage, PaymentHistoryPage, VNPayResultPage
 
 import { useState, useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
