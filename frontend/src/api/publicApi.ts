@@ -57,7 +57,12 @@ export interface SearchSuggestion {
 
 export async function fetchFeaturedProperties(limit = 6): Promise<FeaturedProperty[]> {
   const res = await api.get(`/api/v1/properties/featured?limit=${limit}`);
-  return res.data.data;
+  return res.data.data ?? [];
+}
+
+export async function fetchFeaturedRooms(limit = 8): Promise<FeaturedRoom[]> {
+  const res = await api.get(`/api/v1/rooms/featured?limit=${limit}`);
+  return res.data.data ?? [];
 }
 
 export async function fetchPlatformStats(): Promise<PlatformStats> {

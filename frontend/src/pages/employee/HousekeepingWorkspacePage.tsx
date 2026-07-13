@@ -1,29 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
-import { getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask } from '../../api/employeeApi';
-import { TOUCH, fmtDate, extractErr, Spinner, ErrBanner, StatusBadge } from './employeeUtils';
+import {
+  getEmployeeKpis, type EmployeeKpis,
+  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
+  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
+  getEmployeeInspections, passInspection, failInspection,
+  type InspectionChecklist, type InspectionSummary,
+  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
+  getEmployeeRooms, type EmployeeRoom,
+} from '../../api/employeeApi';
+import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
 
-// ── SCR-60: Housekeeping Workspace ─────────────────────────────────────────────
-
-/** Next status in housekeeping flow */
-function hkNext(status: HousekeepingTask['status']): 'IN_PROGRESS' | 'COMPLETED' | null {
-  if (status === 'PENDING')     return 'IN_PROGRESS';
-  if (status === 'IN_PROGRESS') return 'COMPLETED';
-  return null;
-}
-
-function hkButtonLabel(status: HousekeepingTask['status']) {
-  if (status === 'PENDING')     return '▶ Bắt đầu';
-  if (status === 'IN_PROGRESS') return '✓ Hoàn thành';
-  return null;
-}
-
-function hkButtonClass(status: HousekeepingTask['status']) {
-  if (status === 'IN_PROGRESS') return 'btn-primary';
-  return 'btn-outline';
-}
 
 export default function HousekeepingWorkspacePage() {
+  function hkNext(status: HousekeepingTask['status']): 'IN_PROGRESS' | 'COMPLETED' | null {
+    if (status === 'PENDING')     return 'IN_PROGRESS';
+    if (status === 'IN_PROGRESS') return 'COMPLETED';
+    return null;
+  }
+
+  function hkButtonLabel(status: HousekeepingTask['status']): string | null {
+    if (status === 'PENDING')     return 'Bắt đầu dọn dẹp';
+    if (status === 'IN_PROGRESS') return 'Hoàn thành';
+    return null;
+  }
+
+  function hkButtonClass(status: HousekeepingTask['status']): string {
+    if (status === 'IN_PROGRESS') return 'btn-primary';
+    return 'btn-outline';
+  }
+
   const [tasks, setTasks] = useState<HousekeepingTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -177,3 +184,17 @@ export default function HousekeepingWorkspacePage() {
     </EmployeeLayout>
   );
 }
+
+// ── SCR-61: Maintenance Workspace ──────────────────────────────────────────────
+
+function mxNext(status: MaintenanceTicket['status']): 'IN_PROGRESS' | 'RESOLVED' | null {
+  if (status === 'ASSIGNED')    return 'IN_PROGRESS';
+  if (status === 'IN_PROGRESS') return 'RESOLVED';
+  return null;
+}
+
+const ISSUE_TYPE_ICONS: Record<string, string> = {
+  ELECTRICAL: '⚡', PLUMBING: '🔧', HVAC: '❄️', FURNITURE: '🪑',
+  APPLIANCE: '📺', STRUCTURAL: '🏗️', OTHER: '🛠️',
+};
+

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
 import Pagination from '../../components/ui/Pagination';
+import Alert from '../../components/ui/Alert';
 import RoomSearchCard, { RoomCardSkeleton } from '../../components/rooms/RoomSearchCard';
 import { buildSearchSummary, useRoomSearch } from '../../hooks/useRoomSearch';
 import {
@@ -288,31 +289,16 @@ export function SearchResultsContent({ variant = 'search' }: { variant?: SearchR
           </div>
 
           {error && (
-            <div
-              className="card"
-              style={{
-                padding: '16px 20px',
-                marginBottom: 16,
-                border: '1px solid var(--error)',
-                background: 'rgba(239,68,68,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 16,
-                flexWrap: 'wrap',
-              }}
-            >
-              <p className="body-sm" style={{ color: 'var(--error)', margin: 0 }}>
-                {error}
-              </p>
-              <button type="button" className="btn-primary btn-sm" onClick={() => loadRooms()}>
+            <div style={{ marginBottom: 16 }}>
+              <Alert variant="error" message={error} />
+              <button type="button" className="btn-primary btn-sm" onClick={() => loadRooms()} style={{ marginTop: 12 }}>
                 Thử lại
               </button>
             </div>
           )}
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {Array.from({ length: 6 }).map((_, i) => (
                 <RoomCardSkeleton key={i} />
               ))}
@@ -335,7 +321,7 @@ export function SearchResultsContent({ variant = 'search' }: { variant?: SearchR
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {rooms.map((room) => (
                   <RoomSearchCard key={room.id} room={room} querySuffix={detailQuerySuffix} />
                 ))}

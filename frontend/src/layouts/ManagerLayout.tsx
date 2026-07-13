@@ -33,6 +33,12 @@ const NAV_SECTIONS = [
   {
     label: 'OPERATIONS',
     items: [
+      { label: 'Lịch dọn phòng',   path: '/manager/housekeeping/schedule', icon: IconHousekeeping },
+      { label: 'Tác vụ dọn phòng', path: '/manager/housekeeping/tasks',    icon: IconHousekeeping },
+      { label: 'Tác vụ bảo trì',   path: '/manager/maintenance/tasks',     icon: IconMaintenance },
+      { label: 'Kiểm tra phòng',   path: '/manager/inspections',           icon: IconInspection },
+      { label: 'Báo cáo hư hại',   path: '/manager/damage-reports',        icon: IconDamage },
+      { label: 'Nhân viên',        path: '/manager/employees',   icon: IconEmployee },
       { label: 'Customers',        path: '/manager/customers',   icon: IconCustomer },
       { label: 'Maintenance',      path: '/manager/maintenance', icon: IconMaintenance },
       { label: 'Complaints',       path: '/manager/complaints',  icon: IconComplaint },
@@ -41,6 +47,7 @@ const NAV_SECTIONS = [
   {
     label: 'REPORTING',
     items: [
+      { label: 'Báo cáo tổng hợp', path: '/manager/reports/property',      icon: IconTrend },
       { label: 'Revenue',          path: '/manager/reports/revenue',       icon: IconRevenue },
       { label: 'Occupancy',        path: '/manager/reports/occupancy',     icon: IconOccupancy },
       { label: 'Booking Trend',    path: '/manager/reports/booking-trend', icon: IconTrend },
@@ -72,6 +79,10 @@ function IconContract()    { return <svg width="16" height="16" viewBox="0 0 24 
 function IconPayment()     { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>; }
 function IconCustomer()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>; }
 function IconMaintenance() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>; }
+function IconHousekeeping() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v3M9 6h6M6 9l-2 11h16L18 9M8 9V7a4 4 0 0 1 8 0v2"/></svg>; }
+function IconInspection()  { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>; }
+function IconDamage()      { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>; }
+function IconEmployee()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>; }
 function IconComplaint()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>; }
 function IconRevenue()     { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>; }
 function IconOccupancy()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16,8 20,8 23,11 23,16 16,16 16,8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>; }

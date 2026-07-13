@@ -1,10 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
-import { getEmployeeKpis, type EmployeeKpis } from '../../api/employeeApi';
-import { ErrBanner } from './employeeUtils';
+import {
+  getEmployeeKpis, type EmployeeKpis,
+  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
+  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
+  getEmployeeInspections, passInspection, failInspection,
+  type InspectionChecklist, type InspectionSummary,
+  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
+  getEmployeeRooms, type EmployeeRoom,
+} from '../../api/employeeApi';
+import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
 
-// ── SCR-59: Employee Dashboard ─────────────────────────────────────────────────
 
 export default function EmployeeDashboardPage() {
   const [kpis, setKpis] = useState<EmployeeKpis | null>(null);
@@ -128,3 +135,24 @@ export default function EmployeeDashboardPage() {
     </EmployeeLayout>
   );
 }
+
+// ── SCR-60: Housekeeping Workspace ─────────────────────────────────────────────
+
+/** Next status in housekeeping flow */
+function hkNext(status: HousekeepingTask['status']): 'IN_PROGRESS' | 'COMPLETED' | null {
+  if (status === 'PENDING')     return 'IN_PROGRESS';
+  if (status === 'IN_PROGRESS') return 'COMPLETED';
+  return null;
+}
+
+function hkButtonLabel(status: HousekeepingTask['status']) {
+  if (status === 'PENDING')     return '▶ Bắt đầu';
+  if (status === 'IN_PROGRESS') return '✓ Hoàn thành';
+  return null;
+}
+
+function hkButtonClass(status: HousekeepingTask['status']) {
+  if (status === 'IN_PROGRESS') return 'btn-primary';
+  return 'btn-outline';
+}
+

@@ -18,6 +18,19 @@ interface AuthState {
 
 const STORAGE_KEYS = ['accessToken', 'refreshToken', 'userRole', 'userId', 'fullName', 'userEmail', 'userPhone', 'avatarUrl'] as const;
 
+export function getRoleDashboardPath(role: string | null | undefined): string {
+  switch (role) {
+    case 'MANAGER':
+      return '/manager/dashboard';
+    case 'ADMIN':
+      return '/admin/dashboard';
+    case 'EMPLOYEE':
+      return '/employee/dashboard';
+    default:
+      return '/customer/dashboard';
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   // Khôi phục state từ sessionStorage khi reload trang (giữ phiên trong cùng tab)
   isAuthenticated: !!sessionStorage.getItem('accessToken'),

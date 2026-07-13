@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
 import { getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket } from '../../api/employeeApi';
-import { TOUCH, fmtDate, extractErr, Spinner, ErrBanner, StatusBadge, Drawer } from './employeeUtils';
+import { TOUCH, fmtDate, extractErr, Spinner, ErrBanner, StatusBadge, Drawer } from './EmployeeShared';
 
 // ── SCR-61: Maintenance Workspace ──────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ export default function MaintenanceWorkspacePage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleStatusUpdate(ticket: MaintenanceTicket) {
-    const next = mxNext(ticket.status);
+    const next = ticket.status === 'ASSIGNED' ? 'IN_PROGRESS' : ticket.status === 'IN_PROGRESS' ? 'RESOLVED' : null;
     if (!next || updating) return;
     // Optimistic
     setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, status: next } : t));
@@ -153,7 +153,7 @@ export default function MaintenanceWorkspacePage() {
                   { label: 'Phòng', value: selected.roomName },
                   { label: 'Loại sự cố', value: `${ISSUE_TYPE_ICONS[selected.issueType] || '🛠️'} ${selected.issueType}` },
                   { label: 'Trạng thái', value: <StatusBadge status={selected.status} /> },
-                  { label: 'Được giao', value: fmtDate(selected.assignedAt) },
+                  { label: 'Được giao', value: selected.assignedAt ? fmtDate(selected.assignedAt) : '—' },
                   { label: 'Giải quyết', value: selected.resolvedAt ? fmtDate(selected.resolvedAt) : '—' },
                 ].map(r => (
                   <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--hairline)' }}>

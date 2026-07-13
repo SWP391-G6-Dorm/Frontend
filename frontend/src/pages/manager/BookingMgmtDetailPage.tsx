@@ -1,144 +1,376 @@
-import { Link, useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { bookingApi } from '../../api/bookingApi';
+import { StatusBadge } from '../../components/ui';
+import type { StatusVariant } from '../../components/ui/StatusBadge';
+import {
+  fetchManagerBookingV1,
+  type ManagerBookingDetail,
+  type BookingPaymentInfo,
+} from '../../api/bookingApi';
 
-const STATUS_MAP: Record<string, { cls: string; l: string }> = {
-  PENDING_DEPOSIT: { cls: 'badge-warning', l: 'Pending Deposit' },
-  CONFIRMED:       { cls: 'badge-success', l: 'Confirmed' },
-  CHECKED_IN:      { cls: 'badge-info',    l: 'Checked In' },
-  CHECKED_OUT:     { cls: 'badge-purple',  l: 'Checked Out' },
-  CANCELLED:       { cls: 'badge-error',   l: 'Cancelled' },
+const STATUS_VI: Record<string, { label: string; variant: StatusVariant }> = {
+  PENDING_DEPOSIT:        { label: 'Chờ cọc',                    variant: 'warning' },
+  CONFIRMED:              { label: 'Đã xác nhận',                variant: 'success' },
+  CHECKED_IN:             { label: 'Đã nhận phòng',              variant: 'primary' },
+  PENDING_INSPECTION:     { label: 'Chờ kiểm tra',               variant: 'warning' },
+  PENDING_DAMAGE_PAYMENT: { label: 'Chờ thanh toán thiệt hại',   variant: 'danger' },
+  CHECKED_OUT:            { label: 'Đã trả phòng',               variant: 'neutral' },
+  CANCELLED:              { label: 'Đã hủy',                     variant: 'danger' },
+  NO_SHOW:                { label: 'Không đến',                    variant: 'danger' },
 };
 
-function SBadge({ s }: { s: string }) {
-  const v = STATUS_MAP[s] || { cls: 'badge-neutral', l: s };
-  return <span className={`badge ${v.cls}`}>{v.l}</span>;
+const PAYMENT_TYPE_VI: Record<string, string> = {
+  DEPOSIT: 'Đặt cọc',
+  REMAINING_BALANCE: 'Phần còn lại',
+  DAMAGE_FEE: 'Phí thiệt hại',
+  REFUND: 'Hoàn tiền',
+};
+
+const PAYMENT_STATUS_VI: Record<string, string> = {
+  PENDING: 'Chờ xử lý',
+  PAID: 'Đã thanh toán',
+  FAILED: 'Thất bại',
+  REFUNDED: 'Đã hoàn',
+};
+
+function formatVnd(value: number | undefined): string {
+  if (value == null) return '—';
+  return new Intl.NumberFormat('vi-VN').format(value) + ' ₫';
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('T')[0].split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function shortBookingId(id: string): string {
+  return `BK-${id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+}
+
+function countNights(checkIn: string, checkOut: string): number {
+  const ms = new Date(checkOut).getTime() - new Date(checkIn).getTime();
+  return Math.max(1, Math.ceil(ms / 86400000));
+}
+
+function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 2000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 32,
+        right: 32,
+        zIndex: 9999,
+        padding: '14px 20px',
+        background: '#202020',
+        color: '#fcfcfc',
+        borderRadius: 12,
+        boxShadow: '0 8px 32px rgba(32,32,32,0.18)',
+        borderLeft: '4px solid #2b9a66',
+      }}
+    >
+      {message}
+    </div>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="h-8 bg-[#F1F5F9] rounded w-1/3" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="h-40 bg-[#F1F5F9] rounded-xl" />
+          <div className="h-48 bg-[#F1F5F9] rounded-xl" />
+          <div className="h-56 bg-[#F1F5F9] rounded-xl" />
+        </div>
+        <div className="h-64 bg-[#F1F5F9] rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+function PaymentTable({ payments }: { payments: BookingPaymentInfo[] }) {
+  if (!payments.length) {
+    return <p className="text-sm text-[#64748B]">Chưa có giao dịch thanh toán.</p>;
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs uppercase text-[#64748B] border-b border-[#E2E8F0]">
+            <th className="py-2 pr-3">Loại</th>
+            <th className="py-2 pr-3">Số tiền</th>
+            <th className="py-2 pr-3">Phương thức</th>
+            <th className="py-2">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          {payments.map(p => (
+            <tr key={p.id} className="border-b border-[#F1F5F9]">
+              <td className="py-2.5 pr-3">{PAYMENT_TYPE_VI[p.type] ?? p.type}</td>
+              <td className="py-2.5 pr-3 font-medium">{formatVnd(p.amount)}</td>
+              <td className="py-2.5 pr-3">{p.method}</td>
+              <td className="py-2.5">{PAYMENT_STATUS_VI[p.status] ?? p.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export default function BookingMgmtDetailPage() {
-  const { id } = useParams();
-  const queryClient = useQueryClient();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['bookingDetail', id],
-    queryFn: () => bookingApi.getBookingDetail(id!),
-    enabled: !!id
-  });
+  const [booking, setBooking] = useState<ManagerBookingDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
 
-  const checkInMutation = useMutation({
-    mutationFn: () => bookingApi.markCheckedIn(id!),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookingDetail', id] });
-      queryClient.invalidateQueries({ queryKey: ['managerBookings'] });
-      alert('Checked in successfully!');
-    },
-    onError: () => alert('Failed to check in')
-  });
+  const loadBooking = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const data = await fetchManagerBookingV1(id);
+      setBooking(data);
+    } catch (err: unknown) {
+      const ax = err as { response?: { status?: number; data?: { message?: string } } };
+      if (ax?.response?.status === 403) {
+        setLoadError('Bạn không có quyền xem đặt phòng này.');
+      } else {
+        setLoadError(ax?.response?.data?.message ?? 'Không thể tải chi tiết đặt phòng.');
+      }
+      setBooking(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
-  const checkOutMutation = useMutation({
-    mutationFn: () => bookingApi.markCheckedOut(id!),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookingDetail', id] });
-      queryClient.invalidateQueries({ queryKey: ['managerBookings'] });
-      alert('Checked out successfully!');
-    },
-    onError: () => alert('Failed to check out')
-  });
+  useEffect(() => { loadBooking(); }, [loadBooking]);
 
-  if (isLoading) return <ManagerLayout><p style={{ padding: 20 }}>Loading...</p></ManagerLayout>;
-  if (isError || !data?.data) return <ManagerLayout><p style={{ padding: 20 }}>Error loading booking details</p></ManagerLayout>;
+  useEffect(() => {
+    const state = location.state as { toast?: string } | null;
+    if (state?.toast) {
+      setToast(state.toast);
+      loadBooking();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate, loadBooking]);
 
-  const b = data.data;
-  const nights = Math.ceil((new Date(b.checkOutDate).getTime() - new Date(b.checkInDate).getTime()) / 86400000);
+  if (loadError) {
+    return (
+      <ManagerLayout>
+        <div className="card p-10 text-center max-w-md mx-auto">
+          <h2 className="heading-sm mb-2">Không tải được đặt phòng</h2>
+          <p className="body-md text-charcoal mb-6">{loadError}</p>
+          <div className="flex gap-3 justify-center">
+            <button type="button" className="btn-primary" onClick={loadBooking}>Thử lại</button>
+            <Link to="/manager/bookings" className="btn-ghost">Quay lại danh sách</Link>
+          </div>
+        </div>
+      </ManagerLayout>
+    );
+  }
+
+  const statusCfg = booking
+    ? STATUS_VI[booking.status] ?? { label: booking.status, variant: 'neutral' as StatusVariant }
+    : null;
+
+  const nights = booking
+    ? countNights(booking.checkInDate, booking.checkOutDate)
+    : 0;
+
+  const showCheckOutButton = booking && (
+    booking.canCheckOut
+    || (booking.status === 'PENDING_INSPECTION' && booking.checkOutBlockedReason)
+    || booking.status === 'PENDING_DAMAGE_PAYMENT'
+  );
 
   return (
     <ManagerLayout>
-      <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
-        <Link to="/manager/bookings" className="text-primary" style={{ textDecoration: 'none' }}>Bookings</Link>
-        <span>›</span>
-        <span style={{ fontWeight: 600 }}>#{b.id.substring(0,8)}</span>
-      </div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
-        <h1 className="heading-md">Booking #{b.id.substring(0,8)}</h1>
-        <SBadge s={b.status} />
-      </div>
+      {toast && <Toast message={toast} onClose={() => setToast('')} />}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="card" style={{ padding: 24 }}>
-            <h2 className="heading-sm" style={{ marginBottom: 12 }}>Customer</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div><p className="body-sm text-charcoal">Name</p><p style={{ fontWeight: 600 }}>{b.customerName}</p></div>
-              <div><p className="body-sm text-charcoal">Email</p><p style={{ fontWeight: 600 }}>{b.customerEmail}</p></div>
-              {b.customerPhone && <div><p className="body-sm text-charcoal">Phone</p><p style={{ fontWeight: 600 }}>{b.customerPhone}</p></div>}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 text-sm text-[#64748B]">
+          <Link to="/manager/bookings" className="text-[#0F766E] no-underline">Đặt phòng</Link>
+          <span>›</span>
+          <span className="font-semibold text-[#1E293B]">
+            {booking ? shortBookingId(booking.id) : '…'}
+          </span>
+        </div>
+
+        {loading ? (
+          <DetailSkeleton />
+        ) : booking && (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h1 className="font-display text-[28px] font-bold text-[#1E293B]">
+                {shortBookingId(booking.id)}
+              </h1>
+              {statusCfg && (
+                <StatusBadge status={statusCfg.label} variant={statusCfg.variant} />
+              )}
             </div>
-          </div>
-          <div className="card" style={{ padding: 24 }}>
-            <h2 className="heading-sm" style={{ marginBottom: 12 }}>Booking Details</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[
-                { l: 'Room', v: b.roomNumber },
-                { l: 'Type', v: b.roomType },
-                { l: 'Property', v: b.propertyName },
-                { l: 'Guests', v: `${b.guestCount}` },
-                { l: 'Check-in', v: b.checkInDate },
-                { l: 'Check-out', v: b.checkOutDate },
-                { l: 'Duration', v: `${nights} nights` },
-                { l: 'Total Amount', v: `₫${b.totalAmount?.toLocaleString()}` },
-                { l: 'Deposit (40%)', v: `₫${b.depositAmount?.toLocaleString()}` },
-                { l: 'Remaining (60%)', v: `₫${b.remainingAmount?.toLocaleString()}` },
-              ].map(r => (
-                <div key={r.l}><p className="body-sm text-charcoal">{r.l}</p><p style={{ fontWeight: 600, marginTop: 2 }}>{r.v}</p></div>
-              ))}
-            </div>
-            {b.specialRequests && (
-              <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--surface-bone)', borderRadius: 8 }}>
-                <p className="body-sm text-charcoal">Special Requests</p>
-                <p className="body-md" style={{ marginTop: 2 }}>{b.specialRequests}</p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              <div className="lg:col-span-2 space-y-4">
+                <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6">
+                  <h2 className="font-semibold text-[#1E293B] mb-4">Thông tin khách</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-[#64748B]">Họ tên</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{booking.customerName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Email</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{booking.customerEmail}</p>
+                    </div>
+                    {booking.customerPhone && (
+                      <div>
+                        <p className="text-xs text-[#64748B]">Điện thoại</p>
+                        <p className="font-semibold text-[#1E293B] mt-0.5">{booking.customerPhone}</p>
+                      </div>
+                    )}
+                  </div>
+                  <Link
+                    to={`/manager/customers/${booking.customerId}`}
+                    className="inline-block mt-4 text-sm text-[#0F766E] font-medium no-underline hover:underline"
+                  >
+                    Xem hồ sơ khách →
+                  </Link>
+                </div>
+
+                <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6">
+                  <h2 className="font-semibold text-[#1E293B] mb-4">Chi tiết đặt phòng</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-[#64748B]">Phòng</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{booking.roomNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Loại phòng</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{booking.roomType || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Homestay</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{booking.propertyName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Số khách</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{booking.guestCount}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Nhận phòng</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{formatDate(booking.checkInDate)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Trả phòng</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{formatDate(booking.checkOutDate)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Số đêm</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{nights} đêm</p>
+                    </div>
+                  </div>
+                  {booking.specialRequests && (
+                    <div className="mt-4 p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
+                      <p className="text-xs text-[#64748B]">Yêu cầu đặc biệt</p>
+                      <p className="text-sm text-[#334155] mt-1">{booking.specialRequests}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6">
+                  <h2 className="font-semibold text-[#1E293B] mb-4">Thanh toán</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    <div>
+                      <p className="text-xs text-[#64748B]">Tổng tiền</p>
+                      <p className="font-bold text-[#1E293B] mt-0.5">{formatVnd(booking.totalAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Cọc (40%)</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{formatVnd(booking.depositAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#64748B]">Còn lại (60%)</p>
+                      <p className="font-semibold text-[#1E293B] mt-0.5">{formatVnd(booking.remainingAmount)}</p>
+                    </div>
+                    {(booking.damageFeeAmount ?? 0) > 0 && (
+                      <div>
+                        <p className="text-xs text-[#64748B]">Phí thiệt hại</p>
+                        <p className="font-semibold text-red-600 mt-0.5">{formatVnd(booking.damageFeeAmount)}</p>
+                      </div>
+                    )}
+                  </div>
+                  <PaymentTable payments={booking.payments ?? []} />
+                </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        <div>
-          <div className="card-lg" style={{ padding: 20 }}>
-            <h3 className="heading-sm" style={{ marginBottom: 14 }}>Actions</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {b.status === 'CONFIRMED' && (
-                <button 
-                  className="btn-primary" 
-                  onClick={() => { if(window.confirm('Mark this booking as checked in?')) checkInMutation.mutate() }}
-                  disabled={checkInMutation.isPending}
-                >
-                  {checkInMutation.isPending ? 'Processing...' : 'Mark Checked-in'}
-                </button>
-              )}
-              {b.status === 'CHECKED_IN' && (
-                <button 
-                  className="btn-primary" 
-                  onClick={() => { if(window.confirm('Mark this booking as checked out?')) checkOutMutation.mutate() }}
-                  disabled={checkOutMutation.isPending}
-                >
-                  {checkOutMutation.isPending ? 'Processing...' : 'Mark Checked-out'}
-                </button>
-              )}
-              
-              <Link to={`/manager/payments?bookingId=${b.id}`} className="btn-outline" style={{ justifyContent: 'flex-start', gap: 10, marginTop: b.status === 'CONFIRMED' || b.status === 'CHECKED_IN' ? 10 : 0 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                View Payments
-              </Link>
-              <Link to={`/manager/contracts?bookingId=${b.id}`} className="btn-outline" style={{ justifyContent: 'flex-start', gap: 10 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-                View Contract
-              </Link>
-              <Link to={`/manager/customers/${b.customerId}`} className="btn-ghost" style={{ justifyContent: 'flex-start', gap: 10 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                View Customer
-              </Link>
+              <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-sm">
+                <h2 className="font-semibold text-[#1E293B] mb-4">Thao tác</h2>
+                <div className="flex flex-col gap-3">
+                  {booking.canCheckIn && (
+                    <button
+                      type="button"
+                      className="btn-primary w-full"
+                      onClick={() => navigate(`/manager/bookings/${id}/check-in`)}
+                    >
+                      Nhận phòng
+                    </button>
+                  )}
+
+                  {showCheckOutButton && (
+                    <button
+                      type="button"
+                      className="btn-primary w-full disabled:opacity-50"
+                      onClick={() => booking.canCheckOut && navigate(`/manager/bookings/${id}/check-out`)}
+                      disabled={!booking.canCheckOut}
+                      title={booking.checkOutBlockedReason ?? undefined}
+                    >
+                      Trả phòng
+                    </button>
+                  )}
+
+                  {booking.checkOutBlockedReason && !booking.canCheckOut && (
+                    <p className="text-xs text-[#B45309]">{booking.checkOutBlockedReason}</p>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn-outline w-full opacity-50 cursor-not-allowed"
+                    disabled
+                    title="Sắp có"
+                  >
+                    Gửi lại xác nhận
+                  </button>
+
+                  <Link
+                    to={`/manager/payments?bookingId=${booking.id}`}
+                    className="btn-outline w-full text-center no-underline"
+                  >
+                    Xem thanh toán
+                  </Link>
+                  <Link
+                    to={`/manager/contracts?bookingId=${booking.id}`}
+                    className="btn-outline w-full text-center no-underline"
+                  >
+                    Xem hợp đồng
+                  </Link>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </ManagerLayout>
   );

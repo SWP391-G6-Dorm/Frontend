@@ -3,14 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
 import {
   fetchFeaturedProperties,
+  fetchFeaturedRooms,
   fetchPlatformStats,
   fetchPromotions,
   type FeaturedProperty,
+  type FeaturedRoom,
   type PlatformStats,
   type Promotion,
 } from '../../api/publicApi';
 import { formatStatValue } from '../../utils/mediaUrl';
 import SafeImage from '../../components/ui/SafeImage';
+import RoomCard from '../../components/ui/RoomCard';
+import { useAuthStore } from '../../store/authStore';
 
 /** Banner mặc định SCR-01 khi DB chưa có promotion (fallback hiển thị ngay) */
 const DEFAULT_PROMOTIONS: Promotion[] = [
@@ -55,43 +59,26 @@ const DEFAULT_PROMOTIONS: Promotion[] = [
   },
 ];
 
-const HERO_FALLBACK_IMAGES = [
-  'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=900&h=650&fit=crop',
-  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=500&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&h=400&fit=crop',
-];
-
 const HOW_IT_WORKS = [
   { step: '01', title: 'Search & Browse', desc: 'Find your perfect room by location, dates, type and capacity with real-time availability.' },
   { step: '02', title: 'Book & Deposit', desc: 'Confirm your booking with a 40% deposit. Receive your contract instantly via email.' },
   { step: '03', title: 'Check In & Enjoy', desc: 'Pay the remaining balance at check-in and enjoy your premium homestay experience.' },
 ];
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { cls: string; label: string }> = {
-    AVAILABLE: { cls: 'badge-success', label: 'Available' },
-    PENDING_DEPOSIT: { cls: 'badge-warning', label: 'Pending Deposit' },
-    RESERVED: { cls: 'badge-info', label: 'Reserved' },
-    OCCUPIED: { cls: 'badge-neutral', label: 'Occupied' },
-    MAINTENANCE: { cls: 'badge-neutral', label: 'Maintenance' },
+function toRoomCardProps(room: FeaturedRoom) {
+  return {
+    id: room.id,
+    roomNumber: room.roomNumber,
+    roomType: room.roomType,
+    pricePerNight: room.pricePerNight,
+    capacity: room.capacity,
+    area: room.area,
+    status: room.status,
+    propertyName: room.propertyName,
+    address: room.propertyName,
+    imageUrl: room.primaryImageUrl || '',
   };
-  const s = map[status] || { cls: 'badge-neutral', label: status };
-  return <span className={`badge ${s.cls}`}>{s.label}</span>;
 }
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i <= Math.round(rating) ? 'var(--primary)' : '#e5e7eb'} stroke="none">
-          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-        </svg>
-      ))}
-    </div>
-  );
-}
-
-
 
 function PropertyCard({ property }: { property: FeaturedProperty }) {
   const exploreUrl = `/search?location=${encodeURIComponent(property.name)}`;
@@ -148,17 +135,20 @@ function SectionSkeleton({ count, cols = 4 }: { count: number; cols?: number }) 
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState({ location: '' });
+  const { isAuthenticated } = useAuthStore();
+  const [search, setSearch] = useState({ location: '', checkIn: '', checkOut: '', guests: '2' });
 
   const [featuredProperties, setFeaturedProperties] = useState<FeaturedProperty[]>([]);
+  const [featuredRooms, setFeaturedRooms] = useState<FeaturedRoom[]>([]);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [loadingProperties, setLoadingProperties] = useState(true);
+  const [loadingRooms, setLoadingRooms] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [promotions, setPromotions] = useState<Promotion[]>(DEFAULT_PROMOTIONS);
   const [activePromoIndex, setActivePromoIndex] = useState(0);
 
-  const isGuest = !sessionStorage.getItem('userRole');
+  const isGuest = !isAuthenticated;
 
   useEffect(() => {
     let cancelled = false;
@@ -166,16 +156,18 @@ export default function LandingPage() {
     async function loadLandingData() {
       setLoadError('');
       setLoadingProperties(true);
+      setLoadingRooms(true);
 
       const results = await Promise.allSettled([
         fetchFeaturedProperties(6),
+        fetchFeaturedRooms(8),
         fetchPlatformStats(),
         fetchPromotions(),
       ]);
 
       if (cancelled) return;
 
-      const [propertiesResult, statsResult, promoResult] = results;
+      const [propertiesResult, roomsResult, statsResult, promoResult] = results;
 
       if (promoResult.status === 'fulfilled') {
         let promos = promoResult.value;
@@ -195,6 +187,12 @@ export default function LandingPage() {
         setFeaturedProperties([]);
       }
 
+      if (roomsResult.status === 'fulfilled') {
+        setFeaturedRooms(roomsResult.value);
+      } else {
+        setFeaturedRooms([]);
+      }
+
       if (statsResult.status === 'fulfilled') {
         setStats(statsResult.value);
       }
@@ -207,6 +205,7 @@ export default function LandingPage() {
       }
 
       setLoadingProperties(false);
+      setLoadingRooms(false);
     }
 
     loadLandingData();
@@ -233,6 +232,10 @@ export default function LandingPage() {
     const params = new URLSearchParams();
     const term = search.location.trim();
     if (term) params.set('location', term);
+    if (search.checkIn) params.set('checkIn', search.checkIn);
+    if (search.checkOut) params.set('checkOut', search.checkOut);
+    const guests = parseInt(search.guests, 10);
+    if (guests > 0) params.set('guests', String(guests));
     navigate('/search?' + params.toString());
   }
 
@@ -326,8 +329,23 @@ export default function LandingPage() {
               Khám phá homestay &amp; resort cao cấp — đặt phòng nhanh, an toàn, minh bạch giá.
             </p>
 
-            <form onSubmit={handleSearch} className="hero-search-pill" style={{ background: '#fff', padding: 8, borderRadius: 9999, display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div className="hero-search-field hero-search-field--location" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 16 }}>
+            <form
+              onSubmit={handleSearch}
+              className="hero-search-pill"
+              style={{
+                background: '#fff',
+                padding: 8,
+                borderRadius: 16,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 8,
+                alignItems: 'center',
+              }}
+            >
+              <div
+                className="hero-search-field hero-search-field--location"
+                style={{ flex: '1 1 140px', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px' }}
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
@@ -337,11 +355,49 @@ export default function LandingPage() {
                   value={search.location}
                   autoComplete="off"
                   onChange={(e) => setSearch((p) => ({ ...p, location: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent' }}
+                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14 }}
                 />
               </div>
 
-              <button type="submit" className="button-primary" style={{ padding: '12px 24px', borderRadius: 9999, border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+              <div style={{ flex: '1 1 120px', padding: '8px 12px' }}>
+                <input
+                  type="date"
+                  aria-label="Check-in"
+                  value={search.checkIn}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setSearch((p) => ({ ...p, checkIn: e.target.value }))}
+                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
+                />
+              </div>
+
+              <div style={{ flex: '1 1 120px', padding: '8px 12px' }}>
+                <input
+                  type="date"
+                  aria-label="Check-out"
+                  value={search.checkOut}
+                  min={search.checkIn || new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setSearch((p) => ({ ...p, checkOut: e.target.value }))}
+                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
+                />
+              </div>
+
+              <div style={{ flex: '0 1 80px', padding: '8px 12px' }}>
+                <input
+                  type="number"
+                  aria-label="Guests"
+                  min={1}
+                  max={20}
+                  value={search.guests}
+                  onChange={(e) => setSearch((p) => ({ ...p, guests: e.target.value }))}
+                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14 }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="button-primary"
+                style={{ padding: '12px 24px', borderRadius: 9999, border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+              >
                 Search
               </button>
             </form>
@@ -437,6 +493,37 @@ export default function LandingPage() {
       )}
 
 
+
+      {/* Featured Rooms */}
+      <section className="section-pad-sm" style={{ background: 'var(--canvas)' }}>
+        <div className="container-wide">
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="text-heading-lg" style={{ marginBottom: 6 }}>
+                Featured Rooms
+              </h2>
+              <p className="body-md text-charcoal">Hand-picked rooms available for your next getaway</p>
+            </div>
+            <Link to="/rooms" className="btn-ghost">
+              View all rooms →
+            </Link>
+          </div>
+
+          {loadingRooms ? (
+            <SectionSkeleton count={4} cols={4} />
+          ) : featuredRooms.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {featuredRooms.map((room) => (
+                <RoomCard key={room.id} room={toRoomCardProps(room)} />
+              ))}
+            </div>
+          ) : (
+            <div className="card" style={{ padding: 48, textAlign: 'center' }}>
+              <p className="body-md text-charcoal">Featured rooms will appear here once properties are added.</p>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Featured Properties */}
       <section id="properties" className="section-pad-sm" style={{ background: 'var(--surface-bone)', scrollMarginTop: 80 }}>

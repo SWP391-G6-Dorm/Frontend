@@ -1,9 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
-import { getEmployeeDamageReports, type DamageReport } from '../../api/employeeApi';
-import { fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, StatusBadge, FAB } from './employeeUtils';
+import {
+  getEmployeeKpis, type EmployeeKpis,
+  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
+  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
+  getEmployeeInspections, passInspection, failInspection,
+  type InspectionChecklist, type InspectionSummary,
+  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
+  getEmployeeRooms, type EmployeeRoom,
+} from '../../api/employeeApi';
+import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
 
-// ── SCR-63: Damage Report List ─────────────────────────────────────────────────
 
 export default function DamageReportListPage() {
   const [reports, setReports] = useState<DamageReport[]>([]);
@@ -71,3 +79,10 @@ export default function DamageReportListPage() {
     </EmployeeLayout>
   );
 }
+
+// ── SCR-64: Create Damage Report ───────────────────────────────────────────────
+
+interface DamageItemRow extends DamageItem {
+  _key: string;
+}
+

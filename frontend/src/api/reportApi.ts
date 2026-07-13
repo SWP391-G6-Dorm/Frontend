@@ -46,6 +46,71 @@ export interface RevenueReportData {
   byProperty: PropertyRevenue[];
 }
 
+/** SCR-27 — KPI dashboard theo property */
+export interface PropertyKpis {
+  propertyId: string;
+  totalRooms: number;
+  occupancyRate: number;
+  revenue: number;
+  pendingCheckIns: number;
+  pendingApprovals: number;
+}
+
+/** SCR-27 — Phân bổ booking theo trạng thái (pie chart) */
+export interface BookingStatusCount {
+  status: string;
+  count: number;
+}
+
+/** Property được gán cho Manager (selector) */
+export interface AssignedProperty {
+  id: string;
+  name: string;
+  status: string;
+}
+
+// ── SCR-44: Property Reports (Occupancy + Booking Trend) ────────────────────────
+
+/** Params chung cho báo cáo theo property + khoảng ngày (SCR-44) */
+export interface PropertyReportParams {
+  propertyId: string;
+  /** yyyy-MM-dd */
+  from: string;
+  /** yyyy-MM-dd */
+  to: string;
+  groupBy?: 'month' | 'week';
+}
+
+/** Tỷ lệ lấp đầy theo 1 kỳ */
+export interface PeriodOccupancy {
+  period: string;
+  occupancyRate: number;
+  occupiedRoomNights: number;
+  availableRoomNights: number;
+}
+
+/** Response GET /api/v1/reports/occupancy */
+export interface OccupancyReportData {
+  totalRooms: number;
+  avgOccupancyRate: number;
+  totalOccupiedRoomNights: number;
+  totalAvailableRoomNights: number;
+  byPeriod: PeriodOccupancy[];
+}
+
+/** Số booking theo 1 kỳ */
+export interface PeriodBookingCount {
+  period: string;
+  bookingCount: number;
+}
+
+/** Response GET /api/v1/reports/booking-trends */
+export interface BookingTrendData {
+  totalBookings: number;
+  byPeriod: PeriodBookingCount[];
+  byStatus: { status: string; count: number }[];
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const reportApi = {
@@ -63,6 +128,44 @@ export const reportApi = {
     if (params.groupBy)    cleanParams.groupBy    = params.groupBy;
 
     const res = await api.get('/api/reports/revenue', { params: cleanParams });
+    return res.data;
+  },
+
+  /** SCR-27 — KPI dashboard theo property */
+  getPropertyKpis: async (propertyId: string): Promise<ApiResponse<PropertyKpis>> => {
+    const res = await api.get('/api/v1/reports/property-kpis', { params: { propertyId } });
+    return res.data;
+  },
+
+  /** SCR-27 — Phân bổ booking theo trạng thái tháng hiện tại */
+  getBookingStatusBreakdown: async (propertyId: string): Promise<ApiResponse<BookingStatusCount[]>> => {
+    const res = await api.get('/api/v1/reports/booking-status-breakdown', { params: { propertyId } });
+    return res.data;
+  },
+
+  /** SCR-44 — Tỷ lệ lấp đầy theo kỳ cho 1 property */
+  getOccupancy: async (params: PropertyReportParams): Promise<ApiResponse<OccupancyReportData>> => {
+    const res = await api.get('/api/v1/reports/occupancy', {
+      params: {
+        propertyId: params.propertyId,
+        from: params.from,
+        to: params.to,
+        groupBy: params.groupBy ?? 'month',
+      },
+    });
+    return res.data;
+  },
+
+  /** SCR-44 — Xu hướng đặt phòng theo kỳ cho 1 property */
+  getBookingTrends: async (params: PropertyReportParams): Promise<ApiResponse<BookingTrendData>> => {
+    const res = await api.get('/api/v1/reports/booking-trends', {
+      params: {
+        propertyId: params.propertyId,
+        from: params.from,
+        to: params.to,
+        groupBy: params.groupBy ?? 'month',
+      },
+    });
     return res.data;
   },
 };

@@ -1,10 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
-import { getEmployeeRooms, createDamageReport, type EmployeeRoom, type DamageItem } from '../../api/employeeApi';
-import { TOUCH, fmtVnd, extractErr, ErrBanner } from './employeeUtils';
-
-// ── SCR-64: Create Damage Report ───────────────────────────────────────────────
+import {
+  getEmployeeKpis, type EmployeeKpis,
+  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
+  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
+  getEmployeeInspections, passInspection, failInspection,
+  type InspectionChecklist, type InspectionSummary,
+  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
+  getEmployeeRooms, type EmployeeRoom,
+} from '../../api/employeeApi';
+import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
 
 interface DamageItemRow extends DamageItem {
   _key: string;
@@ -118,7 +124,7 @@ export default function CreateDamageReportPage() {
             <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 14, color: 'var(--ink)' }}>📄 Xác nhận nộp báo cáo</p>
             <div style={{ marginBottom: 12 }}>
               {[
-                { label: 'Phòng', value: `Phòng ${rooms.find(r => r.id === roomId)?.roomNumber ?? roomId}` },
+                { label: 'Phòng', value: rooms.find(r => r.id === roomId)?.name || roomId },
                 { label: 'Số mục hư hại', value: `${items.length} mục` },
                 { label: 'Tổng phí ước tính', value: fmtVnd(totalCost) },
                 { label: 'Ảnh đính kèm', value: `${photoUrls.length} ảnh` },
@@ -155,7 +161,7 @@ export default function CreateDamageReportPage() {
                   value={roomId} onChange={e => setRoomId(e.target.value)}>
                   <option value="">— Chọn phòng —</option>
                   {rooms.map(r => (
-                    <option key={r.id} value={r.id}>Phòng {r.roomNumber}</option>
+                    <option key={r.id} value={r.id}>{r.name || r.roomNumber}</option>
                   ))}
                 </select>
               )}
@@ -268,3 +274,6 @@ export default function CreateDamageReportPage() {
     </EmployeeLayout>
   );
 }
+
+// ── SCR-65: Property Room List ─────────────────────────────────────────────────
+

@@ -1,26 +1,23 @@
-/**
- * employeeUtils.tsx — Shared constants, helpers, and UI primitives
- * used across the Employee Portal screens (SCR-59 to SCR-65).
- */
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-export const TOUCH = { minHeight: 48, minWidth: 48 }; // touch target constraint
+const TOUCH = { minHeight: 48, minWidth: 48 }; // touch target constraint
 
-export const fmtVnd = (n: number) =>
+const fmtVnd = (n: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
 
-export const fmtDate = (s: string) =>
+const fmtDate = (s: string) =>
   !s ? '—' : new Date(s).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-export function extractErr(err: unknown, fallback: string) {
+function extractErr(err: unknown, fallback: string) {
   return (err as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 
-export function Spinner() {
+function Spinner() {
   return (
     <div style={{ textAlign: 'center', padding: 40 }}>
       <div style={{
@@ -33,7 +30,7 @@ export function Spinner() {
   );
 }
 
-export function ErrBanner({ msg }: { msg: string }) {
+function ErrBanner({ msg }: { msg: string }) {
   return (
     <div className="alert alert-error" style={{ marginBottom: 12 }}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
@@ -44,7 +41,7 @@ export function ErrBanner({ msg }: { msg: string }) {
   );
 }
 
-export function OkBanner({ msg }: { msg: string }) {
+function OkBanner({ msg }: { msg: string }) {
   return (
     <div className="alert alert-success" style={{ marginBottom: 12 }}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
@@ -56,7 +53,7 @@ export function OkBanner({ msg }: { msg: string }) {
 }
 
 /** Status badge — colour by value */
-export function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: string }) {
   const MAP: Record<string, { cls: string; label: string }> = {
     PENDING:         { cls: 'badge-warning', label: 'Pending' },
     IN_PROGRESS:     { cls: 'badge-info',    label: 'In Progress' },
@@ -80,7 +77,7 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 /** Slide-in drawer from right */
-export function Drawer({ open, onClose, title, children }: {
+function Drawer({ open, onClose, title, children }: {
   open: boolean; onClose: () => void; title: string; children: React.ReactNode;
 }) {
   return (
@@ -116,7 +113,7 @@ export function Drawer({ open, onClose, title, children }: {
 }
 
 /** FAB (Floating Action Button) */
-export function FAB({ to, label }: { to: string; label: string }) {
+function FAB({ to, label }: { to: string; label: string }) {
   return (
     <Link to={to} style={{
       position: 'fixed', bottom: 24, right: 20,
@@ -136,3 +133,6 @@ export function FAB({ to, label }: { to: string; label: string }) {
     </Link>
   );
 }
+
+// ── SCR-59: Employee Dashboard ─────────────────────────────────────────────────
+export { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB };

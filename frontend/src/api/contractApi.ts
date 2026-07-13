@@ -50,7 +50,7 @@ export const contractApi = {
 
   // Dành cho CUSTOMER: lấy hợp đồng của chính mình (filter theo JWT)
   getMyContracts: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
-    const res = await api.get('/api/contracts/my', { params });
+    const res = await api.get('/api/v1/contracts/me', { params });
     return res.data;
   },
 
@@ -64,8 +64,13 @@ export const contractApi = {
     return res.data;
   },
 
+  getContractPdfBlob: async (id: string): Promise<Blob> => {
+    const res = await api.get(`/api/v1/contracts/${id}/pdf`, { responseType: 'blob' });
+    return res.data;
+  },
+
   downloadContractPdf: async (id: string, filename: string = 'contract.pdf') => {
-    const res = await api.get(`/api/contracts/${id}/pdf`, { responseType: 'blob' });
+    const res = await api.get(`/api/v1/contracts/${id}/pdf`, { responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');
     link.href = url;

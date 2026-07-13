@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
+import Alert from '../../components/ui/Alert';
 import ImageGallerySlider from '../../components/ui/ImageGallerySlider';
 import RoomMiniCalendar, { isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
 import {
@@ -113,6 +114,7 @@ export default function RoomDetailPage() {
   const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') || '');
   const [guests, setGuests] = useState(Number(searchParams.get('guests')) || 1);
   const [dateError, setDateError] = useState('');
+  const [bookError, setBookError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -185,13 +187,14 @@ export default function RoomDetailPage() {
   function handleBookNow() {
     if (!room) return;
     if (!checkIn || !checkOut) {
-      alert('Vui lòng chọn ngày check-in và check-out.');
+      setBookError('Vui lòng chọn ngày check-in và check-out.');
       return;
     }
     if (dateError) {
-      alert(dateError);
+      setBookError(dateError);
       return;
     }
+    setBookError('');
     const qs = `checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`;
     if (!isAuthenticated || role !== 'CUSTOMER') {
       navigate(`/login?redirect=${encodeURIComponent(`/request-booking/${room.id}?${qs}`)}`);
@@ -221,16 +224,14 @@ export default function RoomDetailPage() {
   if (error || !room) {
     return (
       <PublicLayout>
-        <div className="container-wide" style={{ padding: '80px 0', textAlign: 'center' }}>
-          <p className="body-lg text-charcoal" style={{ marginBottom: 8, color: 'var(--error)' }}>
-            {error || 'Không tìm thấy phòng.'}
-          </p>
+        <div className="container-wide" style={{ padding: '80px 0', maxWidth: 560, margin: '0 auto' }}>
+          <Alert variant="error" message={error || 'Không tìm thấy phòng.'} />
           {id && (
-            <p className="body-sm text-charcoal" style={{ marginBottom: 16 }}>
+            <p className="body-sm text-charcoal" style={{ marginTop: 16, textAlign: 'center' }}>
               Room ID: <code>{id}</code>
             </p>
           )}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginTop: 20 }}>
             <button type="button" className="btn-primary" onClick={() => { setError(''); setReloadKey((k) => k + 1); }}>
               Thử lại
             </button>
@@ -393,7 +394,7 @@ export default function RoomDetailPage() {
                     className="input"
                     value={checkIn}
                     min={new Date().toISOString().slice(0, 10)}
-                    onChange={(e) => setCheckIn(e.target.value)}
+                    onChange={(e) => { setCheckIn(e.target.value); setBookError(''); }}
                     style={{ borderRadius: 10, height: 40, fontSize: 14 }}
                   />
                 </div>
@@ -404,14 +405,22 @@ export default function RoomDetailPage() {
                     className="input"
                     value={checkOut}
                     min={checkIn || new Date().toISOString().slice(0, 10)}
-                    onChange={(e) => setCheckOut(e.target.value)}
+                    onChange={(e) => { setCheckOut(e.target.value); setBookError(''); }}
                     style={{ borderRadius: 10, height: 40, fontSize: 14 }}
                   />
                 </div>
               </div>
 
               {dateError && (
-                <p className="body-sm" style={{ color: 'var(--error)', marginBottom: 12 }}>{dateError}</p>
+                <div style={{ marginBottom: 12 }}>
+                  <Alert variant="warning" message={dateError} />
+                </div>
+              )}
+
+              {bookError && (
+                <div style={{ marginBottom: 12 }}>
+                  <Alert variant="warning" message={bookError} closeable onClose={() => setBookError('')} />
+                </div>
               )}
 
               <div style={{ marginBottom: 20 }}>
@@ -466,7 +475,7 @@ export default function RoomDetailPage() {
               )}
 
               {!canBook ? (
-                <div className="alert alert-warning">Phòng hiện không khả dụng để đặt.</div>
+                <Alert variant="warning" message="Phòng hiện không khả dụng để đặt." />
               ) : !isAuthenticated || role !== 'CUSTOMER' ? (
                 <>
                   <button type="button" className="btn-primary" style={{ width: '100%', height: 44 }} onClick={handleBookNow}>

@@ -2,7 +2,15 @@ import axios from 'axios';
 import { authApi } from './authApi';
 import { useAuthStore } from '../store/authStore';
 
-const PUBLIC_READ_PATHS = ['/api/rooms', '/api/properties', '/api/public', '/uploads'];
+const PUBLIC_READ_PATHS = [
+  '/api/rooms',
+  '/api/properties',
+  '/api/public',
+  '/api/v1/promotions',
+  '/api/v1/properties',
+  '/api/v1/rooms',
+  '/uploads',
+];
 
 function isPublicReadRoute(url?: string) {
   if (!url) return false;
