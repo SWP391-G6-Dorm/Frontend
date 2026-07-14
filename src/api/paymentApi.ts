@@ -8,7 +8,16 @@ export interface PaymentSummaryResponse {
   method: string;
   amount: number;
   status: string;
+  paidAt?: string | null;
   createdAt: string;
+}
+
+export interface PaymentPageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 export interface PaymentDetailResponse {
@@ -31,13 +40,32 @@ export interface PaymentDetailResponse {
 
 export interface PageResponse<T> {
   content: T[];
-  pageNumber: number;
-  pageSize: number;
+  page: number;
+  size: number;
   totalElements: number;
   totalPages: number;
 }
 
+export interface ManagerPaymentsParams {
+  propertyId?: string;
+  page?: number;
+  size?: number;
+  status?: string;
+  type?: string;
+  method?: string;
+  search?: string;
+  sort?: string;
+}
+
+export async function fetchManagerPaymentsV1(
+  params: ManagerPaymentsParams,
+): Promise<PageResponse<PaymentSummaryResponse>> {
+  const res = await api.get('/api/v1/manager/payments', { params });
+  return res.data.data;
+}
+
 export const paymentApi = {
+  /** @deprecated Use fetchManagerPaymentsV1 for manager list (SCR-36) */
   getAllPayments: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<PaymentSummaryResponse> }> => {
     const res = await api.get('/api/manager/payments', { params });
     return res.data;
@@ -51,5 +79,15 @@ export const paymentApi = {
   verifyPayment: async (id: string, status: 'PAID' | 'FAILED', note: string) => {
     const res = await api.post(`/api/manager/payments/${id}/verify`, { status, note });
     return res.data;
-  }
+  },
+
+  createVnpayUrl: async (bookingId: string, type: 'DEPOSIT' | 'REMAINING_BALANCE'): Promise<{ success: boolean; data: { paymentUrl: string } }> => {
+    const res = await api.post(`/api/v1/payments/vnpay/create-url?bookingId=${bookingId}&type=${type}`);
+    return res.data;
+  },
+
+  getMyPayments: async (params?: { page?: number; size?: number; status?: string }): Promise<{ success: boolean; message?: string; data: PaymentPageResponse<PaymentSummaryResponse> }> => {
+    const res = await api.get('/api/v1/customers/me/payments', { params });
+    return res.data;
+  },
 };

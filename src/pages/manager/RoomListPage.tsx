@@ -1,139 +1,35 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
+import Alert from '../../components/ui/Alert';
+import { DataTable, StatusBadge } from '../../components/ui';
+import type { StatusVariant } from '../../components/ui/StatusBadge';
 import {
-  fetchRoomsManager,
-  deleteRoom,
-  RoomListItem,
+  fetchManagerRoomsV1,
   ROOM_TYPES,
+  type RoomListItem,
 } from '../../api/roomsApi';
-import { propertyApi, PropertySummary } from '../../api/propertyApi';
-import { floorApi, FloorSummary } from '../../api/floorApi';
+import { managerApi } from '../../api/managerApi';
+import { floorApi, type FloorSummary } from '../../api/floorApi';
+import type { AssignedProperty } from '../../api/reportApi';
 
-// ── Status badge ──────────────────────────────────────────────────────────────
+// ── Status mapping (tiếng Việt) ───────────────────────────────────────────────
 
-const STATUS_MAP: Record<string, { cls: string; label: string }> = {
-  AVAILABLE:       { cls: 'badge-success', label: 'Available' },
-  PENDING_DEPOSIT: { cls: 'badge-warning', label: 'Pending' },
-  RESERVED:        { cls: 'badge-info',    label: 'Reserved' },
-  OCCUPIED:        { cls: 'badge-error',   label: 'Occupied' },
-  MAINTENANCE:     { cls: 'badge-neutral', label: 'Maintenance' },
+const STATUS_VI: Record<string, { label: string; variant: StatusVariant }> = {
+  AVAILABLE:            { label: 'Trống',           variant: 'success' },
+  PENDING_DEPOSIT:      { label: 'Chờ cọc',         variant: 'warning' },
+  RESERVED:             { label: 'Đã đặt',          variant: 'info' },
+  OCCUPIED:             { label: 'Đang ở',          variant: 'primary' },
+  PENDING_CLEANING:     { label: 'Chờ dọn',         variant: 'warning' },
+  CLEANING_IN_PROGRESS: { label: 'Đang dọn',        variant: 'info' },
+  MAINTENANCE:          { label: 'Bảo trì',         variant: 'danger' },
+  OUT_OF_SERVICE:       { label: 'Ngưng phục vụ',   variant: 'neutral' },
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_MAP[status] ?? { cls: 'badge-neutral', label: status };
-  return <span className={`badge ${s.cls}`}>{s.label}</span>;
-}
+const ALL_STATUSES = Object.keys(STATUS_VI);
 
-// ── Table skeleton ────────────────────────────────────────────────────────────
-
-function TableSkeleton() {
-  return (
-    <tbody>
-      {[...Array(6)].map((_, i) => (
-        <tr key={i}>
-          {[...Array(8)].map((__, j) => (
-            <td key={j}>
-              <div
-                style={{
-                  height: 14,
-                  borderRadius: 4,
-                  background: 'var(--surface-bone)',
-                  width: j === 7 ? 100 : '70%',
-                  animation: 'pulse 1.4s ease-in-out infinite',
-                  opacity: 1 - i * 0.12,
-                }}
-              />
-            </td>
-          ))}
-        </tr>
-      ))}
-    </tbody>
-  );
-}
-
-// ── Delete Confirm Modal ──────────────────────────────────────────────────────
-
-interface DeleteModalProps {
-  room: RoomListItem;
-  deleting: boolean;
-  error: string;
-  onConfirm: () => void;
-  onClose: () => void;
-}
-
-function DeleteModal({ room, deleting, error, onConfirm, onClose }: DeleteModalProps) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
-      onClick={() => !deleting && onClose()}
-    >
-      <div
-        className="card-lg"
-        style={{ padding: 28, width: 440, maxWidth: '90vw' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <h2 className="heading-sm" style={{ marginBottom: 12 }}>
-          Delete Room {room.roomNumber}?
-        </h2>
-        <p className="body-md text-charcoal" style={{ marginBottom: 16 }}>
-          Permanently delete room <strong>{room.roomNumber}</strong> ({room.roomType}) from{' '}
-          <strong>{room.propertyName}</strong>? This cannot be undone.
-        </p>
-
-        {room.status !== 'AVAILABLE' && (
-          <div
-            style={{
-              background: '#FEF3C7',
-              border: '1px solid #F59E0B',
-              borderRadius: 8,
-              padding: '10px 14px',
-              marginBottom: 14,
-              display: 'flex',
-              gap: 8,
-              alignItems: 'flex-start',
-            }}
-          >
-            <span style={{ flexShrink: 0 }}>⚠️</span>
-            <p className="body-sm" style={{ color: '#92400E' }}>
-              Room status is <strong>{room.status}</strong>. Rooms with active bookings cannot be deleted.
-            </p>
-          </div>
-        )}
-
-        {error && (
-          <div
-            style={{
-              background: '#fee2e2',
-              border: '1px solid #fca5a5',
-              borderRadius: 8,
-              padding: '10px 14px',
-              marginBottom: 14,
-              color: '#dc2626',
-              fontSize: 14,
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            className="btn-primary"
-            style={{ flex: 1, background: 'var(--error)' }}
-            onClick={onConfirm}
-            disabled={deleting}
-          >
-            {deleting ? 'Deleting…' : 'Delete Room'}
-          </button>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={onClose} disabled={deleting}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+function formatVnd(value: number): string {
+  return new Intl.NumberFormat('vi-VN').format(value) + ' ₫';
 }
 
 // ── Pagination ────────────────────────────────────────────────────────────────
@@ -148,35 +44,37 @@ function Pagination({
   onPageChange: (p: number) => void;
 }) {
   if (totalPages <= 1) return null;
-
-  const pages: (number | '...')[] = [];
-  if (totalPages <= 7) {
-    for (let i = 0; i < totalPages; i++) pages.push(i);
-  } else {
-    pages.push(0);
-    if (page > 2) pages.push('...');
-    for (let i = Math.max(1, page - 1); i <= Math.min(totalPages - 2, page + 1); i++) pages.push(i);
-    if (page < totalPages - 3) pages.push('...');
-    pages.push(totalPages - 1);
-  }
-
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 20 }}>
-      <button className="btn-ghost btn-sm" onClick={() => onPageChange(page - 1)} disabled={page === 0}>←</button>
-      {pages.map((p, idx) =>
-        p === '...' ? (
-          <span key={`dot-${idx}`} style={{ padding: '4px 8px', color: 'var(--stone)' }}>…</span>
-        ) : (
-          <button
-            key={p}
-            className={p === page ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
-            onClick={() => onPageChange(p as number)}
-          >
-            {(p as number) + 1}
-          </button>
-        ),
-      )}
-      <button className="btn-ghost btn-sm" onClick={() => onPageChange(page + 1)} disabled={page >= totalPages - 1}>→</button>
+    <div className="flex justify-center gap-2 mt-6">
+      <button
+        type="button"
+        className="px-3 py-1.5 text-sm border border-[#E2E8F0] rounded-md disabled:opacity-40"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page === 0}
+      >
+        ←
+      </button>
+      <span className="px-3 py-1.5 text-sm text-[#64748B]">
+        Trang {page + 1} / {totalPages}
+      </span>
+      <button
+        type="button"
+        className="px-3 py-1.5 text-sm border border-[#E2E8F0] rounded-md disabled:opacity-40"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages - 1}
+      >
+        →
+      </button>
+    </div>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <div className="space-y-2 p-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="h-12 bg-[#F1F5F9] rounded animate-pulse" />
+      ))}
     </div>
   );
 }
@@ -186,65 +84,81 @@ function Pagination({
 export default function RoomListPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const initPropertyId = searchParams.get('propertyId') ?? '';
+  const initFloorId = searchParams.get('floorId') ?? '';
 
-  // Filter state
-  const [search, setSearch]                 = useState('');
-  const [selectedPropertyId, setPropertyId] = useState(searchParams.get('propertyId') ?? '');
-  const [selectedFloorId, setFloorId]       = useState(searchParams.get('floorId') ?? '');
-  const [selectedStatus, setStatus]         = useState('');
-  const [selectedRoomType, setRoomType]     = useState('');
-  const [page, setPage]                     = useState(0);
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 10;
 
-  // Data state
-  const [rooms, setRooms]                   = useState<RoomListItem[]>([]);
-  const [totalElements, setTotalElements]   = useState(0);
-  const [totalPages, setTotalPages]         = useState(0);
-  const [loading, setLoading]               = useState(false);
-  const [error, setError]                   = useState('');
+  const [properties, setProperties] = useState<AssignedProperty[]>([]);
+  const [propLoading, setPropLoading] = useState(true);
+  const [propError, setPropError] = useState<string | null>(null);
 
-  // Dropdown state
-  const [properties, setProperties]         = useState<PropertySummary[]>([]);
-  const [floors, setFloors]                 = useState<FloorSummary[]>([]);
-  const [propLoading, setPropLoading]       = useState(true);
-  const [floorLoading, setFloorLoading]     = useState(false);
+  const [search, setSearch] = useState('');
+  const [selectedPropertyId, setPropertyId] = useState(initPropertyId);
+  const [selectedFloorId, setFloorId] = useState(initFloorId);
+  const [selectedStatus, setStatus] = useState('');
+  const [selectedRoomType, setRoomType] = useState('');
+  const [page, setPage] = useState(0);
 
-  // Delete state
-  const [deleteTarget, setDeleteTarget]     = useState<RoomListItem | null>(null);
-  const [deleting, setDeleting]             = useState(false);
-  const [deleteError, setDeleteError]       = useState('');
+  const [floors, setFloors] = useState<FloorSummary[]>([]);
+  const [floorLoading, setFloorLoading] = useState(false);
+
+  const [rooms, setRooms] = useState<RoomListItem[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Load properties on mount
+  // Load assigned properties
   useEffect(() => {
-    propertyApi
-      .getAll({ page: 0, size: 100 })
-      .then(res => setProperties(res.data.content ?? []))
-      .catch(() => {})
+    setPropLoading(true);
+    managerApi.getMyAssignedProperties()
+      .then(res => {
+        if (res.success && res.data) {
+          setProperties(res.data);
+          const validInit = initPropertyId && res.data.some(p => p.id === initPropertyId);
+          if (validInit) {
+            setPropertyId(initPropertyId);
+          } else if (!selectedPropertyId && res.data.length > 0) {
+            setPropertyId(res.data[0].id);
+          }
+        }
+      })
+      .catch(() => setPropError('Không thể tải danh sách homestay.'))
       .finally(() => setPropLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load floors when property changes
   useEffect(() => {
-    setFloorId('');
-    if (!selectedPropertyId) { setFloors([]); return; }
+    if (!selectedPropertyId) {
+      setFloors([]);
+      setFloorId('');
+      return;
+    }
     setFloorLoading(true);
-    floorApi
-      .getByProperty(selectedPropertyId)
-      .then(res => setFloors(res.data ?? []))
+    floorApi.getByProperty(selectedPropertyId)
+      .then(res => {
+        if (res.success) setFloors(res.data ?? []);
+      })
       .catch(() => setFloors([]))
       .finally(() => setFloorLoading(false));
   }, [selectedPropertyId]);
 
-  // Core fetch
   const loadRooms = useCallback((
-    pg: number, srch: string, propId: string, flId: string, st: string, rt: string,
+    pg: number,
+    srch: string,
+    propId: string,
+    flId: string,
+    st: string,
+    rt: string,
   ) => {
     setLoading(true);
-    setError('');
-    fetchRoomsManager({
-      page: pg, size: PAGE_SIZE,
+    setError(null);
+    fetchManagerRoomsV1({
+      page: pg,
+      size: PAGE_SIZE,
       search: srch || undefined,
       propertyId: propId || undefined,
       floorId: flId || undefined,
@@ -253,14 +167,22 @@ export default function RoomListPage() {
     })
       .then(data => {
         setRooms(data.content);
-        setTotalElements(data.totalElements);
         setTotalPages(data.totalPages);
+        setTotalElements(data.totalElements);
       })
-      .catch(() => setError('Failed to load rooms. Please try again.'))
+      .catch((err: unknown) => {
+        const ax = err as { response?: { status?: number; data?: { message?: string } } };
+        if (ax?.response?.status === 403) {
+          setError('Bạn không có quyền xem homestay này.');
+        } else {
+          setError(ax?.response?.data?.message ?? 'Không thể tải danh sách phòng.');
+        }
+        setRooms([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  // Debounce filter changes → reset to page 0
+  // Debounced filter changes (reset page)
   useEffect(() => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -268,252 +190,217 @@ export default function RoomListPage() {
       loadRooms(0, search, selectedPropertyId, selectedFloorId, selectedStatus, selectedRoomType);
     }, 300);
     return () => clearTimeout(debounceRef.current);
-  }, [search, selectedPropertyId, selectedFloorId, selectedStatus, selectedRoomType]);
+  }, [search, selectedPropertyId, selectedFloorId, selectedStatus, selectedRoomType, loadRooms]);
 
-  // Page change (no debounce)
-  useEffect(() => {
-    loadRooms(page, search, selectedPropertyId, selectedFloorId, selectedStatus, selectedRoomType);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  function handlePageChange(newPage: number) {
+    setPage(newPage);
+    loadRooms(newPage, search, selectedPropertyId, selectedFloorId, selectedStatus, selectedRoomType);
+  }
+
+  const hasFilters = !!(search || selectedFloorId || selectedStatus || selectedRoomType);
 
   function handleClearFilters() {
-    setSearch(''); setPropertyId(''); setFloorId(''); setStatus(''); setRoomType('');
+    setSearch('');
+    setFloorId('');
+    setStatus('');
+    setRoomType('');
     setPage(0);
   }
 
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    setDeleteError('');
-    try {
-      await deleteRoom(deleteTarget.id);
-      setDeleteTarget(null);
-      loadRooms(page, search, selectedPropertyId, selectedFloorId, selectedStatus, selectedRoomType);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? 'Failed to delete room.';
-      setDeleteError(msg);
-    } finally {
-      setDeleting(false);
-    }
-  }
+  const columns = [
+    {
+      header: 'Số phòng',
+      accessor: (r: RoomListItem) => (
+        <div className="flex items-center gap-2">
+          {r.primaryImageUrl ? (
+            <img
+              src={r.primaryImageUrl}
+              alt={r.roomNumber}
+              className="w-9 h-9 rounded-md object-cover flex-shrink-0"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-md bg-[#F1F5F9] flex items-center justify-center text-sm flex-shrink-0">
+              🛏
+            </div>
+          )}
+          <span className="font-semibold text-[#1E293B]">{r.roomNumber}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Loại',
+      accessor: (r: RoomListItem) => (
+        <span className="text-[#64748B]">{r.roomType || '—'}</span>
+      ),
+    },
+    {
+      header: 'Tầng',
+      accessor: (r: RoomListItem) => (
+        <span className="text-[#334155]">
+          {r.floorNumber != null ? `Tầng ${r.floorNumber}` : '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Giá/đêm',
+      accessor: (r: RoomListItem) => (
+        <span className="font-medium text-[#1E293B]">
+          {r.pricePerNight != null ? formatVnd(r.pricePerNight) : '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Trạng thái',
+      accessor: (r: RoomListItem) => {
+        const cfg = STATUS_VI[r.status] ?? { label: r.status, variant: 'neutral' as StatusVariant };
+        return <StatusBadge status={cfg.label} variant={cfg.variant} />;
+      },
+    },
+  ];
 
-  const hasFilters = !!(search || selectedPropertyId || selectedFloorId || selectedStatus || selectedRoomType);
-  const statusCounts = rooms.reduce<Record<string, number>>((acc, r) => {
-    acc[r.status] = (acc[r.status] ?? 0) + 1; return acc;
-  }, {});
+  const actions = [
+    { label: 'Sửa', onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/edit`) },
+    { label: 'Thư viện ảnh', onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/gallery`) },
+    { label: 'Trạng thái', onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/status`) },
+  ];
 
   return (
     <ManagerLayout>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div>
-          <h1 className="display-md" style={{ marginBottom: 4 }}>Room Management</h1>
-          <p className="body-sm text-charcoal">Manage all rooms across your properties</p>
-        </div>
-        <Link to="/manager/rooms/add" className="btn-primary btn-sm">+ Add Room</Link>
-      </div>
-
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 body-sm" style={{ marginBottom: 24, color: 'var(--charcoal)' }}>
-        <Link to="/manager/structure" className="text-primary" style={{ textDecoration: 'none' }}>Structure</Link>
-        <span style={{ color: 'var(--stone)' }}>/</span>
-        <Link to="/manager/floors" className="text-primary" style={{ textDecoration: 'none' }}>Floors</Link>
-        <span style={{ color: 'var(--stone)' }}>/</span>
-        <span>Rooms</span>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="card" style={{ padding: '16px 20px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
-          {/* Search */}
-          <div style={{ flex: '1 1 220px', minWidth: 180 }}>
-            <label className="form-label" style={{ display: 'block', marginBottom: 4 }}>Search</label>
-            <div style={{ position: 'relative' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--stone)', pointerEvents: 'none' }}>
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input className="input" style={{ paddingLeft: 32 }} placeholder="Room number, type…"
-                value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
-          </div>
-
-          {/* Property */}
-          <div style={{ flex: '1 1 200px', minWidth: 160 }}>
-            <label className="form-label" style={{ display: 'block', marginBottom: 4 }}>Property</label>
-            <select className="select" value={selectedPropertyId}
-              onChange={e => setPropertyId(e.target.value)} disabled={propLoading}>
-              <option value="">All Properties</option>
-              {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-
-          {/* Floor */}
-          <div style={{ flex: '1 1 160px', minWidth: 140 }}>
-            <label className="form-label" style={{ display: 'block', marginBottom: 4 }}>Floor</label>
-            <select className="select" value={selectedFloorId}
-              onChange={e => setFloorId(e.target.value)} disabled={!selectedPropertyId || floorLoading}>
-              <option value="">All Floors</option>
-              {floors.map(f => (
-                <option key={f.id} value={f.id}>
-                  F{f.floorNumber}{f.description ? ` — ${f.description}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Status */}
-          <div style={{ flex: '1 1 150px', minWidth: 130 }}>
-            <label className="form-label" style={{ display: 'block', marginBottom: 4 }}>Status</label>
-            <select className="select" value={selectedStatus} onChange={e => setStatus(e.target.value)}>
-              <option value="">All Statuses</option>
-              <option value="AVAILABLE">Available</option>
-              <option value="PENDING_DEPOSIT">Pending Deposit</option>
-              <option value="RESERVED">Reserved</option>
-              <option value="OCCUPIED">Occupied</option>
-              <option value="MAINTENANCE">Maintenance</option>
-            </select>
-          </div>
-
-          {/* Room Type */}
-          <div style={{ flex: '1 1 150px', minWidth: 130 }}>
-            <label className="form-label" style={{ display: 'block', marginBottom: 4 }}>Room Type</label>
-            <select className="select" value={selectedRoomType} onChange={e => setRoomType(e.target.value)}>
-              <option value="">All Types</option>
-              {ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-
-          {hasFilters && (
-            <button className="btn-ghost btn-sm" style={{ alignSelf: 'flex-end', marginBottom: 2 }}
-              onClick={handleClearFilters}>
-              ✕ Clear
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="font-display text-[28px] font-bold text-[#1E293B]">
+            Danh sách phòng
+          </h1>
+          {properties.length > 0 && (
+            <button
+              type="button"
+              className="bg-[#0F766E] text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-[#0D6B63]"
+              onClick={() => navigate('/manager/rooms/add')}
+            >
+              Thêm phòng mới
             </button>
           )}
         </div>
+
+        {propError && <Alert variant="error" message={propError} />}
+        {error && <Alert variant="error" message={error} closeable onClose={() => setError(null)} />}
+
+        {!propLoading && properties.length === 0 && (
+          <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-10 text-center">
+            <p className="text-[#64748B]">Bạn chưa được gán homestay nào.</p>
+          </div>
+        )}
+
+        {properties.length > 0 && (
+          <>
+            {/* Filters */}
+            <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-4">
+              <div className="flex flex-wrap gap-3 items-end">
+                <div className="flex-1 min-w-[180px]">
+                  <label className="block text-xs text-[#64748B] mb-1">Tìm kiếm</label>
+                  <input
+                    className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm"
+                    placeholder="Số phòng, loại phòng…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                </div>
+
+                <div className="min-w-[160px]">
+                  <label className="block text-xs text-[#64748B] mb-1">Homestay</label>
+                  <select
+                    className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm bg-white"
+                    value={selectedPropertyId}
+                    onChange={e => { setPropertyId(e.target.value); setFloorId(''); }}
+                    disabled={propLoading}
+                  >
+                    {properties.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="min-w-[130px]">
+                  <label className="block text-xs text-[#64748B] mb-1">Tầng</label>
+                  <select
+                    className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm bg-white"
+                    value={selectedFloorId}
+                    onChange={e => setFloorId(e.target.value)}
+                    disabled={floorLoading || !selectedPropertyId}
+                  >
+                    <option value="">Tất cả tầng</option>
+                    {floors.map(f => (
+                      <option key={f.id} value={f.id}>Tầng {f.floorNumber}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="min-w-[140px]">
+                  <label className="block text-xs text-[#64748B] mb-1">Trạng thái</label>
+                  <select
+                    className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm bg-white"
+                    value={selectedStatus}
+                    onChange={e => setStatus(e.target.value)}
+                  >
+                    <option value="">Tất cả</option>
+                    {ALL_STATUSES.map(s => (
+                      <option key={s} value={s}>{STATUS_VI[s].label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="min-w-[130px]">
+                  <label className="block text-xs text-[#64748B] mb-1">Loại phòng</label>
+                  <select
+                    className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm bg-white"
+                    value={selectedRoomType}
+                    onChange={e => setRoomType(e.target.value)}
+                  >
+                    <option value="">Tất cả</option>
+                    {ROOM_TYPES.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {hasFilters && (
+                  <button
+                    type="button"
+                    className="text-sm text-[#0F766E] px-3 py-2"
+                    onClick={handleClearFilters}
+                  >
+                    Xóa bộ lọc
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Table */}
+            {loading ? (
+              <TableSkeleton />
+            ) : rooms.length === 0 ? (
+              <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-12 text-center">
+                <p className="text-[#64748B]">Không tìm thấy phòng phù hợp.</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-[#64748B]">
+                  {totalElements} phòng
+                </p>
+                <DataTable
+                  columns={columns}
+                  data={rooms}
+                  keyExtractor={r => r.id}
+                  actions={actions}
+                />
+                <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+              </>
+            )}
+          </>
+        )}
       </div>
-
-      {/* Stats */}
-      {!loading && rooms.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
-          <span className="body-sm text-charcoal">{totalElements} room{totalElements !== 1 ? 's' : ''} found</span>
-          {Object.entries(statusCounts).map(([s, count]) => {
-            const sd = STATUS_MAP[s] ?? { cls: 'badge-neutral', label: s };
-            return <span key={s} className={`badge ${sd.cls}`} style={{ fontSize: 11 }}>{sd.label}: {count}</span>;
-          })}
-        </div>
-      )}
-
-      {/* Error */}
-      {error && (
-        <div style={{
-          background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 10,
-          padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <p style={{ color: '#dc2626' }}>{error}</p>
-          <button className="btn-outline btn-sm"
-            onClick={() => loadRooms(page, search, selectedPropertyId, selectedFloorId, selectedStatus, selectedRoomType)}>
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Table */}
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Room</th>
-              <th>Type</th>
-              <th>Property</th>
-              <th>Floor</th>
-              <th style={{ textAlign: 'right' }}>Price / night</th>
-              <th style={{ textAlign: 'center' }}>Cap.</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-
-          {loading ? <TableSkeleton /> : rooms.length === 0 ? (
-            <tbody>
-              <tr>
-                <td colSpan={8}>
-                  <div style={{ padding: '48px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 40 }}>🛏</span>
-                    <p className="heading-sm" style={{ color: 'var(--charcoal)' }}>
-                      {hasFilters ? 'No rooms match your filters' : 'No rooms yet'}
-                    </p>
-                    {hasFilters
-                      ? <button className="btn-ghost btn-sm" onClick={handleClearFilters}>Clear filters</button>
-                      : <Link to="/manager/rooms/add" className="btn-primary btn-sm">+ Add First Room</Link>
-                    }
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          ) : (
-            <tbody>
-              {rooms.map(room => (
-                <tr key={room.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      {room.primaryImageUrl ? (
-                        <img src={room.primaryImageUrl} alt={room.roomNumber}
-                          style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
-                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      ) : (
-                        <div style={{ width: 36, height: 36, borderRadius: 6, background: 'var(--surface-bone)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🛏</div>
-                      )}
-                      <span style={{ fontWeight: 700 }}>{room.roomNumber}</span>
-                    </div>
-                  </td>
-                  <td className="text-charcoal">{room.roomType || '—'}</td>
-                  <td>
-                    <span style={{ maxWidth: 160, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>
-                      {room.propertyName}
-                    </span>
-                  </td>
-                  <td>
-                    {room.floorNumber != null
-                      ? <span className="badge badge-neutral" style={{ fontSize: 11 }}>F{room.floorNumber}</span>
-                      : '—'}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                    {room.pricePerNight != null ? `₫${room.pricePerNight.toLocaleString('vi-VN')}` : '—'}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span className="badge badge-neutral">{room.capacity ?? '—'}</span>
-                  </td>
-                  <td><StatusBadge status={room.status} /></td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn-ghost btn-sm" onClick={() => navigate(`/manager/rooms/${room.id}`)}>View</button>
-                      <button className="btn-ghost btn-sm" onClick={() => navigate(`/manager/rooms/${room.id}/edit`)}>Edit</button>
-                      <button className="btn-ghost btn-sm" onClick={() => navigate(`/manager/rooms/${room.id}/status`)} title="Update Status">Status</button>
-                      <button className="btn-ghost btn-sm" style={{ color: 'var(--error)' }}
-                        onClick={() => { setDeleteTarget(room); setDeleteError(''); }}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          )}
-        </table>
-      </div>
-
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-
-      {deleteTarget && (
-        <DeleteModal
-          room={deleteTarget}
-          deleting={deleting}
-          error={deleteError}
-          onConfirm={handleDelete}
-          onClose={() => { if (!deleting) { setDeleteTarget(null); setDeleteError(''); } }}
-        />
-      )}
     </ManagerLayout>
   );
 }

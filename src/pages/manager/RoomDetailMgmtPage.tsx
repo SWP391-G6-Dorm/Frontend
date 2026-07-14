@@ -7,6 +7,7 @@ import {
   RoomDetail,
   RoomBookingSummary,
 } from '../../api/roomsApi';
+import DataTable from '../../components/ui/DataTable';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -298,6 +299,20 @@ function BookingHistoryCard({ roomId: _roomId, bookings, total, page, loading, o
 
   const activeBooking = bookings.find(b => ACTIVE_BOOKING_STATUSES.has(b.status));
 
+  const columns = [
+    { header: 'Customer', accessor: (b: any) => (
+      <div>
+        <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>{b.customerName}</p>
+        <p className="body-sm" style={{ color: 'var(--charcoal)', margin: 0 }}>{b.customerEmail}</p>
+      </div>
+    )},
+    { header: 'Check-in', accessor: (b: any) => <span className="body-sm">{fmtDate(b.checkInDate)}</span> },
+    { header: 'Check-out', accessor: (b: any) => <span className="body-sm">{fmtDate(b.checkOutDate)}</span> },
+    { header: 'Amount', accessor: (b: any) => <div style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(b.totalAmount)}</div> },
+    { header: 'Status', accessor: (b: any) => <BookingStatusBadge status={b.status} /> },
+    { header: '', accessor: (b: any) => <Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">View</Link> }
+  ];
+
   return (
     <CardBox>
       <SectionTitle>Booking History</SectionTitle>
@@ -325,39 +340,11 @@ function BookingHistoryCard({ roomId: _roomId, bookings, total, page, loading, o
         </div>
       ) : (
         <>
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Check-in</th>
-                  <th>Check-out</th>
-                  <th style={{ textAlign: 'right' }}>Amount</th>
-                  <th>Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map(b => (
-                  <tr key={b.id}>
-                    <td>
-                      <p style={{ fontWeight: 600, fontSize: 14 }}>{b.customerName}</p>
-                      <p className="body-sm" style={{ color: 'var(--charcoal)' }}>{b.customerEmail}</p>
-                    </td>
-                    <td className="body-sm">{fmtDate(b.checkInDate)}</td>
-                    <td className="body-sm">{fmtDate(b.checkOutDate)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(b.totalAmount)}</td>
-                    <td><BookingStatusBadge status={b.status} /></td>
-                    <td>
-                      <Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable 
+            columns={columns}
+            data={bookings}
+            keyExtractor={(b) => b.id}
+          />
 
           {/* Pagination */}
           {totalPages > 1 && (

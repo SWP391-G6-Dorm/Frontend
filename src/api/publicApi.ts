@@ -53,14 +53,16 @@ export interface SearchSuggestion {
   label: string;
 }
 
-export async function fetchFeaturedRooms(limit = 8): Promise<FeaturedRoom[]> {
-  const res = await api.get(`/api/rooms/featured?limit=${limit}`);
-  return res.data.data;
-}
+
 
 export async function fetchFeaturedProperties(limit = 6): Promise<FeaturedProperty[]> {
-  const res = await api.get(`/api/properties/featured?limit=${limit}`);
-  return res.data.data;
+  const res = await api.get(`/api/v1/properties/featured?limit=${limit}`);
+  return res.data.data ?? [];
+}
+
+export async function fetchFeaturedRooms(limit = 8): Promise<FeaturedRoom[]> {
+  const res = await api.get(`/api/v1/rooms/featured?limit=${limit}`);
+  return res.data.data ?? [];
 }
 
 export async function fetchPlatformStats(): Promise<PlatformStats> {
@@ -74,6 +76,6 @@ export async function fetchSearchSuggestions(q = ''): Promise<SearchSuggestion[]
 }
 
 export async function fetchPromotions(): Promise<Promotion[]> {
-  const res = await api.get('/api/public/promotions');
+  const res = await api.get('/api/v1/promotions/active');
   return res.data.data ?? [];
 }

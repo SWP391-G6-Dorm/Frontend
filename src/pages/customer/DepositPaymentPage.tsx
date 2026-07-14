@@ -1,151 +1,150 @@
-import { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+﻿// SCR-21: Order Review & Deposit Payment
+import { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
+import Alert from '../../components/ui/Alert';
+import { bookingApi, BookingDetailResponse } from '../../api/bookingApi';
+import { paymentApi } from '../../api/paymentApi';
 
-const BOOKING_MOCK = { id: 'B001', roomNumber: 'Villa 01', roomType: 'Villa', propertyName: 'Sunset Resort Đà Nẵng', checkInDate: '2026-07-10', checkOutDate: '2026-07-13', totalAmount: 7500000 };
-const DEPOSIT_AMOUNT = Math.round(BOOKING_MOCK.totalAmount * 0.4);
+function formatDate(d: string) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
-const PAYMENT_METHODS = [
-  { value: 'BANK_TRANSFER', label: 'Bank Transfer', icon: '🏦', desc: 'Transfer to our bank account' },
-  { value: 'CASH',          label: 'Cash',          icon: '💵', desc: 'Pay in person at check-in' },
-  { value: 'E_WALLET',      label: 'E-Wallet',      icon: '📱', desc: 'MoMo, ZaloPay, VNPay' },
-];
-const BANK_INFO = { accountNumber: '1234567890', accountName: 'CONG TY HOMESTAY RESORT', bankName: 'Vietcombank (VCB)' };
+function formatVnd(n: number) {
+  return `₫${Number(n).toLocaleString('vi-VN')}`;
+}
 
-function FileUploadBox({ onChange }: { onChange: (file: File | null) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [filename, setFilename] = useState('');
+function PaymentForm({ type, bookingId }: { type: 'DEPOSIT' | 'REMAINING_BALANCE'; bookingId: string }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleFile(file: File | null) {
-    if (!file) return;
-    setFilename(file.name);
-    onChange(file);
-    if (file.type.startsWith('image/')) setPreview(URL.createObjectURL(file));
-    else setPreview(null);
+  async function handleVNPay() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await paymentApi.createVnpayUrl(bookingId, type);
+      if (res.success && res.data?.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+      } else {
+        setError('Không thể tạo URL thanh toán VNPay');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Lỗi kết nối khi tạo thanh toán VNPay');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div onClick={() => ref.current?.click()}
-      onDragOver={e => e.preventDefault()}
-      onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0] || null); }}
-      style={{ border: '2px dashed var(--hairline)', borderRadius: 10, padding: 28, textAlign: 'center', cursor: 'pointer', background: 'var(--surface-bone)', transition: 'border-color 0.15s' }}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)')}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--hairline)')}>
-      <input ref={ref} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => handleFile(e.target.files?.[0] || null)} />
-      {preview ? <img src={preview} alt="Receipt preview" style={{ maxHeight: 140, borderRadius: 8, marginBottom: 8, maxWidth: '100%' }} /> : <div style={{ fontSize: 32, marginBottom: 8 }}>📎</div>}
-      <p style={{ fontWeight: 600, marginBottom: 4 }}>{filename || 'Click or drag to upload receipt'}</p>
-      <p className="body-sm text-charcoal">JPG, PNG, PDF up to 10MB</p>
+    <div>
+      {error && (
+        <div className="mb-4">
+          <Alert variant="error" message={error} />
+        </div>
+      )}
+      <div className="mb-6 p-4 border border-[var(--hairline)] rounded-lg bg-[var(--surface-bone)]">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl" aria-hidden="true">💳</span>
+          <div>
+            <p className="font-semibold">Thanh toán qua cổng VNPay</p>
+            <p className="body-sm text-charcoal">Hỗ trợ quét mã QR, thẻ ATM, Visa/Mastercard</p>
+          </div>
+        </div>
+      </div>
+      <button type="button" onClick={handleVNPay} className="btn-primary w-full py-3.5 text-base" disabled={loading}>
+        {loading ? 'Đang kết nối VNPay...' : 'Thanh toán qua VNPay'}
+      </button>
     </div>
   );
 }
 
 export default function DepositPaymentPage() {
-  const [method, setMethod] = useState('BANK_TRANSFER');
-  const [receipt, setReceipt] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { id } = useParams<{ id: string }>();
+  const [booking, setBooking] = useState<BookingDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!receipt) { setError('Please upload your payment receipt'); return; }
-    setError(null); setLoading(true);
-    try {
-      // TODO: await paymentApi.create({ bookingId: BOOKING_MOCK.id, type: 'DEPOSIT', method, amount: DEPOSIT_AMOUNT, receipt });
-      await new Promise(r => setTimeout(r, 1000));
-      setDone(true);
-    } catch { setError('Payment submission failed. Please try again.'); }
-    finally { setLoading(false); }
-  }
+  useEffect(() => {
+    if (!id) { setLoading(false); setError('Không tìm thấy mã đặt phòng'); return; }
+    setLoading(true); setError(null);
+    bookingApi.getMyBookingDetail(id)
+      .then(res => setBooking(res.data))
+      .catch(() => setError('Không thể tải thông tin đặt phòng'))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  if (done) return (
-    <CustomerLayout>
-      <div style={{ maxWidth: 480, margin: '60px auto', textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20,6 9,17 4,12"/></svg>
+  if (loading) return <CustomerLayout><div className="py-10 text-center body-md text-charcoal">Đang tải thông tin...</div></CustomerLayout>;
+  if (error || !booking) return <CustomerLayout><div className="max-w-2xl mx-auto py-8"><Alert variant="error" message={error || 'Đặt phòng không tồn tại'} /></div></CustomerLayout>;
+
+  const shortId = booking.id.split('-')[0];
+
+  if (booking.status !== 'PENDING_DEPOSIT') {
+    return (
+      <CustomerLayout>
+        <div className="max-w-2xl mx-auto py-8 space-y-4">
+          <Alert variant="warning" message="Đặt phòng này không ở trạng thái chờ thanh toán cọc." />
+          <Link to={`/customer/bookings/${booking.id}`} className="btn-primary inline-flex">Xem chi tiết đặt phòng</Link>
         </div>
-        <h2 className="heading-md" style={{ marginBottom: 8 }}>Deposit Submitted!</h2>
-        <p className="body-md text-charcoal" style={{ marginBottom: 24 }}>Your payment receipt has been submitted. The manager will verify and confirm your booking shortly.</p>
-        <Link to="/customer/bookings" className="btn-primary">View My Bookings</Link>
-      </div>
-    </CustomerLayout>
-  );
+      </CustomerLayout>
+    );
+  }
 
   return (
     <CustomerLayout>
-      <div style={{ maxWidth: 620, margin: '0 auto' }}>
-        <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
-          <Link to="/customer/bookings" className="text-primary" style={{ textDecoration: 'none' }}>Bookings</Link>
-          <span>›</span>
-          <Link to={`/customer/bookings/${BOOKING_MOCK.id}`} className="text-primary" style={{ textDecoration: 'none' }}>{BOOKING_MOCK.id}</Link>
-          <span>›</span>
-          <span style={{ fontWeight: 600 }}>Pay Deposit</span>
-        </div>
-
-        <h1 className="heading-md" style={{ marginBottom: 4 }}>Deposit Payment</h1>
-        <p className="body-md text-charcoal" style={{ marginBottom: 24 }}>Pay 40% deposit to confirm your booking</p>
-
-        <div className="card" style={{ padding: 20, marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ fontWeight: 700, fontSize: 16 }}>{BOOKING_MOCK.roomNumber} — {BOOKING_MOCK.roomType}</p>
-              <p className="body-sm text-charcoal">{BOOKING_MOCK.propertyName}</p>
-              <p className="body-sm text-charcoal">📅 {BOOKING_MOCK.checkInDate} → {BOOKING_MOCK.checkOutDate}</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <p className="body-sm text-charcoal">Total booking</p>
-              <p style={{ fontWeight: 700, fontSize: 15 }}>₫{BOOKING_MOCK.totalAmount.toLocaleString()}</p>
+      <div className="max-w-6xl mx-auto">
+        <nav className="flex items-center gap-2 body-sm text-charcoal mb-5">
+          <Link to="/customer/bookings" className="text-primary no-underline">Đặt phòng</Link>
+          <span aria-hidden="true">›</span>
+          <Link to={`/customer/bookings/${booking.id}`} className="text-primary no-underline">{shortId}</Link>
+          <span aria-hidden="true">›</span>
+          <span className="font-semibold">Thanh toán</span>
+        </nav>
+        <h1 className="heading-md mb-1">Xem lại &amp; Thanh toán</h1>
+        <p className="body-md text-charcoal mb-8">Xác nhận thông tin đặt phòng và thanh toán 40% tiền cọc qua VNPay</p>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-start">
+          <div className="lg:col-span-3 space-y-6">
+            <section className="card p-5">
+              <h2 className="heading-sm mb-4">Thông tin khách</h2>
+              <dl className="space-y-2 body-md">
+                <div className="flex justify-between gap-4"><dt className="text-charcoal">Họ tên</dt><dd className="font-medium text-right">{booking.customerName}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-charcoal">Email</dt><dd className="font-medium text-right break-all">{booking.customerEmail}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-charcoal">Số điện thoại</dt><dd className="font-medium">{booking.customerPhone || '—'}</dd></div>
+              </dl>
+            </section>
+            <section className="card p-5">
+              <h2 className="heading-sm mb-4">Chi tiết đặt phòng</h2>
+              <p className="font-bold text-base mb-1">{booking.roomNumber} — {booking.roomType}</p>
+              <p className="body-sm text-charcoal mb-3">{booking.propertyName}</p>
+              <p className="body-md mb-1">📅 {formatDate(booking.checkInDate)} → {formatDate(booking.checkOutDate)}</p>
+              <p className="body-sm text-charcoal">👥 {booking.guestCount} khách</p>
+              <div className="divider my-4" />
+              <p className="body-sm text-charcoal mb-1">Yêu cầu đặc biệt</p>
+              <p className="body-md">{booking.specialRequests?.trim() ? booking.specialRequests : 'Không có'}</p>
+            </section>
+            <section className="card p-5">
+              <h2 className="heading-sm mb-4">Chính sách &amp; nội quy</h2>
+              <ul className="body-md text-charcoal space-y-2 list-disc pl-5">
+                <li>Chính sách hủy: từ 7 ngày trước check-in hoàn 100% cọc; 3–6 ngày hoàn 50%; dưới 3 ngày không hoàn.</li>
+                <li>Giờ check-in: 14:00 · check-out: 12:00.</li>
+                <li>Giữ yên tĩnh sau 22:00; không tổ chức tiệc trong phòng.</li>
+                <li>Cấm hút thuốc trong phòng.</li>
+              </ul>
+            </section>
+          </div>
+          <div className="lg:col-span-2">
+            <div className="card p-5 lg:sticky lg:top-6 shadow-md">
+              <h2 className="heading-sm mb-4">Tóm tắt đơn hàng</h2>
+              <div className="space-y-3 body-md">
+                <div className="flex justify-between"><span className="text-charcoal">Tổng tiền</span><span className="font-semibold">{formatVnd(booking.totalAmount)}</span></div>
+                <div className="flex justify-between"><span className="text-charcoal">Tiền cọc (40%)</span><span className="font-semibold text-primary">{formatVnd(booking.depositAmount)}</span></div>
+                <div className="flex justify-between"><span className="text-charcoal">Còn lại (60%)</span><span className="font-semibold">{formatVnd(booking.remainingAmount)}</span></div>
+              </div>
+              <div className="divider my-4" />
+              <p className="body-sm text-charcoal mb-3">Phương thức thanh toán</p>
+              <PaymentForm type="DEPOSIT" bookingId={booking.id} />
             </div>
           </div>
-          <div className="divider" style={{ margin: '14px 0' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="heading-sm">Deposit Required (40%)</span>
-            <span className="heading-sm text-primary">₫{DEPOSIT_AMOUNT.toLocaleString()}</span>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: 24 }}>
-          <form onSubmit={handleSubmit}>
-            {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
-            <div style={{ marginBottom: 20 }}>
-              <label className="form-label">Payment Method</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {PAYMENT_METHODS.map(m => (
-                  <label key={m.value} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: `1.5px solid ${method === m.value ? 'var(--primary)' : 'var(--hairline)'}`, borderRadius: 10, cursor: 'pointer', background: method === m.value ? '#fff1ee' : 'var(--surface-card)', transition: 'all 0.15s' }}>
-                    <input type="radio" value={m.value} checked={method === m.value} onChange={() => setMethod(m.value)} style={{ accentColor: 'var(--primary)' }} />
-                    <span style={{ fontSize: 20 }}>{m.icon}</span>
-                    <div><p style={{ fontWeight: 600, fontSize: 14 }}>{m.label}</p><p className="body-sm text-charcoal">{m.desc}</p></div>
-                  </label>
-                ))}
-              </div>
-            </div>
-            {method === 'BANK_TRANSFER' && (
-              <div style={{ background: 'var(--surface-bone)', borderRadius: 10, padding: 16, marginBottom: 20 }}>
-                <p className="form-label" style={{ marginBottom: 12 }}>Transfer to this account</p>
-                {[
-                  { l: 'Bank', v: BANK_INFO.bankName },
-                  { l: 'Account Name', v: BANK_INFO.accountName },
-                  { l: 'Account Number', v: BANK_INFO.accountNumber },
-                  { l: 'Amount', v: `₫${DEPOSIT_AMOUNT.toLocaleString()}` },
-                  { l: 'Transfer note', v: `BOOKING ${BOOKING_MOCK.id} DEPOSIT` },
-                ].map(r => (
-                  <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span className="body-sm text-charcoal">{r.l}</span>
-                    <span style={{ fontWeight: 600, fontSize: 13, fontFamily: r.l === 'Account Number' ? 'JetBrains Mono, monospace' : 'inherit' }}>{r.v}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div style={{ marginBottom: 24 }}>
-              <label className="form-label form-label-required">Upload Payment Receipt</label>
-              <FileUploadBox onChange={setReceipt} />
-              <p className="form-hint">Upload a screenshot or photo of your payment confirmation</p>
-            </div>
-            <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Deposit Payment'}
-            </button>
-          </form>
         </div>
       </div>
     </CustomerLayout>

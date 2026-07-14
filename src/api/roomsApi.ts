@@ -61,14 +61,37 @@ export function sortToApi(sort: string): string {
   }
 }
 
+/** SCR-07 — public room search (api-spec: GET /api/v1/rooms/search) */
 export async function fetchRooms(params: FetchRoomsParams): Promise<RoomsPageResponse> {
-  const res = await api.get('/api/rooms', { params });
+  const { capacity, status, ...rest } = params;
+  const res = await api.get('/api/v1/rooms/search', {
+    params: {
+      ...rest,
+      guests: capacity,
+      status: status ?? 'AVAILABLE',
+    },
+  });
   return res.data.data;
 }
 
 // SCR-39: Manager-only room list with full filter support
+/** @deprecated SCR-29 — dùng fetchManagerRoomsV1 thay thế */
 export async function fetchRoomsManager(params: FetchRoomsParams): Promise<RoomsPageResponse> {
   const res = await api.get('/api/rooms/manager', { params });
+  return res.data.data;
+}
+
+/** SCR-29 — Manager room list (v1, property-scoped) */
+export async function fetchManagerRoomsV1(params: FetchRoomsParams): Promise<RoomsPageResponse> {
+  const clean: Record<string, string | number> = {};
+  if (params.page != null) clean.page = params.page;
+  if (params.size != null) clean.size = params.size;
+  if (params.search) clean.search = params.search;
+  if (params.propertyId) clean.propertyId = params.propertyId;
+  if (params.floorId) clean.floorId = params.floorId;
+  if (params.status) clean.status = params.status;
+  if (params.roomType) clean.roomType = params.roomType;
+  const res = await api.get('/api/v1/manager/rooms', { params: clean });
   return res.data.data;
 }
 
@@ -126,7 +149,7 @@ export interface RoomDetail {
 }
 
 export async function fetchRoomById(id: string): Promise<RoomDetail> {
-  const res = await api.get(`/api/rooms/${id}`);
+  const res = await api.get(`/api/v1/rooms/${id}`);
   return res.data.data;
 }
 
@@ -142,7 +165,24 @@ export interface RoomCalendarData {
 }
 
 export async function fetchRoomCalendar(id: string): Promise<RoomCalendarData> {
-  const res = await api.get(`/api/rooms/${id}/calendar`);
+  const res = await api.get(`/api/v1/rooms/${id}/calendar`);
+  return res.data.data;
+}
+
+export interface MonthAvailabilityData {
+  bookedDates: string[];
+  maintenanceDates: string[];
+}
+
+/** SCR-09 — month view availability */
+export async function fetchRoomMonthAvailability(
+  id: string,
+  startDate: string,
+  endDate: string,
+): Promise<MonthAvailabilityData> {
+  const res = await api.get(`/api/v1/rooms/${id}/availability`, {
+    params: { startDate, endDate },
+  });
   return res.data.data;
 }
 
@@ -155,7 +195,7 @@ export interface RoomReviewsPage {
 }
 
 export async function fetchRoomReviews(id: string, page = 0, size = 5): Promise<RoomReviewsPage> {
-  const res = await api.get(`/api/rooms/${id}/reviews`, { params: { page, size } });
+  const res = await api.get(`/api/v1/rooms/${id}/reviews`, { params: { page, size } });
   return res.data.data;
 }
 
@@ -169,7 +209,7 @@ export async function checkRoomAvailability(
   checkIn: string,
   checkOut: string,
 ): Promise<{ available: boolean; bookedRanges: BookedRange[] }> {
-  const res = await api.get(`/api/rooms/${id}/availability`, { params: { checkIn, checkOut } });
+  const res = await api.get(`/api/v1/rooms/${id}/availability`, { params: { checkIn, checkOut } });
   return res.data.data;
 }
 
@@ -220,37 +260,69 @@ export interface CreateRoomPayload {
   capacity: number;
   area?: number;
   description?: string;
+  amenities?: string[];
 }
 
 export interface UpdateRoomPayload {
+  floorId?: string;
   roomNumber?: string;
   roomType?: string;
   pricePerNight?: number;
   capacity?: number;
   area?: number | null;
   description?: string | null;
+  amenities?: string[];
 }
 
+/** @deprecated Use createRoomV1 */
 export async function createRoom(payload: CreateRoomPayload): Promise<RoomDetail> {
   const res = await api.post('/api/rooms', payload);
   return res.data.data;
 }
 
+export async function createRoomV1(payload: CreateRoomPayload): Promise<RoomDetail> {
+  const res = await api.post('/api/v1/manager/rooms', payload);
+  return res.data.data;
+}
+
+export async function fetchManagerRoomV1(id: string): Promise<RoomDetail> {
+  const res = await api.get(`/api/v1/manager/rooms/${id}`);
+  return res.data.data;
+}
+
+/** @deprecated Use updateRoomV1 */
 export async function updateRoom(id: string, payload: UpdateRoomPayload): Promise<RoomDetail> {
   const res = await api.put(`/api/rooms/${id}`, payload);
   return res.data.data;
 }
 
+export async function updateRoomV1(id: string, payload: UpdateRoomPayload): Promise<RoomDetail> {
+  const res = await api.put(`/api/v1/manager/rooms/${id}`, payload);
+  return res.data.data;
+}
+
 export interface UpdateRoomStatusPayload {
-  status: 'AVAILABLE' | 'MAINTENANCE';
+  status: 'AVAILABLE' | 'MAINTENANCE' | 'OUT_OF_SERVICE';
+  startDate?: string;
+  endDate?: string;
+  reason?: string;
   note?: string;
 }
 
+/** @deprecated Use updateRoomStatusV1 */
 export async function updateRoomStatus(
   id: string,
   payload: UpdateRoomStatusPayload,
 ): Promise<RoomDetail> {
   const res = await api.patch(`/api/rooms/${id}/status`, payload);
+  return res.data.data;
+}
+
+export async function updateRoomStatusV1(
+  id: string,
+  payload: UpdateRoomStatusPayload,
+): Promise<RoomDetail> {
+  const res = await api.patch(`/api/v1/manager/rooms/${id}/status`, payload);
   return res.data.data;
 }
 

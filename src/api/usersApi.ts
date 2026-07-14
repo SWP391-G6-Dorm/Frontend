@@ -14,8 +14,8 @@ export interface UserProfile {
 
 export interface UpdateProfilePayload {
   fullName?: string;
-  phone?: string;
-  avatarUrl?: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface ChangePasswordPayload {
@@ -25,17 +25,17 @@ export interface ChangePasswordPayload {
 }
 
 export async function fetchMyProfile(): Promise<UserProfile> {
-  const res = await api.get('/api/users/me');
+  const res = await api.get('/api/v1/users/me');
   return res.data.data;
 }
 
 export async function updateMyProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
-  const res = await api.put('/api/users/me', payload);
+  const res = await api.put('/api/v1/users/me', payload);
   return res.data.data;
 }
 
 export async function changeMyPassword(payload: ChangePasswordPayload): Promise<void> {
-  await api.patch('/api/users/me/password', payload);
+  await api.put('/api/v1/users/me/password', payload);
 }
 
 // --- MANAGER API ---

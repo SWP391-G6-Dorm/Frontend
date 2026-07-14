@@ -1,5 +1,6 @@
 import api from './axiosInstance';
 import type { ApiResponse } from './authApi';
+import type { AssignedProperty } from './reportApi';
 
 // ── Dashboard Types ────────────────────────────────────────────────────────────
 
@@ -55,12 +56,17 @@ export interface DashboardData {
 
 export const managerApi = {
   /**
+   * @deprecated SCR-27 — dùng reportApi.getPropertyKpis + getMyAssignedProperties thay thế.
    * GET /api/manager/dashboard
-   * Lấy toàn bộ KPI, chart data và recent bookings cho SCR-32.
-   * Yêu cầu role MANAGER.
    */
   getDashboard: async (): Promise<ApiResponse<DashboardData>> => {
     const res = await api.get('/api/manager/dashboard');
+    return res.data;
+  },
+
+  /** SCR-27 — Property ACTIVE được gán cho Manager */
+  getMyAssignedProperties: async (): Promise<ApiResponse<AssignedProperty[]>> => {
+    const res = await api.get('/api/v1/managers/me/properties');
     return res.data;
   },
 };

@@ -1,6 +1,17 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/authApi';
+import Alert from '../../components/ui/Alert';
+
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_SEC = 60;
+
+type PageAlert = { variant: 'error' | 'success' | 'warning'; message: string };
+
+function isGoogleOnlyMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('google');
+}
 
 /* ── Password strength bar ── */
 function PasswordStrength({ password }: { password: string }) {
@@ -43,62 +54,138 @@ export default function ForgotPasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(0);
+  const [alert, setAlert]       = useState<PageAlert | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; confirm?: string }>({});
+  const [emailSentSuccess, setEmailSentSuccess] = useState(false);
+  const [inlineOtpError, setInlineOtpError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(RESEND_COOLDOWN_SEC);
+  const [canResend, setCanResend] = useState(false);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* ── Countdown helper ── */
-  function startCountdown() {
-    setCountdown(300);
-    const t = setInterval(() =>
-      setCountdown(c => {
-        if (c <= 1) { clearInterval(t); return 0; }
-        return c - 1;
-      }), 1000);
+  const startCountdown = useCallback(() => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setCanResend(false);
+    setCountdown(RESEND_COOLDOWN_SEC);
+
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          setCanResend(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => () => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+  }, []);
+
+  function validateEmailForm(): boolean {
+    const errs: { email?: string } = {};
+    const trimmed = email.trim();
+    if (!trimmed) errs.email = 'Email is required';
+    else if (!/^\S+@\S+\.\S+$/.test(trimmed)) errs.email = 'Invalid email format';
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
   }
-  const minutes = Math.floor(countdown / 60);
-  const seconds = countdown % 60;
+
+  function handleForgotApiError(err: unknown) {
+    const axiosError = err as {
+      response?: { status?: number; data?: { message?: string } };
+    };
+
+    if (!axiosError.response) {
+      setAlert({
+        variant: 'error',
+        message: 'Cannot reach server. Ensure backend (HomestayApplication) is running on port 8080.',
+      });
+      return;
+    }
+
+    const status = axiosError.response.status;
+    const msg = axiosError.response.data?.message ?? 'Something went wrong. Please try again.';
+
+    if (status === 404) {
+      setAlert({ variant: 'error', message: msg });
+      return;
+    }
+
+    if (status === 400 && isGoogleOnlyMessage(msg)) {
+      setAlert({
+        variant: 'error',
+        message: 'This account uses Google sign-in. Please sign in with Google on the login page.',
+      });
+      return;
+    }
+
+    setAlert({ variant: 'error', message: msg });
+  }
 
   /* ── STEP 1: Send OTP ── */
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    if (!email) { setError('Email is required'); return; }
-    if (!/^\S+@\S+\.\S+$/.test(email)) { setError('Invalid email format'); return; }
+    setAlert(null);
+    setFieldErrors({});
+    if (!validateEmailForm()) return;
 
+    const trimmedEmail = email.trim();
     setLoading(true);
     try {
-      const res = await authApi.forgotPassword(email);
+      const res = await authApi.forgotPassword(trimmedEmail);
       if (!res.success) {
-        setError(res.message || 'Email not found. Please check and try again.');
+        setAlert({ variant: 'error', message: res.message || 'Email not found. Please check and try again.' });
         return;
       }
+      setEmail(trimmedEmail);
+      setEmailSentSuccess(true);
       setStep('otp');
       startCountdown();
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string } } };
-      setError(axiosError?.response?.data?.message || 'Email not found. Please check and try again.');
+      handleForgotApiError(err);
     } finally {
       setLoading(false);
     }
   }
 
-  /* ── STEP 1 Resend ── */
+  function handleOtpApiError(err: unknown, fallback: string) {
+    const axiosError = err as {
+      response?: { status?: number; data?: { message?: string } };
+    };
+
+    if (!axiosError.response) {
+      setError('Cannot reach server. Ensure backend (HomestayApplication) is running on port 8080.');
+      return;
+    }
+
+    const msg = axiosError.response.data?.message ?? fallback;
+    setError(msg);
+  }
+
+  /* ── STEP 2 Resend ── */
   async function handleResend() {
+    if (!canResend || loading) return;
+
     setError(null);
+    setInlineOtpError(null);
     setLoading(true);
-    setOtp(['', '', '', '', '', '']);
+    setOtp(Array(OTP_LENGTH).fill(''));
+
     try {
       const res = await authApi.forgotPassword(email);
       if (!res.success) {
         setError(res.message || 'Something went wrong. Please try again.');
         return;
       }
+      setEmailSentSuccess(true);
       startCountdown();
       otpRefs.current[0]?.focus();
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string } } };
-      setError(axiosError?.response?.data?.message || 'Something went wrong. Please try again.');
+      handleOtpApiError(err, 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -111,7 +198,9 @@ export default function ForgotPasswordPage() {
     newOtp[index] = char;
     setOtp(newOtp);
     setError(null);
-    if (char && index < 5) {
+    setInlineOtpError(null);
+    setEmailSentSuccess(false);
+    if (char && index < OTP_LENGTH - 1) {
       otpRefs.current[index + 1]?.focus();
     }
   }
@@ -123,11 +212,13 @@ export default function ForgotPasswordPage() {
   }
 
   function handleOtpPaste(e: React.ClipboardEvent) {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) {
-      setOtp(pasted.split(''));
-      otpRefs.current[5]?.focus();
-    }
+    e.preventDefault();
+    setInlineOtpError(null);
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    const newOtp = [...otp];
+    for (let i = 0; i < pasted.length; i++) newOtp[i] = pasted[i];
+    setOtp(newOtp);
+    otpRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
   }
 
   /* ── STEP 2: Verify OTP → go to new password ── */
@@ -135,20 +226,63 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError(null);
     const otpCode = otp.join('');
-    if (otpCode.length < 6) { setError('Please enter the complete 6-digit code'); return; }
-    // Move to next step — actual verification happens with password reset
+    if (otpCode.length < OTP_LENGTH) {
+      setInlineOtpError('Please enter the complete 6-digit code.');
+      return;
+    }
+    setInlineOtpError(null);
     setStep('newPassword');
+  }
+
+  function validatePasswordForm(): boolean {
+    const errs: { password?: string; confirm?: string } = {};
+    if (!password) errs.password = 'Password is required';
+    else if (password.length < 8) errs.password = 'Password must be at least 8 characters';
+    else if (!/[A-Z]/.test(password)) errs.password = 'Password must contain at least 1 uppercase letter';
+    else if (!/[0-9]/.test(password)) errs.password = 'Password must contain at least 1 number';
+    if (!confirm) errs.confirm = 'Please confirm your password';
+    else if (password !== confirm) errs.confirm = 'Passwords do not match';
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function handleResetApiError(err: unknown) {
+    const axiosError = err as {
+      response?: { status?: number; data?: { message?: string } };
+    };
+
+    if (!axiosError.response) {
+      setError('Cannot reach server. Ensure backend (HomestayApplication) is running on port 8080.');
+      return;
+    }
+
+    const status = axiosError.response.status;
+    const msg = axiosError.response.data?.message ?? 'Something went wrong. Please try again.';
+    const isOtpIssue = status === 410
+      || (status === 400 && (msg.toLowerCase().includes('otp') || msg.toLowerCase().includes('mã')));
+
+    if (isOtpIssue) {
+      const hint = status === 410
+        ? `${msg} Please tap "Resend code" to get a new one.`
+        : msg;
+      setError(hint);
+      setStep('otp');
+      setOtp(Array(OTP_LENGTH).fill(''));
+      setCanResend(true);
+      setCountdown(0);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      return;
+    }
+
+    setError(msg);
   }
 
   /* ── STEP 3: Reset Password ── */
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!password) { setError('Password is required'); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
-    if (!/[A-Z]/.test(password)) { setError('Password must contain at least 1 uppercase letter'); return; }
-    if (!/[0-9]/.test(password)) { setError('Password must contain at least 1 number'); return; }
-    if (password !== confirm) { setError('Passwords do not match'); return; }
+    setFieldErrors({});
+    if (!validatePasswordForm()) return;
 
     setLoading(true);
     try {
@@ -159,18 +293,9 @@ export default function ForgotPasswordPage() {
         return;
       }
       setStep('done');
-      setTimeout(() => navigate('/login'), 2500);
+      setTimeout(() => navigate('/login', { replace: true }), 2500);
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string } } };
-      const msg = axiosError?.response?.data?.message || '';
-      // OTP wrong/expired → go back to OTP step
-      if (msg.toLowerCase().includes('otp') || msg.toLowerCase().includes('mã')) {
-        setError(msg);
-        setStep('otp');
-        setOtp(['', '', '', '', '', '']);
-      } else {
-        setError(msg || 'Something went wrong. Please try again.');
-      }
+      handleResetApiError(err);
     } finally {
       setLoading(false);
     }
@@ -191,13 +316,10 @@ export default function ForgotPasswordPage() {
     </Link>
   );
 
-  /* ── Error alert ── */
+  /* ── Error alert (OTP / password steps) ── */
   const ErrorAlert = error ? (
-    <div className="alert alert-error" style={{ marginBottom: 20 }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-      {error}
+    <div style={{ marginBottom: 20 }}>
+      <Alert variant="error" message={error} />
     </div>
   ) : null;
 
@@ -220,19 +342,23 @@ export default function ForgotPasswordPage() {
         {step === 'email' && (
           <>
             {/* Lock icon */}
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#fff1ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(15, 118, 110, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
 
-            <h1 className="display-md" style={{ marginBottom: 8 }}>Forgot Password</h1>
+            <h1 className="display-md" style={{ marginBottom: 8 }}>Forgot your password?</h1>
             <p className="body-md text-charcoal" style={{ marginBottom: 28, lineHeight: 1.6 }}>
-              Enter your registered email and we'll send you a 6-digit verification code.
+              Enter your registered email address and we&apos;ll send you a 6-digit verification code.
             </p>
 
-            {ErrorAlert}
+            {alert && (
+              <div style={{ marginBottom: 20 }}>
+                <Alert variant={alert.variant} message={alert.message} />
+              </div>
+            )}
 
             <form onSubmit={handleSendOtp} noValidate>
               <div style={{ marginBottom: 20 }}>
@@ -240,13 +366,20 @@ export default function ForgotPasswordPage() {
                 <input
                   id="forgot-email"
                   type="email"
-                  className={`input ${error ? 'input-error' : ''}`}
+                  className={`input ${fieldErrors.email ? 'input-error' : ''}`}
                   placeholder="you@example.com"
                   value={email}
-                  onChange={e => { setEmail(e.target.value); setError(null); }}
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    setFieldErrors({});
+                    setAlert(null);
+                  }}
                   autoComplete="email"
                   disabled={loading}
                 />
+                {fieldErrors.email && (
+                  <p className="form-error" style={{ marginTop: 6 }}>{fieldErrors.email}</p>
+                )}
               </div>
 
               <button id="forgot-password-submit-btn" type="submit" className="btn-primary" style={{ width: '100%', marginBottom: 12 }} disabled={loading}>
@@ -281,6 +414,15 @@ export default function ForgotPasswordPage() {
               {email}
             </p>
 
+            {emailSentSuccess && (
+              <div style={{ marginBottom: 20 }}>
+                <Alert
+                  variant="success"
+                  message={`We sent a 6-digit code to ${email}. Check your inbox.`}
+                />
+              </div>
+            )}
+
             {ErrorAlert}
 
             <form onSubmit={handleVerifyOtp} noValidate>
@@ -310,7 +452,7 @@ export default function ForgotPasswordPage() {
                         fontSize: 22,
                         fontWeight: 700,
                         borderRadius: 10,
-                        border: `1.5px solid ${error ? 'var(--error)' : digit ? 'var(--hairline-strong)' : 'var(--hairline)'}`,
+                        border: `1.5px solid ${inlineOtpError ? 'var(--error)' : digit ? 'var(--hairline-strong)' : 'var(--hairline)'}`,
                         background: 'var(--surface-card)',
                         color: 'var(--ink)',
                         outline: 'none',
@@ -322,29 +464,29 @@ export default function ForgotPasswordPage() {
                     />
                   ))}
                 </div>
+                {inlineOtpError && (
+                  <p className="form-error" style={{ marginTop: 8, textAlign: 'center' }}>{inlineOtpError}</p>
+                )}
               </div>
 
               {/* Countdown / Resend */}
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                {countdown > 0 ? (
-                  <p className="body-sm text-charcoal">
-                    Resend code in{' '}
-                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
-                      {minutes}:{String(seconds).padStart(2, '0')}
-                    </span>
-                  </p>
-                ) : (
-                  <button type="button" className="btn-ghost" onClick={handleResend} disabled={loading} style={{ margin: '0 auto' }}>
-                    {loading ? <>{Spinner} Sending...</> : '↻ Resend Code'}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={handleResend}
+                  disabled={!canResend || loading}
+                  style={{ margin: '0 auto', cursor: canResend && !loading ? 'pointer' : 'default' }}
+                >
+                  {loading ? <>{Spinner} Sending...</> : canResend ? '↻ Resend Code' : `Resend code in ${countdown}s`}
+                </button>
               </div>
 
               <button id="otp-verify-btn" type="submit" className="btn-primary" style={{ width: '100%', marginBottom: 12 }} disabled={loading || otp.join('').length < 6}>
                 Verify Code
               </button>
 
-              <button type="button" className="btn-ghost" onClick={() => { setStep('email'); setError(null); setOtp(['', '', '', '', '', '']); }}
+              <button type="button" className="btn-ghost" onClick={() => { setStep('email'); setError(null); setAlert(null); setEmailSentSuccess(false); setOtp(['', '', '', '', '', '']); }}
                 style={{ width: '100%', justifyContent: 'center', display: 'flex' }}>
                 ← Change Email
               </button>
@@ -358,13 +500,13 @@ export default function ForgotPasswordPage() {
         {step === 'newPassword' && (
           <>
             {/* Shield icon */}
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#fff1ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(15, 118, 110, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
             </div>
 
-            <h1 className="display-md" style={{ marginBottom: 8 }}>Create New Password</h1>
+            <h1 className="heading-md" style={{ marginBottom: 8 }}>Set new password</h1>
             <p className="body-md text-charcoal" style={{ marginBottom: 24, lineHeight: 1.6 }}>
               Choose a strong password for your account.
             </p>
@@ -379,10 +521,10 @@ export default function ForgotPasswordPage() {
                   <input
                     id="reset-pw"
                     type={showPw ? 'text' : 'password'}
-                    className={`input ${error && !confirm ? 'input-error' : ''}`}
+                    className={`input ${fieldErrors.password ? 'input-error' : ''}`}
                     placeholder="Enter new password"
                     value={password}
-                    onChange={e => { setPassword(e.target.value); setError(null); }}
+                    onChange={e => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: undefined })); setError(null); }}
                     autoComplete="new-password"
                     disabled={loading}
                     style={{ paddingRight: 50 }}
@@ -396,6 +538,9 @@ export default function ForgotPasswordPage() {
                   </button>
                 </div>
                 <PasswordStrength password={password} />
+                {fieldErrors.password && (
+                  <p className="form-error" style={{ marginTop: 6 }}>{fieldErrors.password}</p>
+                )}
               </div>
 
               {/* Confirm Password */}
@@ -405,10 +550,10 @@ export default function ForgotPasswordPage() {
                   <input
                     id="reset-confirm"
                     type={showConfirm ? 'text' : 'password'}
-                    className={`input ${error ? 'input-error' : ''}`}
+                    className={`input ${fieldErrors.confirm ? 'input-error' : ''}`}
                     placeholder="Repeat new password"
                     value={confirm}
-                    onChange={e => { setConfirm(e.target.value); setError(null); }}
+                    onChange={e => { setConfirm(e.target.value); setFieldErrors(p => ({ ...p, confirm: undefined })); setError(null); }}
                     autoComplete="new-password"
                     disabled={loading}
                     style={{ paddingRight: 50 }}
@@ -421,6 +566,9 @@ export default function ForgotPasswordPage() {
                     }
                   </button>
                 </div>
+                {fieldErrors.confirm && (
+                  <p className="form-error" style={{ marginTop: 6 }}>{fieldErrors.confirm}</p>
+                )}
               </div>
 
               {/* Password requirements checklist */}
@@ -443,10 +591,14 @@ export default function ForgotPasswordPage() {
                 {loading ? <>{Spinner} Resetting...</> : 'Reset Password'}
               </button>
 
-              <button type="button" className="btn-ghost" onClick={() => { setStep('otp'); setError(null); }}
-                style={{ width: '100%', justifyContent: 'center', display: 'flex' }}>
+              <button type="button" className="btn-ghost" onClick={() => { setStep('otp'); setError(null); setFieldErrors({}); }}
+                style={{ width: '100%', justifyContent: 'center', display: 'flex', marginBottom: 12 }}>
                 ← Back
               </button>
+
+              <Link to="/login" className="btn-ghost" style={{ width: '100%', justifyContent: 'center', display: 'flex' }}>
+                ← Back to Login
+              </Link>
             </form>
           </>
         )}
@@ -461,10 +613,10 @@ export default function ForgotPasswordPage() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 className="display-md" style={{ marginBottom: 8 }}>Password Reset!</h1>
-            <p className="body-md text-charcoal" style={{ marginBottom: 24, lineHeight: 1.6 }}>
-              Your password has been reset successfully. Redirecting to login...
-            </p>
+            <h1 className="display-md" style={{ marginBottom: 16 }}>Password Reset!</h1>
+            <div style={{ marginBottom: 24 }}>
+              <Alert variant="success" message="Password reset successfully. Redirecting to login..." />
+            </div>
             <Link to="/login" className="btn-primary" style={{ display: 'inline-flex', width: '100%', justifyContent: 'center' }}>
               Go to Login
             </Link>

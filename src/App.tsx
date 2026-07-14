@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 // ── Route Guards ─────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
+import ManagerRedirectRoute from './components/ManagerRedirectRoute';
 
 // ── Public (SCR-01 → SCR-10) ─────────────────────────────────────────────────
 import LandingPage from './pages/public/LandingPage';
@@ -20,21 +21,33 @@ import UnauthorizedPage from './pages/public/UnauthorizedPage';
 
 // ── Customer Portal ───────────────────────────────────────────────────────────
 import CustomerDashboardPage from './pages/customer/CustomerDashboardPage';
-import { UserProfilePage, EditProfilePage, ChangePasswordPage }
-  from './pages/customer/ProfilePages';
+// Profile (SCR-10, 11, 12)
+import UserProfilePage from './pages/customer/UserProfilePage';
+import EditProfilePage from './pages/customer/EditProfilePage';
+import ChangePasswordPage from './pages/customer/ChangePasswordPage';
+// Notifications (SCR-13, 14)
 import { NotificationCenterPage, NotificationDetailPage }
   from './pages/customer/NotificationPages';
-import { BookingFormPage, BookingListPage, BookingDetailPage, BookingCancellationPage }
-  from './pages/customer/BookingPages';
+// Bookings (SCR-17, 18, 19, 20)
+import BookingFormPage from './pages/customer/BookingFormPage';
+import BookingListPage from './pages/customer/BookingListPage';
+import BookingDetailPage from './pages/customer/BookingDetailPage';
+import BookingCancellationPage from './pages/customer/BookingCancellationPage';
 import ContractListPage from './pages/customer/ContractListPage';
 import ContractDetailPage from './pages/customer/ContractDetailPage';
-
-import { DepositPaymentPage, RemainingPaymentPage, PaymentHistoryPage, ReceiptUploadPage }
-  from './pages/customer/PaymentPages';
-import { MaintenanceListPage, CreateMaintenancePage, MaintenanceDetailPage }
-  from './pages/customer/MaintenancePages';
-import { ReviewRatingPage, MyReviewsPage }
-  from './pages/customer/ReviewPages';
+// Payments (SCR-21, 22, 23, 24)
+import DepositPaymentPage from './pages/customer/DepositPaymentPage';
+import RemainingPaymentPage from './pages/customer/RemainingPaymentPage';
+import PaymentHistoryPage from './pages/customer/PaymentHistoryPage';
+import VNPayResultPage from './pages/customer/VNPayResultPage';
+// Maintenance (SCR-27, 28, 29)
+import MaintenanceListPage from './pages/customer/MaintenanceListPage';
+import CreateMaintenancePage from './pages/customer/CreateMaintenancePage';
+import MaintenanceDetailPage from './pages/customer/MaintenanceDetailPage';
+// Reviews (SCR-30, 31)
+import ReviewRatingPage from './pages/customer/ReviewRatingPage';
+import MyReviewsPage from './pages/customer/MyReviewsPage';
+// Complaints
 import { CustomerComplaintListPage, CreateComplaintPage }
   from './pages/customer/CustomerComplaintPages';
 
@@ -44,40 +57,90 @@ import PropertyListPage from './pages/manager/PropertyListPage';
 import PropertyDetailPage from './pages/manager/PropertyDetailPage';
 import AddPropertyPage from './pages/manager/AddPropertyPage';
 import EditPropertyPage from './pages/manager/EditPropertyPage';
-import {
-  StructureTreePage, FloorManagementPage,
-  RoomListPage, RoomDetailMgmtPage, AddRoomPage, EditRoomPage,
-  RoomGalleryPage, RoomStatusPage,
-} from './pages/manager/RoomManagementPages';
+import StructureTreePage from './pages/manager/StructureTreePage';
+import FloorManagementPage from './pages/manager/FloorManagementPage';
+import RoomListPage from './pages/manager/RoomListPage';
+import RoomDetailMgmtPage from './pages/manager/RoomDetailMgmtPage';
+import AddRoomPage from './pages/manager/AddRoomPage';
+import EditRoomPage from './pages/manager/EditRoomPage';
+import RoomGalleryPage from './pages/manager/RoomGalleryPage';
+import RoomStatusPage from './pages/manager/RoomStatusPage';
 import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
 import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
+import BookingCheckInOutPage from './pages/manager/BookingCheckInOutPage';
+import HousekeepingSchedulePage from './pages/manager/HousekeepingSchedulePage';
+import HousekeepingTasksPage from './pages/manager/HousekeepingTasksPage';
+import MaintenanceTasksPage from './pages/manager/MaintenanceTasksPage';
+import InspectionsPage from './pages/manager/InspectionsPage';
+import DamageReportsPage from './pages/manager/DamageReportsPage';
+import PropertyReportsPage from './pages/manager/PropertyReportsPage';
+import EmployeeMgmtPage from './pages/manager/EmployeeMgmtPage';
 import PaymentMgmtListPage from './pages/manager/PaymentMgmtListPage';
 import PaymentMgmtVerificationPage from './pages/manager/PaymentMgmtVerificationPage';
 import PaymentMgmtDetailPage from './pages/manager/PaymentMgmtDetailPage';
 import ContractMgmtListPage from './pages/manager/ContractMgmtListPage';
 import ContractMgmtDetailPage from './pages/manager/ContractMgmtDetailPage';
 import ResendContractPage from './pages/manager/ResendContractPage';
-import {
-  CustomerListPage, CustomerDetailPage,
-  ComplaintListPage, ComplaintDetailPage,
-  MaintenanceMgmtListPage, MaintenanceMgmtDetailPage,
-  ReportsDashboardPage, RevenueReportPage, OccupancyReportPage,
-  ActivityLogPage, ReviewMgmtPage,
-} from './pages/manager/AdminPages';
+import { CustomerListPage } from './pages/manager/CustomerListPage';
+import { CustomerDetailPage } from './pages/manager/CustomerDetailPage';
+import { ComplaintListPage } from './pages/manager/ComplaintListPage';
+import { ComplaintDetailPage } from './pages/manager/ComplaintDetailPage';
+import { MaintenanceMgmtListPage } from './pages/manager/MaintenanceMgmtListPage';
+import { MaintenanceMgmtDetailPage } from './pages/manager/MaintenanceMgmtDetailPage';
+import { ReportsDashboardPage } from './pages/manager/ReportsDashboardPage';
+import { RevenueReportPage } from './pages/manager/RevenueReportPage';
+import { OccupancyReportPage } from './pages/manager/OccupancyReportPage';
+import { ActivityLogPage } from './pages/manager/ActivityLogPage';
+import { ReviewMgmtPage } from './pages/manager/ReviewMgmtPage';
 import PromotionMgmtPage from './pages/manager/PromotionMgmtPage';
+
+// ── Admin Portal (SCR-45 → SCR-58) ──────────────────────────────────────────
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import { PropertyMgmtListPage } from './pages/admin/PropertyMgmtListPage';
+import { CreatePropertyPage } from './pages/admin/CreatePropertyPage';
+import { EditPropertyAdminPage } from './pages/admin/EditPropertyAdminPage';
+import { ManagerAssignmentPage } from './pages/admin/ManagerAssignmentPage';
+import { ManagerDirectoryPage } from './pages/admin/ManagerDirectoryPage';
+import { CustomerDirectoryPage } from './pages/admin/CustomerDirectoryPage';
+import { PaymentReconciliationPage } from './pages/admin/PaymentReconciliationPage';
+import { DamageEscalationPage } from './pages/admin/DamageEscalationPage';
+import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
+import { GlobalReportsPage } from './pages/admin/GlobalReportsPage';
+import { SystemAdminPage } from './pages/admin/SystemAdminPage';
+import { PromotionAdminListPage } from './pages/admin/PromotionAdminListPage';
+import { AddEditPromotionPage } from './pages/admin/AddEditPromotionPage';
+
+// ── Employee Portal (SCR-59 → SCR-65) ────────────────────────────────────────
+import EmployeeDashboardPage from './pages/employee/EmployeeDashboardPage';
+import HousekeepingWorkspacePage from './pages/employee/HousekeepingWorkspacePage';
+import MaintenanceWorkspacePage from './pages/employee/MaintenanceWorkspacePage';
+import RoomInspectionHubPage from './pages/employee/RoomInspectionHubPage';
+import DamageReportListPage from './pages/employee/DamageReportListPage';
+import CreateDamageReportPage from './pages/employee/CreateDamageReportPage';
+import PropertyRoomListPage from './pages/employee/PropertyRoomListPage';
+
+/** Catch-all: redirect theo role */
+function CatchAllRedirect() {
+  const role = sessionStorage.getItem('userRole');
+  if (role === 'MANAGER')  return <Navigate to="/manager/dashboard"  replace />;
+  if (role === 'CUSTOMER') return <Navigate to="/customer/dashboard" replace />;
+  if (role === 'ADMIN')    return <Navigate to="/admin/dashboard"    replace />;
+  if (role === 'EMPLOYEE') return <Navigate to="/employee/dashboard" replace />;
+  return <Navigate to="/" replace />;
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* ─────────────── PUBLIC — Ai cũng vào được ─────────────── */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/rooms" element={<RoomListingPage />} />
-        <Route path="/search" element={<SearchResultsPage />} />
-        <Route path="/rooms/:id" element={<RoomDetailPage />} />
-        <Route path="/rooms/:id/calendar" element={<AvailabilityCalendarPage />} />
-        <Route path="/about" element={<AboutPage />} />
+        {/* ─────────────── PUBLIC — Manager bị redirect về dashboard ─────────────── */}
+        <Route path="/" element={<ManagerRedirectRoute><LandingPage /></ManagerRedirectRoute>} />
+        <Route path="/rooms" element={<ManagerRedirectRoute><RoomListingPage /></ManagerRedirectRoute>} />
+        <Route path="/search" element={<ManagerRedirectRoute><SearchResultsPage /></ManagerRedirectRoute>} />
+        <Route path="/rooms/:id" element={<ManagerRedirectRoute><RoomDetailPage /></ManagerRedirectRoute>} />
+        <Route path="/rooms/:id/calendar" element={<ManagerRedirectRoute><AvailabilityCalendarPage /></ManagerRedirectRoute>} />
+        <Route path="/about" element={<ManagerRedirectRoute><AboutPage /></ManagerRedirectRoute>} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* ─────────────── GUEST ONLY — Redirect nếu đã login ─────────────── */}
@@ -101,7 +164,7 @@ function App() {
         <Route path="/customer/profile/change-password"
           element={<ProtectedRoute role="CUSTOMER"><ChangePasswordPage /></ProtectedRoute>} />
 
-        {/* Notifications (SCR-14,15) */}
+        {/* Notifications (SCR-13,14) */}
         <Route path="/customer/notifications"
           element={<ProtectedRoute role="CUSTOMER"><NotificationCenterPage /></ProtectedRoute>} />
         <Route path="/customer/notifications/:id"
@@ -132,8 +195,8 @@ function App() {
           element={<ProtectedRoute role="CUSTOMER"><DepositPaymentPage /></ProtectedRoute>} />
         <Route path="/customer/payments/:id/remaining"
           element={<ProtectedRoute role="CUSTOMER"><RemainingPaymentPage /></ProtectedRoute>} />
-        <Route path="/customer/payments/:id/receipt"
-          element={<ProtectedRoute role="CUSTOMER"><ReceiptUploadPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/vnpay-result"
+          element={<ProtectedRoute role="CUSTOMER"><VNPayResultPage /></ProtectedRoute>} />
 
         {/* Maintenance (SCR-27,28,29) */}
         <Route path="/customer/maintenance"
@@ -169,6 +232,12 @@ function App() {
         <Route path="/manager/profile/change-password"
           element={<ProtectedRoute role="MANAGER"><ChangePasswordPage /></ProtectedRoute>} />
 
+        {/* Notifications (SCR-13,14) */}
+        <Route path="/manager/notifications"
+          element={<ProtectedRoute role="MANAGER"><NotificationCenterPage /></ProtectedRoute>} />
+        <Route path="/manager/notifications/:id"
+          element={<ProtectedRoute role="MANAGER"><NotificationDetailPage /></ProtectedRoute>} />
+
         {/* Properties (SCR-33,34,35,36) */}
         <Route path="/manager/properties"
           element={<ProtectedRoute role="MANAGER"><PropertyListPage /></ProtectedRoute>} />
@@ -202,8 +271,21 @@ function App() {
         {/* Bookings (SCR-45,46) */}
         <Route path="/manager/bookings"
           element={<ProtectedRoute role="MANAGER"><BookingMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id/check-in"
+          element={<ProtectedRoute role="MANAGER"><BookingCheckInOutPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id/check-out"
+          element={<ProtectedRoute role="MANAGER"><BookingCheckInOutPage /></ProtectedRoute>} />
         <Route path="/manager/bookings/:id"
           element={<ProtectedRoute role="MANAGER"><BookingMgmtDetailPage /></ProtectedRoute>} />
+
+        <Route path="/manager/housekeeping/schedule"
+          element={<ProtectedRoute role="MANAGER"><HousekeepingSchedulePage /></ProtectedRoute>} />
+
+        <Route path="/manager/housekeeping/tasks"
+          element={<ProtectedRoute role="MANAGER"><HousekeepingTasksPage /></ProtectedRoute>} />
+
+        <Route path="/manager/employees"
+          element={<ProtectedRoute role="MANAGER"><EmployeeMgmtPage /></ProtectedRoute>} />
 
         {/* Payments (SCR-47,48,49) */}
         <Route path="/manager/payments"
@@ -233,11 +315,27 @@ function App() {
         <Route path="/manager/complaints/:id"
           element={<ProtectedRoute role="MANAGER"><ComplaintDetailPage /></ProtectedRoute>} />
 
+        {/* Maintenance Tasks (SCR-41) */}
+        <Route path="/manager/maintenance/tasks"
+          element={<ProtectedRoute role="MANAGER"><MaintenanceTasksPage /></ProtectedRoute>} />
+
+        {/* Inspection Management (SCR-42) */}
+        <Route path="/manager/inspections"
+          element={<ProtectedRoute role="MANAGER"><InspectionsPage /></ProtectedRoute>} />
+
+        {/* Damage Report Management (SCR-43) */}
+        <Route path="/manager/damage-reports"
+          element={<ProtectedRoute role="MANAGER"><DamageReportsPage /></ProtectedRoute>} />
+
         {/* Maintenance (SCR-57,58) */}
         <Route path="/manager/maintenance"
           element={<ProtectedRoute role="MANAGER"><MaintenanceMgmtListPage /></ProtectedRoute>} />
         <Route path="/manager/maintenance/:id"
           element={<ProtectedRoute role="MANAGER"><MaintenanceMgmtDetailPage /></ProtectedRoute>} />
+
+        {/* Property Reports (SCR-44) — gộp Doanh thu · Lấp đầy · Xu hướng theo Tabs */}
+        <Route path="/manager/reports/property"
+          element={<ProtectedRoute role="MANAGER"><PropertyReportsPage /></ProtectedRoute>} />
 
         {/* Reports (SCR-59,60,61) */}
         <Route path="/manager/reports"
@@ -259,8 +357,103 @@ function App() {
         <Route path="/manager/promotions"
           element={<ProtectedRoute role="MANAGER"><PromotionMgmtPage /></ProtectedRoute>} />
 
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* ─────────────── ADMIN (SCR-45 to SCR-58) ─────────────── */}
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+
+        <Route path="/admin/dashboard"
+          element={<ProtectedRoute role="ADMIN"><AdminDashboardPage /></ProtectedRoute>} />
+
+        {/* Profile (SCR-10,11,12) */}
+        <Route path="/admin/profile"
+          element={<ProtectedRoute role="ADMIN"><UserProfilePage /></ProtectedRoute>} />
+        <Route path="/admin/profile/edit"
+          element={<ProtectedRoute role="ADMIN"><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/admin/profile/change-password"
+          element={<ProtectedRoute role="ADMIN"><ChangePasswordPage /></ProtectedRoute>} />
+
+        {/* Notifications (SCR-13,14) */}
+        <Route path="/admin/notifications"
+          element={<ProtectedRoute role="ADMIN"><NotificationCenterPage /></ProtectedRoute>} />
+        <Route path="/admin/notifications/:id"
+          element={<ProtectedRoute role="ADMIN"><NotificationDetailPage /></ProtectedRoute>} />
+
+        {/* Properties */}
+        <Route path="/admin/properties"
+          element={<ProtectedRoute role="ADMIN"><PropertyMgmtListPage /></ProtectedRoute>} />
+        <Route path="/admin/properties/create"
+          element={<ProtectedRoute role="ADMIN"><CreatePropertyPage /></ProtectedRoute>} />
+        <Route path="/admin/properties/:id/edit"
+          element={<ProtectedRoute role="ADMIN"><EditPropertyAdminPage /></ProtectedRoute>} />
+        <Route path="/admin/properties/:id/manager"
+          element={<ProtectedRoute role="ADMIN"><ManagerAssignmentPage /></ProtectedRoute>} />
+
+        {/* Users */}
+        <Route path="/admin/managers"
+          element={<ProtectedRoute role="ADMIN"><ManagerDirectoryPage /></ProtectedRoute>} />
+        <Route path="/admin/customers"
+          element={<ProtectedRoute role="ADMIN"><CustomerDirectoryPage /></ProtectedRoute>} />
+
+        {/* Finance */}
+        <Route path="/admin/payments/reconciliation"
+          element={<ProtectedRoute role="ADMIN"><PaymentReconciliationPage /></ProtectedRoute>} />
+
+        {/* Operations */}
+        <Route path="/admin/damage-escalation"
+          element={<ProtectedRoute role="ADMIN"><DamageEscalationPage /></ProtectedRoute>} />
+        <Route path="/admin/complaints"
+          element={<ProtectedRoute role="ADMIN"><AdminComplaintsPage /></ProtectedRoute>} />
+
+        {/* Reports */}
+        <Route path="/admin/reports"
+          element={<ProtectedRoute role="ADMIN"><GlobalReportsPage /></ProtectedRoute>} />
+
+        {/* Marketing */}
+        <Route path="/admin/promotions"
+          element={<ProtectedRoute role="ADMIN"><PromotionAdminListPage /></ProtectedRoute>} />
+        <Route path="/admin/promotions/create"
+          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+        <Route path="/admin/promotions/:id/edit"
+          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+
+        {/* System */}
+        <Route path="/admin/settings"
+          element={<ProtectedRoute role="ADMIN"><SystemAdminPage /></ProtectedRoute>} />
+
+        {/* ─────────────── EMPLOYEE (SCR-59 to SCR-65) ─────────────── */}
+        <Route path="/employee" element={<Navigate to="/employee/dashboard" replace />} />
+
+        <Route path="/employee/dashboard"
+          element={<ProtectedRoute role="EMPLOYEE"><EmployeeDashboardPage /></ProtectedRoute>} />
+
+        {/* Profile (SCR-10,11,12) */}
+        <Route path="/employee/profile"
+          element={<ProtectedRoute role="EMPLOYEE"><UserProfilePage /></ProtectedRoute>} />
+        <Route path="/employee/profile/edit"
+          element={<ProtectedRoute role="EMPLOYEE"><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/employee/profile/change-password"
+          element={<ProtectedRoute role="EMPLOYEE"><ChangePasswordPage /></ProtectedRoute>} />
+
+        {/* Notifications (SCR-13,14) */}
+        <Route path="/employee/notifications"
+          element={<ProtectedRoute role="EMPLOYEE"><NotificationCenterPage /></ProtectedRoute>} />
+        <Route path="/employee/notifications/:id"
+          element={<ProtectedRoute role="EMPLOYEE"><NotificationDetailPage /></ProtectedRoute>} />
+
+        <Route path="/employee/housekeeping"
+          element={<ProtectedRoute role="EMPLOYEE"><HousekeepingWorkspacePage /></ProtectedRoute>} />
+        <Route path="/employee/maintenance"
+          element={<ProtectedRoute role="EMPLOYEE"><MaintenanceWorkspacePage /></ProtectedRoute>} />
+        <Route path="/employee/inspections"
+          element={<ProtectedRoute role="EMPLOYEE"><RoomInspectionHubPage /></ProtectedRoute>} />
+        <Route path="/employee/damage"
+          element={<ProtectedRoute role="EMPLOYEE"><DamageReportListPage /></ProtectedRoute>} />
+        <Route path="/employee/damage/create"
+          element={<ProtectedRoute role="EMPLOYEE"><CreateDamageReportPage /></ProtectedRoute>} />
+        <Route path="/employee/rooms"
+          element={<ProtectedRoute role="EMPLOYEE"><PropertyRoomListPage /></ProtectedRoute>} />
+
+        {/* Catch-all — redirect theo role */}
+        <Route path="*" element={<CatchAllRedirect />} />
 
       </Routes>
     </BrowserRouter>

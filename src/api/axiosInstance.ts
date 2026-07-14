@@ -2,7 +2,15 @@ import axios from 'axios';
 import { authApi } from './authApi';
 import { useAuthStore } from '../store/authStore';
 
-const PUBLIC_READ_PATHS = ['/api/rooms', '/api/properties', '/api/public', '/uploads'];
+const PUBLIC_READ_PATHS = [
+  '/api/rooms',
+  '/api/properties',
+  '/api/public',
+  '/api/v1/promotions',
+  '/api/v1/properties',
+  '/api/v1/rooms',
+  '/uploads',
+];
 
 function isPublicReadRoute(url?: string) {
   if (!url) return false;
@@ -17,7 +25,7 @@ const api = axios.create({
 
 // Gắn Access Token vào mọi request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const token = sessionStorage.getItem('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -45,15 +53,15 @@ api.interceptors.response.use(
         return api(originalRequest);
       }
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = sessionStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
           const res = await authApi.refreshToken(refreshToken);
 
           if (res.success && res.data) {
-            // Cập nhật tokens trong localStorage
-            localStorage.setItem('accessToken', res.data.accessToken);
-            localStorage.setItem('refreshToken', res.data.refreshToken);
+            // Cập nhật tokens trong sessionStorage
+            sessionStorage.setItem('accessToken', res.data.accessToken);
+            sessionStorage.setItem('refreshToken', res.data.refreshToken);
 
             // Đồng bộ Zustand store với data mới
             useAuthStore.getState().login(res.data);

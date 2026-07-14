@@ -81,6 +81,7 @@ export interface FloorNode {
   id: string;
   floorNumber: number;
   description: string | null;
+  roomCount?: number;
   rooms: RoomNode[];
 }
 
@@ -135,9 +136,15 @@ export const propertyApi = {
     return res.data;
   },
 
-  /** SCR-37: Property → Floors → Rooms tree */
+  /** @deprecated SCR-28 — dùng getStructureTree thay thế */
   getStructure: async (id: string): Promise<{ success: boolean; data: PropertyStructure }> => {
     const res = await api.get(`/api/properties/${id}/structure`);
+    return res.data;
+  },
+
+  /** SCR-28 — Property → Floor → Room tree (v1, manager-scoped) */
+  getStructureTree: async (id: string): Promise<{ success: boolean; data: PropertyStructure }> => {
+    const res = await api.get(`/api/v1/properties/${id}/tree`);
     return res.data;
   },
 };
