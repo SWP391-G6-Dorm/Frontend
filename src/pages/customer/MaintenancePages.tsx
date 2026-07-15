@@ -287,6 +287,7 @@ export function CreateMaintenancePage() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<BookingSummary[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [bookingsError, setBookingsError] = useState<string | null>(null);
   const [form, setForm] = useState({ bookingId: '', title: '', description: '' });
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
@@ -297,13 +298,19 @@ export function CreateMaintenancePage() {
   useEffect(() => {
     async function loadBookings() {
       setBookingsLoading(true);
+      setBookingsError(null);
       try {
         const res = await bookingApi.getMyActiveBookings();
         if (res.success && res.data) {
           setBookings(res.data);
+        } else {
+          setBookings([]);
+          setBookingsError('Không thể tải danh sách đặt phòng đang hiệu lực.');
         }
       } catch (err) {
         console.error('Failed to load active bookings', err);
+        setBookings([]);
+        setBookingsError('Lỗi máy chủ khi tải đặt phòng. Vui lòng thử lại.');
       } finally {
         setBookingsLoading(false);
       }
@@ -402,7 +409,13 @@ export function CreateMaintenancePage() {
           </div>
         )}
 
-        {!bookingsLoading && bookings.length === 0 && (
+        {bookingsError && (
+          <div className="mb-4">
+            <Alert variant="error" message={bookingsError} />
+          </div>
+        )}
+
+        {!bookingsLoading && !bookingsError && bookings.length === 0 && (
           <div className="mb-4">
             <Alert
               variant="info"
