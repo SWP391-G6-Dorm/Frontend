@@ -99,7 +99,13 @@ export default function BookingFormPage() {
         guestCount: form.guestCount,
         specialRequests: form.specialRequests || undefined,
       });
-      navigate(`/customer/bookings/${res.data.id}`);
+      const bookingId = res.data.id || res.data.bookingId;
+      if (!bookingId) {
+        setApiError('Đặt phòng thành công nhưng thiếu mã booking. Vui lòng mở Đặt phòng của tôi.');
+        return;
+      }
+      // SCR-16 → SCR-20 Order Review & Payment
+      navigate(`/customer/payments/${bookingId}/pay`);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setApiError(axiosErr?.response?.data?.message ?? 'Đặt phòng thất bại. Vui lòng thử lại.');
@@ -213,7 +219,7 @@ export default function BookingFormPage() {
             <div style={{ marginBottom: 20 }}>
               <Alert
                 variant="info"
-                message="Sau khi xác nhận đặt phòng, bạn cần thanh toán cọc 40% để giữ chỗ. Hợp đồng sẽ được gửi qua email sau khi thanh toán thành công."
+                message="Sau khi xác nhận, bạn sẽ chuyển sang màn xem lại đơn và thanh toán cọc 40% qua VNPay (giữ chỗ 30 phút)."
               />
             </div>
 
@@ -223,7 +229,7 @@ export default function BookingFormPage() {
                 className="btn-primary"
                 disabled={submitting || nights === 0 || !canBook}
               >
-                {submitting ? 'Đang xử lý...' : 'Xác nhận đặt phòng'}
+                {submitting ? 'Đang xử lý...' : 'Continue to Payment'}
               </button>
               <Link to={`/rooms/${roomId}`} className="btn-ghost">Hủy</Link>
             </div>

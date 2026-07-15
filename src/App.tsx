@@ -35,7 +35,7 @@ import BookingDetailPage from './pages/customer/BookingDetailPage';
 import BookingCancellationPage from './pages/customer/BookingCancellationPage';
 import ContractListPage from './pages/customer/ContractListPage';
 import ContractDetailPage from './pages/customer/ContractDetailPage';
-// Payments (SCR-21, 22, 23, 24)
+// Payments (SCR-20 Order Review & Payment, remaining, history, VNPay result)
 import DepositPaymentPage from './pages/customer/DepositPaymentPage';
 import RemainingPaymentPage from './pages/customer/RemainingPaymentPage';
 import PaymentHistoryPage from './pages/customer/PaymentHistoryPage';
@@ -186,7 +186,7 @@ function App() {
         <Route path="/customer/contracts/:id"
           element={<ProtectedRoute role="CUSTOMER"><ContractDetailPage /></ProtectedRoute>} />
 
-        {/* Payments (SCR-21,22,23,24) */}
+        {/* Payments — SCR-20 Order Review & Payment; remaining; history; VNPay return */}
         <Route path="/customer/payments"
           element={<ProtectedRoute role="CUSTOMER"><PaymentHistoryPage /></ProtectedRoute>} />
         <Route path="/customer/payments/:id/pay/deposit"
