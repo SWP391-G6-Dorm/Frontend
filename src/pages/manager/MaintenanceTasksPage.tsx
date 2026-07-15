@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import Alert from '../../components/ui/Alert';
+import Modal from '../../components/ui/Modal';
 import { Drawer, StatusBadge } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui/StatusBadge';
 import {
@@ -54,6 +55,8 @@ function badge(status: string) {
 
 export default function MaintenanceTasksPage() {
   const [properties, setProperties] = useState<AssignedProperty[]>([]);
+  const [propLoading, setPropLoading] = useState(true);
+  const [propError, setPropError] = useState<string | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -66,12 +69,18 @@ export default function MaintenanceTasksPage() {
 
   const [drawerTask, setDrawerTask] = useState<MaintenanceTaskSummary | null>(null);
   const [employees, setEmployees] = useState<EmployeeSummary[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [employeesError, setEmployeesError] = useState<string | null>(null);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
   const [resolutionNote, setResolutionNote] = useState('');
   const [drawerSubmitting, setDrawerSubmitting] = useState(false);
   const [drawerError, setDrawerError] = useState<string | null>(null);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+
+  const showEmptyAssigned = !propLoading && properties.length === 0;
 
   useEffect(() => {
+    setPropLoading(true);
     managerApi.getMyAssignedProperties()
       .then(res => {
         if (res.success && res.data) {
@@ -81,7 +90,8 @@ export default function MaintenanceTasksPage() {
           }
         }
       })
-      .catch(() => setError('Không thể tải danh sách homestay.'));
+      .catch(() => setPropError('Không thể tải danh sách homestay.'))
+      .finally(() => setPropLoading(false));
   }, []);
 
   useEffect(() => {
@@ -120,16 +130,30 @@ export default function MaintenanceTasksPage() {
     loadTasks();
   }, [loadTasks]);
 
+  function loadEmployees() {
+    if (!selectedPropertyId) return;
+    setEmployeesLoading(true);
+    setEmployeesError(null);
+    fetchManagerEmployeesV1({ propertyId: selectedPropertyId, page: 0, size: 100 })
+      .then(data => {
+        // Chỉ hiện nhân viên đang hoạt động để gán (BE cũng chặn SUSPENDED).
+        setEmployees(data.content.filter(e => e.status === 'ACTIVE'));
+      })
+      .catch((err: unknown) => {
+        const ax = err as { response?: { data?: { message?: string } } };
+        setEmployees([]);
+        setEmployeesError(ax?.response?.data?.message ?? 'Không thể tải danh sách kỹ thuật viên.');
+      })
+      .finally(() => setEmployeesLoading(false));
+  }
+
   function openDrawer(task: MaintenanceTaskSummary) {
     setDrawerTask(task);
     setSelectedAssigneeId(task.assignedEmployeeId ?? '');
     setResolutionNote(task.resolutionNote ?? '');
     setDrawerError(null);
-    if (selectedPropertyId) {
-      fetchManagerEmployeesV1({ propertyId: selectedPropertyId, page: 0, size: 100 })
-        .then(data => setEmployees(data.content))
-        .catch(() => setEmployees([]));
-    }
+    setCloseConfirmOpen(false);
+    loadEmployees();
   }
 
   async function handleAssign() {
@@ -154,7 +178,6 @@ export default function MaintenanceTasksPage() {
 
   async function handleVerifyClose() {
     if (!drawerTask) return;
-    if (!window.confirm('Xác nhận đã kiểm tra và đóng yêu cầu bảo trì này?')) return;
     setDrawerSubmitting(true);
     setDrawerError(null);
     try {
@@ -162,12 +185,14 @@ export default function MaintenanceTasksPage() {
         status: 'CLOSED',
         resolutionNote: resolutionNote.trim() || undefined,
       });
+      setCloseConfirmOpen(false);
       setDrawerTask(null);
       setSuccessMsg('Đã xác nhận và đóng yêu cầu bảo trì.');
       loadTasks();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       setDrawerError(ax?.response?.data?.message ?? 'Không thể đóng yêu cầu.');
+      setCloseConfirmOpen(false);
     } finally {
       setDrawerSubmitting(false);
     }
@@ -177,8 +202,6 @@ export default function MaintenanceTasksPage() {
     ? drawerTask.status === 'OPEN' || drawerTask.status === 'ASSIGNED'
     : false;
   const canVerifyClose = drawerTask ? drawerTask.status === 'RESOLVED' : false;
-
-  const isEmpty = !loading && tasks.length === 0;
 
   return (
     <ManagerLayout>
@@ -190,114 +213,133 @@ export default function MaintenanceTasksPage() {
           </p>
         </div>
 
+        {propError && <Alert variant="error" message={propError} />}
         {error && <Alert variant="error" message={error} closeable onClose={() => setError(null)} />}
         {successMsg && (
           <Alert variant="success" message={successMsg} closeable onClose={() => setSuccessMsg(null)} />
         )}
 
-        <div className="flex flex-wrap gap-3 items-end bg-white rounded-xl border border-[#E2E8F0] p-4">
-          <div className="min-w-[180px] flex-1 sm:max-w-xs">
-            <label className="block text-sm font-medium text-[#334155] mb-1">Homestay</label>
-            <select
-              className="input-field w-full"
-              value={selectedPropertyId}
-              onChange={e => setSelectedPropertyId(e.target.value)}
-            >
-              <option value="">— Chọn homestay —</option>
-              {properties.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+        {showEmptyAssigned && (
+          <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
+            <p className="text-[#64748B] m-0">Bạn chưa được gán homestay nào.</p>
           </div>
-          <div className="min-w-[200px] flex-1 sm:max-w-xs">
-            <label className="block text-sm font-medium text-[#334155] mb-1">Tìm kiếm sự cố</label>
-            <input
-              type="text"
-              className="input-field w-full"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Nhập tiêu đề sự cố..."
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {STATUS_FILTERS.map(f => (
-              <button
-                key={f.value}
-                type="button"
-                className={`px-3 py-1.5 text-sm rounded-full border ${
-                  statusFilter === f.value
-                    ? 'border-[#0F766E] bg-[#0F766E]/10 text-[#0F766E] font-semibold'
-                    : 'border-[#E2E8F0] text-[#64748B]'
-                }`}
-                onClick={() => setStatusFilter(f.value)}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
-        {!selectedPropertyId ? (
-          <div className="text-center py-16 text-[#64748B]">
-            Vui lòng chọn homestay để xem tác vụ bảo trì.
-          </div>
-        ) : loading ? (
-          <div className="h-64 bg-[#F1F5F9] rounded-xl animate-pulse" />
-        ) : isEmpty ? (
-          <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0] text-[#64748B]">
-            Không có yêu cầu bảo trì phù hợp.
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-[#F8FAFC] text-[#64748B] text-left text-[12px] uppercase tracking-wide">
-                    <th className="px-4 py-3 font-medium">Phòng</th>
-                    <th className="px-4 py-3 font-medium">Sự cố</th>
-                    <th className="px-4 py-3 font-medium">Người báo</th>
-                    <th className="px-4 py-3 font-medium">Người được gán</th>
-                    <th className="px-4 py-3 font-medium">Trạng thái</th>
-                    <th className="px-4 py-3 font-medium text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tasks.map(task => (
-                    <tr
-                      key={task.id}
-                      className="border-t border-[#F1F5F9] hover:bg-[#F8FAFC] cursor-pointer"
-                      onClick={() => openDrawer(task)}
-                    >
-                      <td className="px-4 py-3 font-medium text-[#1E293B] whitespace-nowrap">
-                        {task.roomNumber}
-                      </td>
-                      <td className="px-4 py-3 text-[#334155] max-w-[280px] truncate">{task.title}</td>
-                      <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">{task.customerName}</td>
-                      <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">
-                        {task.assignedEmployeeName || 'Chưa gán'}
-                      </td>
-                      <td className="px-4 py-3">{badge(task.status)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          className="text-[#0F766E] hover:underline text-sm font-medium"
-                          onClick={e => { e.stopPropagation(); openDrawer(task); }}
-                        >
-                          Xem
-                        </button>
-                      </td>
-                    </tr>
+        {!showEmptyAssigned && (
+          <>
+            <div className="flex flex-wrap gap-3 items-end bg-white rounded-xl border border-[#E2E8F0] p-4">
+              <div className="min-w-[180px] flex-1 sm:max-w-xs">
+                <label className="block text-sm font-medium text-[#334155] mb-1">Homestay</label>
+                <select
+                  className="input-field w-full"
+                  value={selectedPropertyId}
+                  onChange={e => setSelectedPropertyId(e.target.value)}
+                  disabled={propLoading}
+                >
+                  <option value="">— Chọn homestay —</option>
+                  {properties.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+              </div>
+              <div className="min-w-[200px] flex-1 sm:max-w-xs">
+                <label className="block text-sm font-medium text-[#334155] mb-1">Tìm kiếm sự cố</label>
+                <input
+                  type="text"
+                  className="input-field w-full"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Nhập tiêu đề sự cố..."
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {STATUS_FILTERS.map(f => (
+                  <button
+                    key={f.value}
+                    type="button"
+                    className={`px-3 py-1.5 text-sm rounded-full border ${
+                      statusFilter === f.value
+                        ? 'border-[#0F766E] bg-[#0F766E]/10 text-[#0F766E] font-semibold'
+                        : 'border-[#E2E8F0] text-[#64748B]'
+                    }`}
+                    onClick={() => setStatusFilter(f.value)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+
+            {!selectedPropertyId ? (
+              <div className="text-center py-16 text-[#64748B]">
+                Vui lòng chọn homestay để xem tác vụ bảo trì.
+              </div>
+            ) : loading ? (
+              <div className="h-64 bg-[#F1F5F9] rounded-xl animate-pulse" />
+            ) : error ? (
+              <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
+                <p className="text-[#64748B] mb-4">Không tải được danh sách bảo trì.</p>
+                <button type="button" className="btn-primary" onClick={loadTasks}>
+                  Thử lại
+                </button>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0] text-[#64748B]">
+                Không có yêu cầu bảo trì phù hợp.
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-[#F8FAFC] text-[#64748B] text-left text-[12px] uppercase tracking-wide">
+                        <th className="px-4 py-3 font-medium">Phòng</th>
+                        <th className="px-4 py-3 font-medium">Sự cố</th>
+                        <th className="px-4 py-3 font-medium">Người báo</th>
+                        <th className="px-4 py-3 font-medium">Người được gán</th>
+                        <th className="px-4 py-3 font-medium">Trạng thái</th>
+                        <th className="px-4 py-3 font-medium text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tasks.map(task => (
+                        <tr
+                          key={task.id}
+                          className="border-t border-[#F1F5F9] hover:bg-[#F8FAFC] cursor-pointer"
+                          onClick={() => openDrawer(task)}
+                        >
+                          <td className="px-4 py-3 font-medium text-[#1E293B] whitespace-nowrap">
+                            {task.roomNumber}
+                          </td>
+                          <td className="px-4 py-3 text-[#334155] max-w-[280px] truncate">{task.title}</td>
+                          <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">{task.customerName}</td>
+                          <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">
+                            {task.assignedEmployeeName || 'Chưa gán'}
+                          </td>
+                          <td className="px-4 py-3">{badge(task.status)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              className="text-[#0F766E] hover:underline text-sm font-medium"
+                              onClick={e => { e.stopPropagation(); openDrawer(task); }}
+                            >
+                              Xem
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       <Drawer
         isOpen={!!drawerTask}
-        onClose={() => setDrawerTask(null)}
+        onClose={() => { setDrawerTask(null); setCloseConfirmOpen(false); }}
         title={drawerTask ? `Phòng ${drawerTask.roomNumber} — Bảo trì` : ''}
         footer={
           drawerTask && (canAssign || canVerifyClose) ? (
@@ -306,7 +348,7 @@ export default function MaintenanceTasksPage() {
                 <button
                   type="button"
                   className="btn-primary w-full"
-                  disabled={drawerSubmitting}
+                  disabled={drawerSubmitting || employeesLoading}
                   onClick={handleAssign}
                 >
                   {drawerSubmitting ? 'Đang lưu...' : 'Gán kỹ thuật viên'}
@@ -317,9 +359,9 @@ export default function MaintenanceTasksPage() {
                   type="button"
                   className="btn-primary w-full"
                   disabled={drawerSubmitting}
-                  onClick={handleVerifyClose}
+                  onClick={() => setCloseConfirmOpen(true)}
                 >
-                  {drawerSubmitting ? 'Đang lưu...' : 'Xác nhận & Đóng'}
+                  Xác nhận & Đóng
                 </button>
               )}
             </div>
@@ -393,16 +435,33 @@ export default function MaintenanceTasksPage() {
             {canAssign && (
               <div>
                 <label className="block text-sm font-medium text-[#334155] mb-1">Gán kỹ thuật viên</label>
-                <select
-                  className="input-field w-full"
-                  value={selectedAssigneeId}
-                  onChange={e => setSelectedAssigneeId(e.target.value)}
-                >
-                  <option value="">— Chọn kỹ thuật viên —</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.fullName}</option>
-                  ))}
-                </select>
+                {employeesError ? (
+                  <div className="space-y-2">
+                    <Alert variant="error" message={employeesError} />
+                    <button type="button" className="btn-outline text-sm" onClick={loadEmployees}>
+                      Thử lại
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    className="input-field w-full"
+                    value={selectedAssigneeId}
+                    onChange={e => setSelectedAssigneeId(e.target.value)}
+                    disabled={employeesLoading}
+                  >
+                    <option value="">
+                      {employeesLoading ? 'Đang tải...' : '— Chọn kỹ thuật viên —'}
+                    </option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                    ))}
+                  </select>
+                )}
+                {!employeesLoading && !employeesError && employees.length === 0 && (
+                  <p className="text-sm text-[#64748B] mt-1 m-0">
+                    Chưa có nhân viên hoạt động tại homestay này.
+                  </p>
+                )}
               </div>
             )}
 
@@ -429,6 +488,24 @@ export default function MaintenanceTasksPage() {
           </div>
         )}
       </Drawer>
+
+      <Modal
+        isOpen={closeConfirmOpen}
+        onClose={() => setCloseConfirmOpen(false)}
+        title="Xác nhận đóng yêu cầu"
+        actions={[
+          { label: 'Hủy', onClick: () => setCloseConfirmOpen(false), variant: 'ghost' },
+          {
+            label: drawerSubmitting ? 'Đang lưu...' : 'Xác nhận & Đóng',
+            onClick: handleVerifyClose,
+            variant: 'primary',
+          },
+        ]}
+      >
+        <p className="text-[#334155] m-0">
+          Bạn có chắc muốn xác nhận đã kiểm tra và đóng yêu cầu bảo trì này?
+        </p>
+      </Modal>
     </ManagerLayout>
   );
 }
