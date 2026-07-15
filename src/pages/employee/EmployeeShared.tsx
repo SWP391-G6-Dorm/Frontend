@@ -55,11 +55,12 @@ function OkBanner({ msg }: { msg: string }) {
 /** Status badge — colour by value */
 function StatusBadge({ status }: { status: string }) {
   const MAP: Record<string, { cls: string; label: string }> = {
-    PENDING:         { cls: 'badge-warning', label: 'Pending' },
-    IN_PROGRESS:     { cls: 'badge-info',    label: 'In Progress' },
-    COMPLETED:       { cls: 'badge-success', label: 'Completed' },
-    ASSIGNED:        { cls: 'badge-warning', label: 'Assigned' },
-    RESOLVED:        { cls: 'badge-success', label: 'Resolved' },
+    PENDING:         { cls: 'badge-warning', label: 'Chờ xử lý' },
+    IN_PROGRESS:     { cls: 'badge-info',    label: 'Đang xử lý' },
+    COMPLETED:       { cls: 'badge-success', label: 'Hoàn thành' },
+    ASSIGNED:        { cls: 'badge-warning', label: 'Được giao' },
+    RESOLVED:        { cls: 'badge-success', label: 'Đã xử lý' },
+    CLOSED:          { cls: 'badge-neutral', label: 'Đã đóng' },
     CLEAN:           { cls: 'badge-success', label: 'Clean' },
     AVAILABLE:       { cls: 'badge-success', label: 'Available' },
     OCCUPIED:        { cls: 'badge-info',    label: 'Occupied' },

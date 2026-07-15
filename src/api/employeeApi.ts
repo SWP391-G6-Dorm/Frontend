@@ -49,9 +49,11 @@ export async function updateHousekeepingTaskStatus(
 export interface MaintenanceTicket {
   id: string;
   roomName: string;
+  /** Ticket title (free text), not a category enum. */
   issueType: string;
   description: string;
   status: 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  resolutionNote?: string | null;
   assignedAt?: string;
   resolvedAt?: string | null;
 }
@@ -68,8 +70,13 @@ export async function getEmployeeMaintenanceTickets(params?: {
 export async function updateMaintenanceTicketStatus(
   id: string,
   status: 'IN_PROGRESS' | 'RESOLVED',
-): Promise<void> {
-  await api.put(`/api/v1/employees/maintenance/${id}/status`, { status });
+  resolutionNote?: string,
+): Promise<{ success: boolean; data: MaintenanceTicket }> {
+  const res = await api.put(`/api/v1/employees/maintenance/${id}/status`, {
+    status,
+    ...(resolutionNote != null && resolutionNote !== '' ? { resolutionNote } : {}),
+  });
+  return res.data;
 }
 
 // ── SCR-62: Room Inspection Hub ──────────────────────────────────────────────
