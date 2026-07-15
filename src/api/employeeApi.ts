@@ -141,12 +141,39 @@ export async function getEmployeeDamageReports(params?: {
   return res.data;
 }
 
+/** SCR-64 — Rooms with FAILED inspection that still need a damage report. */
+export interface EligibleDamageRoom {
+  roomId: string;
+  roomNumber: string;
+  inspectionId: string;
+  inspectedAt?: string;
+}
+
+export async function getEligibleDamageRooms(): Promise<{
+  success: boolean;
+  data: EligibleDamageRoom[];
+}> {
+  const res = await api.get('/api/v1/employees/damage-reports/eligible-rooms');
+  return res.data;
+}
+
+/** SCR-64 — Upload evidence photos; returns /uploads/damage/... URLs. */
+export async function uploadDamagePhotos(files: File[]): Promise<string[]> {
+  const formData = new FormData();
+  files.forEach((f) => formData.append('files', f));
+  const res = await api.post('/api/v1/employees/damage-reports/photos', formData, {
+    timeout: 60_000,
+  });
+  return res.data.data ?? [];
+}
+
 export async function createDamageReport(payload: {
   roomId: string;
+  inspectionId?: string;
   items: DamageItem[];
-  attachments?: { url: string; type: string }[];
+  attachments: { url: string; type: string }[];
   notes?: string;
-}): Promise<{ success: boolean }> {
+}): Promise<{ success: boolean; data?: DamageReport }> {
   const res = await api.post('/api/v1/employees/damage-reports', payload);
   return res.data;
 }
