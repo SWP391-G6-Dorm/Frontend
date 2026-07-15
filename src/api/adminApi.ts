@@ -85,6 +85,7 @@ export interface Promotion {
   description?: string;
   ctaText: string;
   ctaUrl: string;
+  imageUrl?: string | null;
   colorTheme: string;
   isActive: boolean;
   sortOrder: number;
@@ -98,6 +99,7 @@ export interface PromotionPayload {
   description?: string;
   ctaText: string;
   ctaUrl: string;
+  imageUrl?: string;
   colorTheme: string;
   isActive: boolean;
   sortOrder: number;
