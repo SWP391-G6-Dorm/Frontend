@@ -190,6 +190,4 @@ export default function RoomInspectionHubPage() {
     </EmployeeLayout>
   );
 }
-
-// ── SCR-63: Damage Report List ─────────────────────────────────────────────────
 
