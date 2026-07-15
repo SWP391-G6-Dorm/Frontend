@@ -13,6 +13,7 @@ import {
 } from '../../api/publicApi';
 import { formatStatValue } from '../../utils/mediaUrl';
 import SafeImage from '../../components/ui/SafeImage';
+import BannerCarousel, { type BannerSlide } from '../../components/public/BannerCarousel';
 import RoomCard from '../../components/ui/RoomCard';
 import { useAuthStore } from '../../store/authStore';
 
@@ -25,6 +26,7 @@ const DEFAULT_PROMOTIONS: Promotion[] = [
     description: 'Áp dụng cho phòng trống cuối tuần tại tất cả homestay.',
     ctaText: 'Đặt ngay →',
     ctaUrl: '/search?sort=price-asc',
+    imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=480&fit=crop',
     colorTheme: 'red',
     isActive: true,
     sortOrder: 0,
@@ -38,6 +40,7 @@ const DEFAULT_PROMOTIONS: Promotion[] = [
     description: 'Ưu đãi có hạn — đặt trước 31/08/2026.',
     ctaText: 'Khám phá →',
     ctaUrl: '/search',
+    imageUrl: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=480&fit=crop',
     colorTheme: 'blue',
     isActive: true,
     sortOrder: 1,
@@ -51,6 +54,7 @@ const DEFAULT_PROMOTIONS: Promotion[] = [
     description: 'Lý tưởng cho kỳ nghỉ dài ngày hoặc công tác.',
     ctaText: 'Xem phòng →',
     ctaUrl: '/rooms',
+    imageUrl: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&h=480&fit=crop',
     colorTheme: 'green',
     isActive: true,
     sortOrder: 2,
@@ -58,6 +62,20 @@ const DEFAULT_PROMOTIONS: Promotion[] = [
     updatedAt: '',
   },
 ];
+
+const FALLBACK_BANNER_IMAGES = [
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=480&fit=crop',
+  'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=480&fit=crop',
+  'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&h=480&fit=crop',
+];
+
+function promotionToSlide(promo: Promotion, index: number): BannerSlide {
+  const src = promo.imageUrl?.trim() || FALLBACK_BANNER_IMAGES[index % FALLBACK_BANNER_IMAGES.length];
+  return {
+    src,
+    alt: promo.title.replace('\n', ' '),
+  };
+}
 
 const HOW_IT_WORKS = [
   { step: '01', title: 'Search & Browse', desc: 'Find your perfect room by location, dates, type and capacity with real-time availability.' },
@@ -215,13 +233,6 @@ export default function LandingPage() {
   }, [reloadKey]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActivePromoIndex((prev) => (prev + 1) % promotions.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [promotions.length]);
-
-  useEffect(() => {
     if (window.location.hash === '#properties') {
       document.getElementById('properties')?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -253,100 +264,56 @@ export default function LandingPage() {
         { value: '—', label: 'Average Rating' },
       ];
 
-  const activePromo = promotions[activePromoIndex] || DEFAULT_PROMOTIONS[0];
-  const gradients: Record<string, string> = {
-    red:    'linear-gradient(135deg, #0F766E 0%, #0D9488 100%)',
-    teal:   'linear-gradient(135deg, #0F766E 0%, #0D9488 100%)',
-    blue:   'linear-gradient(135deg, #1a3c5e 0%, #2d6a9f 100%)',
-    green:  'linear-gradient(135deg, #1a5c3a 0%, #2e9c5e 100%)',
-    purple: 'linear-gradient(135deg, #4c1d8f 0%, #7c3aed 100%)',
-    orange: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)',
-  };
-  const ctaColors: Record<string, string> = {
-    red: '#0F766E', teal: '#0F766E', blue: '#1a3c5e',
-    green: '#1a5c3a', purple: '#4c1d8f', orange: '#b45309',
-  };
-  const bg = gradients[activePromo.colorTheme] ?? gradients.red;
-  const ctaColor = ctaColors[activePromo.colorTheme] ?? ctaColors.red;
+  const bannerSlides = promotions.map((promo, i) => promotionToSlide(promo, i));
+  const safePromoIndex = promotions.length ? activePromoIndex % promotions.length : 0;
+  const activePromo = promotions[safePromoIndex] || DEFAULT_PROMOTIONS[0];
 
   let finalCtaText = activePromo.ctaText;
   let finalCtaUrl = activePromo.ctaUrl;
   if (isGuest && (finalCtaText.toLowerCase().includes('book') || finalCtaText.toLowerCase().includes('đặt'))) {
-    finalCtaText = 'Login to Book';
+    finalCtaText = 'Đăng nhập để đặt';
     finalCtaUrl = '/login';
   }
 
   return (
     <PublicLayout>
-      {/* Hero — Carousel with Search Form embedded */}
-      <section
-        style={{
-          padding: '40px 32px 36px',
-          background: 'var(--primary-base)',
-          position: 'relative',
-          overflow: 'hidden',
-          minHeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: bg,
-            transition: 'background 0.5s ease',
-            zIndex: 0,
-          }}
-        />
+      {/* Hero — banner nhỏ gọn, phong cách thiên nhiên */}
+      <section className="landing-banner" aria-label="Banner trang chủ">
+        <div className="landing-banner-inner">
+          <h1 className="landing-banner-title">Find Your Zen</h1>
+          <p className="landing-banner-subtitle">
+            Homestay &amp; resort giữa thiên nhiên — đặt phòng nhẹ nhàng, minh bạch.
+          </p>
 
-        <div
-          className="container-wide"
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: 32,
-            alignItems: 'center',
-          }}
-        >
-          {/* Left — copy + search */}
-          <div>
-            <h1
-              className="text-display-lg text-inverted"
-              style={{
-                lineHeight: 1.15,
-                letterSpacing: '-0.03em',
-                marginBottom: 10,
-                maxWidth: 480,
-                color: '#fff',
-              }}
-            >
-              Find Your Zen
-            </h1>
-            <p className="body-md text-inverted" style={{ marginBottom: 20, maxWidth: 440, lineHeight: 1.6, color: 'rgba(255,255,255,0.85)' }}>
-              Khám phá homestay &amp; resort cao cấp — đặt phòng nhanh, an toàn, minh bạch giá.
-            </p>
+          <BannerCarousel
+            slides={bannerSlides}
+            activeIndex={safePromoIndex}
+            onChange={setActivePromoIndex}
+          />
 
-            <form
-              onSubmit={handleSearch}
-              className="hero-search-pill"
-              style={{
-                background: '#fff',
-                padding: 8,
-                borderRadius: 16,
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 8,
-                alignItems: 'center',
-              }}
-            >
-              <div
-                className="hero-search-field hero-search-field--location"
-                style={{ flex: '1 1 140px', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px' }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+          <div className="landing-banner-dots" role="tablist" aria-label="Chọn slide banner">
+            {promotions.map((_, i) => (
+              <button
+                key={promotions[i].id ?? i}
+                type="button"
+                role="tab"
+                aria-selected={i === safePromoIndex}
+                aria-label={`Slide ${i + 1}`}
+                className={`landing-banner-dot${i === safePromoIndex ? ' is-active' : ''}`}
+                onClick={() => setActivePromoIndex(i)}
+              />
+            ))}
+          </div>
+
+          <p className="landing-banner-promo">
+            {activePromo.subtitle} — {activePromo.title.replace('\n', ' ')}
+            <Link to={finalCtaUrl}>{finalCtaText}</Link>
+          </p>
+
+          <div className="landing-banner-search">
+            <form onSubmit={handleSearch} className="hero-search-pill">
+              <div className="hero-search-field hero-search-field--location">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
@@ -354,115 +321,53 @@ export default function LandingPage() {
                   placeholder="Bạn muốn đi đâu?"
                   value={search.location}
                   autoComplete="off"
+                  aria-label="Địa điểm"
                   onChange={(e) => setSearch((p) => ({ ...p, location: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14 }}
                 />
               </div>
 
-              <div style={{ flex: '1 1 120px', padding: '8px 12px' }}>
+              <span className="hero-search-sep" aria-hidden="true" />
+
+              <div className="hero-search-field hero-search-field--date">
                 <input
                   type="date"
-                  aria-label="Check-in"
+                  aria-label="Ngày nhận phòng"
                   value={search.checkIn}
                   min={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setSearch((p) => ({ ...p, checkIn: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
                 />
               </div>
 
-              <div style={{ flex: '1 1 120px', padding: '8px 12px' }}>
+              <span className="hero-search-sep" aria-hidden="true" />
+
+              <div className="hero-search-field hero-search-field--date">
                 <input
                   type="date"
-                  aria-label="Check-out"
+                  aria-label="Ngày trả phòng"
                   value={search.checkOut}
                   min={search.checkIn || new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setSearch((p) => ({ ...p, checkOut: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
                 />
               </div>
 
-              <div style={{ flex: '0 1 80px', padding: '8px 12px' }}>
+              <span className="hero-search-sep" aria-hidden="true" />
+
+              <div className="hero-search-field hero-search-field--guests">
                 <input
                   type="number"
-                  aria-label="Guests"
+                  aria-label="Số khách"
                   min={1}
                   max={20}
                   value={search.guests}
                   onChange={(e) => setSearch((p) => ({ ...p, guests: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14 }}
                 />
+                <span className="hero-search-guest-label">khách</span>
               </div>
 
-              <button
-                type="submit"
-                className="button-primary"
-                style={{ padding: '12px 24px', borderRadius: 9999, border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Search
+              <button type="submit" className="hero-search-btn">
+                <span className="hero-search-btn-text">Tìm phòng</span>
               </button>
             </form>
-          </div>
-
-          {/* Right — Promo Carousel */}
-          <div className="landing-hero-visual" style={{ position: 'relative', minHeight: 280, maxWidth: 480, margin: '0 auto', width: '100%', paddingBottom: 8 }}>
-            <div
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                backdropFilter: 'blur(12px)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 32,
-                color: '#fff',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}
-            >
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>
-                {activePromo.subtitle}
-              </span>
-              <h3 style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.25, margin: '8px 0 16px', whiteSpace: 'pre-line' }}>
-                {activePromo.title}
-              </h3>
-              {activePromo.description && (
-                <p style={{ fontSize: 15, opacity: 0.9, marginBottom: 24 }}>
-                  {activePromo.description}
-                </p>
-              )}
-              <Link
-                to={finalCtaUrl}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  background: '#fff',
-                  color: ctaColor,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  padding: '12px 24px',
-                  borderRadius: 9999,
-                  textDecoration: 'none',
-                }}
-              >
-                {finalCtaText}
-              </Link>
-            </div>
-            
-            {/* Carousel dots */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 24 }}>
-              {promotions.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActivePromoIndex(i)}
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: i === activePromoIndex ? '#fff' : 'rgba(255,255,255,0.4)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                />
-              ))}
-            </div>
           </div>
         </div>
       </section>
