@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 
 // ── Route Guards ─────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/ProtectedRoute';
@@ -58,7 +58,7 @@ import PropertyDetailPage from './pages/manager/PropertyDetailPage';
 import AddPropertyPage from './pages/manager/AddPropertyPage';
 import EditPropertyPage from './pages/manager/EditPropertyPage';
 import StructureTreePage from './pages/manager/StructureTreePage';
-import FloorManagementPage from './pages/manager/FloorManagementPage';
+// FloorManagementPage retired — /manager/floors redirects to StructureTreePage (SCR-28)
 import RoomListPage from './pages/manager/RoomListPage';
 import RoomDetailMgmtPage from './pages/manager/RoomDetailMgmtPage';
 import AddRoomPage from './pages/manager/AddRoomPage';
@@ -127,6 +127,16 @@ function CatchAllRedirect() {
   if (role === 'ADMIN')    return <Navigate to="/admin/dashboard"    replace />;
   if (role === 'EMPLOYEE') return <Navigate to="/employee/dashboard" replace />;
   return <Navigate to="/" replace />;
+}
+
+/** Legacy /manager/floors → SCR-28 Structure Tree */
+function ManagerFloorsRedirect() {
+  const [searchParams] = useSearchParams();
+  const propertyId = searchParams.get('propertyId');
+  const to = propertyId
+    ? `/manager/structure?propertyId=${encodeURIComponent(propertyId)}`
+    : '/manager/structure';
+  return <Navigate to={to} replace />;
 }
 
 function App() {
@@ -248,11 +258,11 @@ function App() {
         <Route path="/manager/properties/:id/edit"
           element={<ProtectedRoute role="MANAGER"><EditPropertyPage /></ProtectedRoute>} />
 
-        {/* Structure (SCR-37,38) */}
+        {/* Structure Management (SCR-28) */}
         <Route path="/manager/structure"
           element={<ProtectedRoute role="MANAGER"><StructureTreePage /></ProtectedRoute>} />
         <Route path="/manager/floors"
-          element={<ProtectedRoute role="MANAGER"><FloorManagementPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><ManagerFloorsRedirect /></ProtectedRoute>} />
 
         {/* Rooms (SCR-39 to 44) */}
         <Route path="/manager/rooms"
