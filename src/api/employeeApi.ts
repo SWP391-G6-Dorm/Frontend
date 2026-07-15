@@ -136,7 +136,10 @@ export interface DamageReport {
   roomName: string;
   status: string;
   items: DamageItem[];
+  itemCount?: number;
   totalCost: number;
+  requiresAdminEscalation?: boolean;
+  note?: string | null;
   createdAt: string;
 }
 
