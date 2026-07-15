@@ -97,12 +97,13 @@ export function ReviewRatingPage() {
 
   function validate() {
     const e: Record<string, string> = {};
+    const trimmed = comment.trim();
     if (rating === 0) e.rating = 'Vui lòng chọn số sao đánh giá (1–5).';
-    if (!comment.trim()) {
+    if (!trimmed) {
       e.comment = 'Vui lòng chia sẻ trải nghiệm của bạn.';
-    } else if (comment.length < 20) {
+    } else if (trimmed.length < 20) {
       e.comment = 'Bình luận phải có ít nhất 20 ký tự.';
-    } else if (comment.length > 200) {
+    } else if (trimmed.length > 200) {
       e.comment = 'Bình luận không được vượt quá 200 ký tự.';
     }
     return e;
@@ -119,9 +120,11 @@ export function ReviewRatingPage() {
     setApiError(null);
     setLoadingSubmit(true);
 
+    const trimmedComment = comment.trim();
+
     try {
       if (isEditMode && reviewId) {
-        const res = await reviewApi.updateReview(reviewId, { rating, comment });
+        const res = await reviewApi.updateReview(reviewId, { rating, comment: trimmedComment });
         if (res.success) {
           navigate('/customer/reviews');
         } else {
@@ -129,7 +132,7 @@ export function ReviewRatingPage() {
           setLoadingSubmit(false);
         }
       } else if (bookingId) {
-        const res = await reviewApi.createReview({ bookingId, rating, comment });
+        const res = await reviewApi.createReview({ bookingId, rating, comment: trimmedComment });
         if (res.success) {
           navigate('/customer/reviews');
         } else {
@@ -138,7 +141,26 @@ export function ReviewRatingPage() {
         }
       }
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      const ax = err as {
+        response?: {
+          data?: {
+            message?: string;
+            data?: Record<string, string>;
+            errors?: Record<string, string>;
+          };
+        };
+      };
+      const fieldErrors = ax?.response?.data?.data ?? ax?.response?.data?.errors;
+      if (fieldErrors && typeof fieldErrors === 'object') {
+        const next: Record<string, string> = {};
+        if (fieldErrors.rating) next.rating = fieldErrors.rating;
+        if (fieldErrors.comment) next.comment = fieldErrors.comment;
+        if (fieldErrors.bookingId) next.submit = fieldErrors.bookingId;
+        if (Object.keys(next).length) {
+          setErrors(next);
+        }
+      }
+      const msg = ax?.response?.data?.message;
       setApiError(msg || 'Đã xảy ra lỗi. Vui lòng thử lại.');
       setLoadingSubmit(false);
     }
@@ -260,8 +282,8 @@ export function ReviewRatingPage() {
             />
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               {errors.comment ? <p className="form-error">{errors.comment}</p> : <span />}
-              <span className="form-hint" style={{ color: comment.length < 20 || comment.length > 200 ? 'var(--error)' : 'var(--charcoal)' }}>
-                {comment.length} / 200 (tối thiểu 20)
+              <span className="form-hint" style={{ color: comment.trim().length < 20 || comment.trim().length > 200 ? 'var(--error)' : 'var(--charcoal)' }}>
+                {comment.trim().length} / 200 (tối thiểu 20)
               </span>
             </div>
           </div>
@@ -399,6 +421,19 @@ export function MyReviewsPage() {
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40 }}>
           <p className="body-md text-charcoal">Đang tải...</p>
+        </div>
+      ) : apiError ? (
+        <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+          <p className="body-md text-charcoal" style={{ marginBottom: 16 }}>
+            Không tải được danh sách đánh giá.
+          </p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => loadReviews()}
+          >
+            Thử lại
+          </button>
         </div>
       ) : reviews.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: 60 }}>
