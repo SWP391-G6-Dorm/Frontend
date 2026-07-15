@@ -16,6 +16,22 @@ export interface AdminUser {
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  /** SCR-50 — số property ACTIVE được gán (Manager). */
+  propertiesAssigned?: number | null;
+  /** SCR-51 — tổng đơn đặt phòng (Customer). */
+  totalBookings?: number | null;
+  /** SCR-51 — tổng chi tiêu PAID (Customer). */
+  totalSpend?: number | null;
+}
+
+export interface AdminCustomerBookingSummary {
+  id: string;
+  roomNumber: string;
+  propertyName: string;
+  checkInDate: string;
+  checkOutDate: string;
+  status: string;
+  totalAmount: number;
 }
 
 export interface PageResponse<T> {
@@ -175,6 +191,15 @@ export async function getCustomers(params?: { page?: number; size?: number; keyw
 /** GET /api/admin/users/{id} */
 export async function getAdminUserById(id: string): Promise<{ success: boolean; data: AdminUser }> {
   const res = await api.get(`/api/admin/users/${id}`);
+  return res.data;
+}
+
+/** GET /api/admin/users/{id}/bookings — SCR-51 drawer */
+export async function getAdminCustomerBookings(
+  id: string,
+  params?: { page?: number; size?: number },
+): Promise<{ success: boolean; data: PageResponse<AdminCustomerBookingSummary> }> {
+  const res = await api.get(`/api/admin/users/${id}/bookings`, { params });
   return res.data;
 }
 
