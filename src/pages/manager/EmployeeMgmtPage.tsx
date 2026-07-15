@@ -107,6 +107,7 @@ export default function EmployeeMgmtPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ fullName: '', email: '', phone: '' });
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({});
   const [createSubmitting, setCreateSubmitting] = useState(false);
 
   // Edit modal
@@ -121,6 +122,7 @@ export default function EmployeeMgmtPage() {
   const [statusSubmitting, setStatusSubmitting] = useState(false);
 
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
+  const showEmptyAssigned = !propLoading && properties.length === 0;
 
   useEffect(() => {
     setPropLoading(true);
@@ -246,20 +248,28 @@ export default function EmployeeMgmtPage() {
     }
     setCreateForm({ fullName: '', email: '', phone: '' });
     setCreateError(null);
+    setCreateFieldErrors({});
     setCreateOpen(true);
   }
 
   async function handleCreate() {
-    if (!createForm.fullName.trim() || !createForm.email.trim()) {
+    const fullName = createForm.fullName.trim();
+    const email = createForm.email.trim();
+    if (!fullName || !email) {
       setCreateError('Họ tên và email là bắt buộc.');
+      return;
+    }
+    if (fullName.length < 2) {
+      setCreateFieldErrors({ fullName: 'Họ tên phải có ít nhất 2 ký tự.' });
       return;
     }
     setCreateSubmitting(true);
     setCreateError(null);
+    setCreateFieldErrors({});
     try {
       await createEmployeeV1({
-        fullName: createForm.fullName.trim(),
-        email: createForm.email.trim(),
+        fullName,
+        email,
         phone: createForm.phone.trim() || undefined,
         propertyId: selectedPropertyId,
       });
@@ -267,8 +277,16 @@ export default function EmployeeMgmtPage() {
       setSuccessMsg('Tạo nhân viên thành công.');
       loadEmployees(page, search, selectedPropertyId);
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } } };
-      setCreateError(ax?.response?.data?.message ?? 'Không thể tạo nhân viên.');
+      const ax = err as {
+        response?: { data?: { message?: string; data?: Record<string, string> } };
+      };
+      const fieldErrors = ax?.response?.data?.data;
+      if (fieldErrors && typeof fieldErrors === 'object') {
+        setCreateFieldErrors(fieldErrors);
+        setCreateError(ax?.response?.data?.message ?? 'Dữ liệu không hợp lệ.');
+      } else {
+        setCreateError(ax?.response?.data?.message ?? 'Không thể tạo nhân viên.');
+      }
     } finally {
       setCreateSubmitting(false);
     }
@@ -289,7 +307,7 @@ export default function EmployeeMgmtPage() {
     setEditSubmitting(true);
     setEditError(null);
     try {
-      await updateEmployeeV1(editTarget.id, {
+      await updateEmployeeV1(editTarget.id, selectedPropertyId, {
         fullName: editForm.fullName.trim(),
         phone: editForm.phone.trim() || undefined,
       });
@@ -309,7 +327,7 @@ export default function EmployeeMgmtPage() {
     const newStatus = statusTarget.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     setStatusSubmitting(true);
     try {
-      await updateEmployeeStatusV1(statusTarget.id, newStatus);
+      await updateEmployeeStatusV1(statusTarget.id, selectedPropertyId, newStatus);
       setStatusTarget(null);
       setSuccessMsg(newStatus === 'SUSPENDED' ? 'Đã tạm khóa nhân viên.' : 'Đã kích hoạt nhân viên.');
       loadEmployees(page, search, selectedPropertyId);
@@ -399,6 +417,14 @@ export default function EmployeeMgmtPage() {
         {error && <Alert variant="error" message={error} closeable onClose={() => setError(null)} />}
         {successMsg && <Alert variant="success" message={successMsg} closeable onClose={() => setSuccessMsg(null)} />}
 
+        {showEmptyAssigned && (
+          <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
+            <p className="text-[#64748B] m-0">Bạn chưa được gán homestay nào.</p>
+          </div>
+        )}
+
+        {!showEmptyAssigned && (
+          <>
         <div className="flex flex-col sm:flex-row gap-3">
           <select
             className="input-field flex-1 sm:max-w-xs"
@@ -432,6 +458,17 @@ export default function EmployeeMgmtPage() {
           <div className="text-center py-16 text-[#64748B]">
             Vui lòng chọn homestay để xem danh sách nhân viên.
           </div>
+        ) : error ? (
+          <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
+            <p className="text-[#64748B] mb-4">Không tải được danh sách nhân viên.</p>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => loadEmployees(page, search, selectedPropertyId)}
+            >
+              Thử lại
+            </button>
+          </div>
         ) : employees.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
             <p className="text-[#64748B] mb-4">Chưa có nhân viên tại homestay này.</p>
@@ -447,6 +484,8 @@ export default function EmployeeMgmtPage() {
               keyExtractor={e => e.id}
             />
             <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+          </>
+        )}
           </>
         )}
       </div>
@@ -468,6 +507,17 @@ export default function EmployeeMgmtPage() {
         />
         {unassignedLoading ? (
           <TableSkeleton />
+        ) : assignError ? (
+          <div className="text-center py-8">
+            <p className="text-[#64748B] mb-4">Không tải được danh sách nhân viên chưa gán.</p>
+            <button
+              type="button"
+              className="btn-primary text-sm"
+              onClick={() => loadUnassigned(assignSearch, selectedPropertyId)}
+            >
+              Thử lại
+            </button>
+          </div>
         ) : unassigned.length === 0 ? (
           <p className="text-center text-[#64748B] py-8">Không có nhân viên chưa gán.</p>
         ) : (
@@ -511,6 +561,9 @@ export default function EmployeeMgmtPage() {
               value={createForm.fullName}
               onChange={e => setCreateForm(f => ({ ...f, fullName: e.target.value }))}
             />
+            {createFieldErrors.fullName && (
+              <p className="text-sm text-[#DC2626] mt-1 m-0">{createFieldErrors.fullName}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-[#334155] mb-1">Email *</label>
@@ -520,6 +573,9 @@ export default function EmployeeMgmtPage() {
               value={createForm.email}
               onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
             />
+            {createFieldErrors.email && (
+              <p className="text-sm text-[#DC2626] mt-1 m-0">{createFieldErrors.email}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-[#334155] mb-1">Điện thoại</label>
@@ -528,6 +584,9 @@ export default function EmployeeMgmtPage() {
               value={createForm.phone}
               onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))}
             />
+            {createFieldErrors.phone && (
+              <p className="text-sm text-[#DC2626] mt-1 m-0">{createFieldErrors.phone}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-[#334155] mb-1">Homestay</label>
