@@ -49,17 +49,17 @@ export function SystemAdminPage() {
   }
 
   const TABS: { key: typeof tab; label: string }[] = [
-    { key: 'settings',   label: '⚙️ System Settings' },
-    { key: 'logs',       label: '📋 Activity Logs' },
-    { key: 'moderation', label: '🛡️ Content Moderation' },
+    { key: 'settings',   label: 'Cài đặt hệ thống' },
+    { key: 'logs',       label: 'Nhật ký hoạt động' },
+    { key: 'moderation', label: 'Kiểm duyệt nội dung' },
   ];
 
   return (
     <AdminLayout>
       <div className="animate-fade-in">
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>System Administration</h1>
-          <p className="body-sm text-charcoal">SCR-56 — Settings, Activity Logs, Content Moderation</p>
+          <h1 style={{ fontFamily: 'inherit', fontSize: 26, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Quản trị hệ thống</h1>
+          <p className="body-sm text-charcoal">Cài đặt chung, nhật ký hoạt động và kiểm duyệt nội dung</p>
         </div>
 
         {/* Tabs */}
@@ -67,7 +67,7 @@ export function SystemAdminPage() {
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer',
-              fontFamily: 'Outfit', fontWeight: tab === t.key ? 700 : 500, fontSize: 14,
+              fontFamily: 'inherit', fontWeight: tab === t.key ? 700 : 500, fontSize: 14,
               color: tab === t.key ? 'var(--primary)' : 'var(--charcoal)',
               borderBottom: `2px solid ${tab === t.key ? 'var(--primary)' : 'transparent'}`,
               marginBottom: -2, transition: 'all 0.15s',
@@ -83,7 +83,7 @@ export function SystemAdminPage() {
             {settingsMsg && (settingsMsg.type === 'success' ? <SuccessBanner msg={settingsMsg.msg} /> : <ErrorBanner msg={settingsMsg.msg} />)}
             {settingsLoading ? <Spinner /> : (
               <form onSubmit={handleSaveSettings} className="card" style={{ padding: 28 }}>
-                <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, marginBottom: 20 }}>Cài đặt hệ thống</h2>
+                <h2 style={{ fontFamily: 'inherit', fontWeight: 700, fontSize: 16, marginBottom: 20 }}>Cài đặt hệ thống</h2>
 
                 <div style={{ marginBottom: 20 }}>
                   <label className="form-label" htmlFor="deposit-pct">Tỷ lệ đặt cọc (%)</label>
@@ -114,11 +114,11 @@ export function SystemAdminPage() {
                 </div>
 
                 <div className="alert alert-info" style={{ marginBottom: 20 }}>
-                  ⚠️ Thay đổi cài đặt ảnh hưởng đến <strong>tất cả booking mới</strong>. Booking hiện tại không bị ảnh hưởng.
+                  Lưu ý: Thay đổi cài đặt ảnh hưởng đến <strong>tất cả booking mới</strong>. Booking hiện tại không bị ảnh hưởng.
                 </div>
 
                 <button type="submit" className="btn-primary" disabled={saveLoading}>
-                  {saveLoading ? 'Đang lưu...' : '💾 Save Settings'}
+                  {saveLoading ? 'Đang lưu...' : 'Lưu cài đặt'}
                 </button>
               </form>
             )}
@@ -130,16 +130,16 @@ export function SystemAdminPage() {
           <div>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--hairline)', marginBottom: 16 }}>
               <p className="body-sm text-charcoal">
-                Activity logs được lấy từ backend audit trail. Liên hệ DevOps để xem full logs.
+                Nhật ký hoạt động được ghi nhận từ hệ thống. Liên hệ DevOps để xem toàn bộ logs.
               </p>
             </div>
             <DataTable
               columns={[
                 { header: 'Thời gian', accessor: (log: any) => <span className="code-sm">{log.time}</span> },
-                { header: 'User', accessor: (log: any) => log.user },
-                { header: 'Action', accessor: (log: any) => <span className="badge badge-info">{log.action}</span> },
-                { header: 'Entity', accessor: (log: any) => <span className="body-sm text-charcoal">{log.entity}</span> },
-                { header: 'IP', accessor: (log: any) => <span className="code-sm">{log.ip}</span> }
+                { header: 'Người dùng', accessor: (log: any) => log.user },
+                { header: 'Hành động', accessor: (log: any) => <span className="badge badge-info">{log.action}</span> },
+                { header: 'Đối tượng', accessor: (log: any) => <span className="body-sm text-charcoal">{log.entity}</span> },
+                { header: 'Địa chỉ IP', accessor: (log: any) => <span className="code-sm">{log.ip}</span> }
               ]}
               data={[
                 { time: '2026-06-27 09:45:12', user: 'admin@system', action: 'UPDATE_SETTINGS', entity: 'SystemSettings', ip: '127.0.0.1' },
@@ -155,13 +155,13 @@ export function SystemAdminPage() {
         {tab === 'moderation' && (
           <div>
             <div className="alert alert-info" style={{ marginBottom: 16 }}>
-              Kiểm duyệt nội dung reviews. Có thể ẩn reviews vi phạm chính sách.
+              Kiểm duyệt nội dung đánh giá từ khách hàng. Có thể ẩn các đánh giá vi phạm chính sách.
             </div>
             <DataTable
               columns={[
-                { header: 'Review ID', accessor: (r: any) => <span className="code-sm">{r.id}</span> },
+                { header: 'Mã đánh giá', accessor: (r: any) => <span className="code-sm">{r.id}</span> },
                 { header: 'Khách hàng', accessor: (r: any) => r.customer },
-                { header: 'Rating', accessor: (r: any) => '⭐'.repeat(r.rating) },
+                { header: 'Đánh giá', accessor: (r: any) => `${r.rating}/5` },
                 { header: 'Nội dung', accessor: (r: any) => <span style={{ maxWidth: 200, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>{r.comment}</span> },
                 { header: 'Trạng thái', accessor: (r: any) => <StatusBadge status={r.status === 'VISIBLE' ? 'ACTIVE' : 'INACTIVE'} /> }
               ]}
@@ -171,7 +171,7 @@ export function SystemAdminPage() {
               ]}
               keyExtractor={(r) => r.id}
               actions={[
-                { label: '🚫 Ẩn Review', onClick: (r) => {} }
+                { label: 'Ẩn đánh giá', onClick: (r) => {} }
               ]}
             />
           </div>
@@ -180,4 +180,5 @@ export function SystemAdminPage() {
     </AdminLayout>
   );
 }
+
 
