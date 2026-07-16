@@ -4,6 +4,7 @@ import CustomerLayout from '../../layouts/CustomerLayout';
 import Alert from '../../components/ui/Alert';
 import { bookingApi } from '../../api/bookingApi';
 import { fetchRoomById, type RoomDetail } from '../../api/roomsApi';
+import { canAttemptBooking } from '../../utils/roomCalendar';
 
 function formatVnd(amount: number) {
   return `${amount.toLocaleString('vi-VN')} ₫`;
@@ -63,7 +64,7 @@ export default function BookingFormPage() {
   const pricePerNight = room?.pricePerNight ?? 0;
   const totalAmount = nights * pricePerNight;
   const depositAmount = totalAmount * 0.4;
-  const canBook = room?.status === 'AVAILABLE';
+  const canBook = room ? canAttemptBooking(room.status) : false;
   const imageUrl = room ? roomImageUrl(room) : '';
 
   function validate() {
@@ -151,7 +152,10 @@ export default function BookingFormPage() {
 
         {!canBook && (
           <div style={{ marginBottom: 16 }}>
-            <Alert variant="warning" message="Phòng hiện không khả dụng để đặt. Vui lòng chọn phòng khác." />
+            <Alert
+              variant="warning"
+              message="Phòng đang bảo trì / ngưng phục vụ / đang dọn — không thể đặt lúc này."
+            />
           </div>
         )}
 
@@ -219,7 +223,7 @@ export default function BookingFormPage() {
             <div style={{ marginBottom: 20 }}>
               <Alert
                 variant="info"
-                message="Sau khi xác nhận, bạn sẽ chuyển sang màn xem lại đơn và thanh toán cọc 40% qua VNPay (giữ chỗ 30 phút)."
+                message="Sau khi xác nhận, bạn sẽ chuyển sang màn xem lại đơn và thanh toán cọc 40% qua VNPay (giữ chỗ 10 phút)."
               />
             </div>
 

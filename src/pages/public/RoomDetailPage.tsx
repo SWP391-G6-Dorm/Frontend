@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PublicLayout from '../../layouts/PublicLayout';
 import Alert from '../../components/ui/Alert';
 import ImageGallerySlider from '../../components/ui/ImageGallerySlider';
-import RoomMiniCalendar, { isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
+import RoomMiniCalendar, { canAttemptBooking, isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
 import {
   fetchRoomById,
   fetchRoomCalendar,
@@ -251,7 +251,7 @@ export default function RoomDetailPage() {
     ? room.amenities
     : ['WiFi', 'Điều hòa', 'Smart TV', 'Nước nóng'];
 
-  const canBook = room.status === 'AVAILABLE';
+  const canBook = canAttemptBooking(room.status);
   const displayReviews = reviews.length > 0 ? reviews : room.reviews ?? [];
 
   return (
@@ -476,7 +476,7 @@ export default function RoomDetailPage() {
               )}
 
               {!canBook ? (
-                <Alert variant="warning" message="Phòng hiện không khả dụng để đặt." />
+                <Alert variant="warning" message="Phòng đang bảo trì / ngưng phục vụ / đang dọn — không thể đặt lúc này." />
               ) : !isAuthenticated || role !== 'CUSTOMER' ? (
                 <>
                   <button type="button" className="btn-primary" style={{ width: '100%', height: 44 }} onClick={handleBookNow}>
