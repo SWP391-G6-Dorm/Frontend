@@ -80,6 +80,13 @@ public class MaintenanceTicketService {
         return m;
     }
 
+    private static String sanitizeFilename(String original) {
+        if (original == null || original.isBlank()) {
+            return "photo.jpg";
+        }
+        return original.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
     // ── 1. Customer: Get paginated tickets with optional status filter ──
     @Transactional(readOnly = true)
     public Map<String, Object> getCustomerTicketsPaged(UUID customerId, String status, int page, int size) {
@@ -199,7 +206,7 @@ public class MaintenanceTicketService {
 
         for (MultipartFile photo : photos) {
             if (photo.isEmpty()) continue;
-            String savedName = UUID.randomUUID() + "_" + photo.getOriginalFilename();
+            String savedName = UUID.randomUUID() + "_" + sanitizeFilename(photo.getOriginalFilename());
             java.nio.file.Path targetPath = ticketUploadDir.resolve(savedName);
             try {
                 java.nio.file.Files.copy(photo.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
@@ -288,7 +295,7 @@ public class MaintenanceTicketService {
             }
             for (MultipartFile photo : newPhotos) {
                 if (photo.isEmpty()) continue;
-                String savedName = UUID.randomUUID() + "_" + photo.getOriginalFilename();
+                String savedName = UUID.randomUUID() + "_" + sanitizeFilename(photo.getOriginalFilename());
                 java.nio.file.Path targetPath = ticketUploadDir.resolve(savedName);
                 try {
                     java.nio.file.Files.copy(photo.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);

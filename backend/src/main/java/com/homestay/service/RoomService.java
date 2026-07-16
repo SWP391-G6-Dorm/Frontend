@@ -512,7 +512,10 @@ public class RoomService {
         List<RoomDetailResponse.RoomImageInfo> result = new ArrayList<>();
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
-            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            String originalName = file.getOriginalFilename();
+            if (originalName == null || originalName.isBlank()) originalName = "image.png";
+            originalName = originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
+            String fileName = UUID.randomUUID() + "_" + originalName;
             Path filePath = dirPath.resolve(fileName);
 
             try {
