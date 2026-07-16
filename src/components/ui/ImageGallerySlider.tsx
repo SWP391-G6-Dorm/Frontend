@@ -1,13 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SafeImage from './SafeImage';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 interface ImageGallerySliderProps {
   images: { id?: string; imageUrl: string; sortOrder?: number }[];
   alt: string;
+  /** Chế độ controlled — dùng trong lightbox */
+  currentIndex?: number;
+  onIndexChange?: (index: number) => void;
+  /** Chế độ uncontrolled — gallery inline */
+  initialIndex?: number;
 }
 
-export default function ImageGallerySlider({ images, alt }: ImageGallerySliderProps) {
+function imageKey(images: { id?: string; imageUrl: string }[]) {
+  return images.map((img) => img.id ?? img.imageUrl).join('|');
+}
+
+export default function ImageGallerySlider({
+  images,
+  alt,
+  currentIndex,
+  onIndexChange,
+  initialIndex = 0,
+}: ImageGallerySliderProps) {
   const slides = useMemo(() => {
     const urls = images
       .slice()
@@ -16,97 +31,92 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
     return urls.length > 0 ? urls : [resolveMediaUrl(null)];
   }, [images]);
 
-  const [index, setIndex] = useState(0);
+  const isControlled = currentIndex !== undefined && onIndexChange !== undefined;
+  const [internalIndex, setInternalIndex] = useState(initialIndex);
+  const index = isControlled ? currentIndex : internalIndex;
+  const touchStartX = useRef<number | null>(null);
+  const thumbsRef = useRef<HTMLDivElement>(null);
+  const imagesKey = imageKey(images);
 
   useEffect(() => {
-    setIndex(0);
-  }, [slides]);
+    if (isControlled) return;
+    setInternalIndex(Math.min(initialIndex, Math.max(slides.length - 1, 0)));
+  }, [imagesKey, initialIndex, slides.length, isControlled]);
 
-  const go = useCallback(
-    (delta: number) => {
-      setIndex((i) => (i + delta + slides.length) % slides.length);
+  useEffect(() => {
+    const el = thumbsRef.current?.children[index] as HTMLElement | undefined;
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [index]);
+
+  const setIndex = useCallback(
+    (next: number | ((prev: number) => number)) => {
+      const resolved =
+        typeof next === 'function'
+          ? next(isControlled ? currentIndex! : internalIndex)
+          : next;
+      const clamped = slides.length === 0 ? 0 : ((resolved % slides.length) + slides.length) % slides.length;
+      if (isControlled) onIndexChange!(clamped);
+      else setInternalIndex(clamped);
     },
-    [slides.length],
+    [currentIndex, internalIndex, isControlled, onIndexChange, slides.length],
   );
+
+  const go = useCallback((delta: number) => setIndex((i) => i + delta), [setIndex]);
+  const goTo = useCallback((next: number) => setIndex(next), [setIndex]);
 
   const hasMultiple = slides.length > 1;
 
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current == null) return;
+    const delta = (e.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(delta) < 40) return;
+    if (delta > 0) go(-1);
+    else go(1);
+  }
+
   return (
-    <div>
+    <div className="image-gallery-slider">
       <div
-        style={{
-          position: 'relative',
-          borderRadius: 12,
-          overflow: 'hidden',
-          background: 'var(--surface-bone)',
-          marginBottom: 10,
-        }}
+        className="image-gallery-slider-main"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <SafeImage
           src={slides[index]}
           alt={alt}
-          style={{ width: '100%', height: 'clamp(260px, 50vw, 480px)', objectFit: 'cover', display: 'block' }}
+          className="image-gallery-slider-img"
         />
 
         {hasMultiple && (
           <>
             <button
               type="button"
-              aria-label="Previous photo"
-              onClick={() => go(-1)}
-              style={{
-                position: 'absolute',
-                left: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                border: 'none',
-                background: 'rgba(255,255,255,0.92)',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                fontSize: 20,
-                lineHeight: 1,
+              className="image-gallery-slider-nav image-gallery-slider-nav--prev"
+              aria-label="Ảnh trước"
+              onClick={(e) => {
+                e.stopPropagation();
+                go(-1);
               }}
             >
               ‹
             </button>
             <button
               type="button"
-              aria-label="Next photo"
-              onClick={() => go(1)}
-              style={{
-                position: 'absolute',
-                right: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                border: 'none',
-                background: 'rgba(255,255,255,0.92)',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                fontSize: 20,
-                lineHeight: 1,
+              className="image-gallery-slider-nav image-gallery-slider-nav--next"
+              aria-label="Ảnh sau"
+              onClick={(e) => {
+                e.stopPropagation();
+                go(1);
               }}
             >
               ›
             </button>
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 12,
-                right: 12,
-                background: 'rgba(0,0,0,0.55)',
-                color: '#fff',
-                padding: '4px 10px',
-                borderRadius: 9999,
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
+            <div className="image-gallery-slider-counter">
               {index + 1} / {slides.length}
             </div>
           </>
@@ -114,31 +124,20 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
       </div>
 
       {hasMultiple && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            overflowX: 'auto',
-            paddingBottom: 4,
-          }}
-        >
+        <div ref={thumbsRef} className="image-gallery-slider-thumbs">
           {slides.map((src, i) => (
             <button
-              key={src + i}
+              key={`thumb-${i}`}
               type="button"
-              onClick={() => setIndex(i)}
-              style={{
-                flex: '0 0 88px',
-                height: 64,
-                borderRadius: 8,
-                overflow: 'hidden',
-                border: i === index ? '2px solid var(--primary)' : '2px solid transparent',
-                padding: 0,
-                cursor: 'pointer',
-                opacity: i === index ? 1 : 0.75,
+              className={`image-gallery-slider-thumb${i === index ? ' image-gallery-slider-thumb--active' : ''}`}
+              aria-label={`Ảnh ${i + 1}`}
+              aria-current={i === index ? 'true' : undefined}
+              onClick={(e) => {
+                e.stopPropagation();
+                goTo(i);
               }}
             >
-              <SafeImage src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <SafeImage src={src} alt="" />
             </button>
           ))}
         </div>
