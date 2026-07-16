@@ -194,6 +194,47 @@
     padding-right: 44px;
   }
 
+  .room-sort-select {
+    width: auto;
+    min-width: 168px;
+    height: 40px;
+    min-height: 40px;
+    padding: 8px 36px 8px 14px;
+    font-size: 14px;
+    line-height: 1.35;
+    border-radius: 10px;
+  }
+
+  .room-search-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .room-search-card-price-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .room-search-card-cta {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: 9999px;
+    border: 1px solid var(--hairline-strong);
+    background: var(--surface-card);
+    color: var(--ink);
+  }
+
   /* ─────────────────────────────────────
      BADGES
   ───────────────────────────────────── */
@@ -317,6 +358,59 @@
   .room-detail-booking {
     position: sticky;
     top: 80px;
+  }
+
+  .room-booking-panel .input {
+    border-radius: 10px;
+    height: 40px;
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .room-booking-panel input[type="date"] {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .room-booking-panel .room-booking-stepper-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid var(--hairline-strong);
+    background: var(--surface-card);
+    color: var(--ink);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .room-booking-panel .room-booking-stepper-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .room-booking-panel .room-booking-stepper-btn:hover:not(:disabled) {
+    background: var(--surface-bone);
+  }
+
+  .room-booking-panel .room-booking-guest-input {
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .room-booking-panel .room-booking-price {
+    font-size: clamp(1.5rem, 4vw, 1.875rem);
+    font-weight: 700;
+    line-height: 1.2;
   }
   @media (max-width: 960px) {
     .room-detail-grid {
