@@ -44,7 +44,7 @@ function FloorModal({ mode, propertyId, propertyName, initial, onClose, onSucces
           floorNumber: num,
           description: description.trim() || undefined,
         };
-        await floorApi.update(initial.id, payload);
+        await floorApi.update(propertyId, initial.id, payload);
       }
       onSuccess();
       onClose();
@@ -333,7 +333,7 @@ export default function FloorManagementPage() {
     setDeleting(true);
     setDeleteError('');
     try {
-      await floorApi.remove(deleteTarget.id);
+      await floorApi.remove(selectedPropId, deleteTarget.id);
       setDeleteTarget(null);
       loadFloors(selectedPropId);
     } catch (err: any) {
