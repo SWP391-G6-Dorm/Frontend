@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // ── Route Guards ─────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/ProtectedRoute';
@@ -35,7 +35,7 @@ import BookingDetailPage from './pages/customer/BookingDetailPage';
 import BookingCancellationPage from './pages/customer/BookingCancellationPage';
 import ContractListPage from './pages/customer/ContractListPage';
 import ContractDetailPage from './pages/customer/ContractDetailPage';
-// Payments (SCR-20 Order Review & Payment, remaining, history, VNPay result)
+// Payments (SCR-21, 22, 23, 24)
 import DepositPaymentPage from './pages/customer/DepositPaymentPage';
 import RemainingPaymentPage from './pages/customer/RemainingPaymentPage';
 import PaymentHistoryPage from './pages/customer/PaymentHistoryPage';
@@ -58,7 +58,7 @@ import PropertyDetailPage from './pages/manager/PropertyDetailPage';
 import AddPropertyPage from './pages/manager/AddPropertyPage';
 import EditPropertyPage from './pages/manager/EditPropertyPage';
 import StructureTreePage from './pages/manager/StructureTreePage';
-// FloorManagementPage retired — /manager/floors redirects to StructureTreePage (SCR-28)
+import FloorManagementPage from './pages/manager/FloorManagementPage';
 import RoomListPage from './pages/manager/RoomListPage';
 import RoomDetailMgmtPage from './pages/manager/RoomDetailMgmtPage';
 import AddRoomPage from './pages/manager/AddRoomPage';
@@ -129,16 +129,6 @@ function CatchAllRedirect() {
   return <Navigate to="/" replace />;
 }
 
-/** Legacy /manager/floors → SCR-28 Structure Tree */
-function ManagerFloorsRedirect() {
-  const [searchParams] = useSearchParams();
-  const propertyId = searchParams.get('propertyId');
-  const to = propertyId
-    ? `/manager/structure?propertyId=${encodeURIComponent(propertyId)}`
-    : '/manager/structure';
-  return <Navigate to={to} replace />;
-}
-
 function App() {
   return (
     <BrowserRouter>
@@ -190,13 +180,13 @@ function App() {
         <Route path="/customer/bookings/:id/cancel"
           element={<ProtectedRoute role="CUSTOMER"><BookingCancellationPage /></ProtectedRoute>} />
 
-        {/* Contracts — SCR-21 list + Contract Detail */}
+        {/* Contracts (SCR-25,26) */}
         <Route path="/customer/contracts"
           element={<ProtectedRoute role="CUSTOMER"><ContractListPage /></ProtectedRoute>} />
         <Route path="/customer/contracts/:id"
           element={<ProtectedRoute role="CUSTOMER"><ContractDetailPage /></ProtectedRoute>} />
 
-        {/* Payments — SCR-20 Order Review & Payment; remaining; history; VNPay return */}
+        {/* Payments (SCR-21,22,23,24) */}
         <Route path="/customer/payments"
           element={<ProtectedRoute role="CUSTOMER"><PaymentHistoryPage /></ProtectedRoute>} />
         <Route path="/customer/payments/:id/pay/deposit"
@@ -258,11 +248,11 @@ function App() {
         <Route path="/manager/properties/:id/edit"
           element={<ProtectedRoute role="MANAGER"><EditPropertyPage /></ProtectedRoute>} />
 
-        {/* Structure Management (SCR-28) */}
+        {/* Structure (SCR-37,38) */}
         <Route path="/manager/structure"
           element={<ProtectedRoute role="MANAGER"><StructureTreePage /></ProtectedRoute>} />
         <Route path="/manager/floors"
-          element={<ProtectedRoute role="MANAGER"><ManagerFloorsRedirect /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><FloorManagementPage /></ProtectedRoute>} />
 
         {/* Rooms (SCR-39 to 44) */}
         <Route path="/manager/rooms"
