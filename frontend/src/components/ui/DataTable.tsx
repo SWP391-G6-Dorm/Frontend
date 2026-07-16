@@ -15,7 +15,7 @@ export interface Column<T> {
 }
 
 export interface Action<T> {
-  label: string;
+  label: React.ReactNode;
   onClick: (row: T) => void;
   className?: string;
 }

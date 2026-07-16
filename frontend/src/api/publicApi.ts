@@ -41,6 +41,7 @@ export interface Promotion {
   description?: string;
   ctaText: string;
   ctaUrl: string;
+  imageUrl?: string | null;
   colorTheme: string;
   isActive: boolean;
   sortOrder: number;

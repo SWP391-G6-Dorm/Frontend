@@ -123,10 +123,9 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 
 * Người dùng có thể đăng ký tài khoản bằng email.
 * Hệ thống xác thực email đăng ký thông qua mã OTP.
-* Người dùng có thể yêu cầu gửi lại OTP nếu chưa kích hoạt tài khoản.
 * Người dùng có thể đăng nhập bằng email và mật khẩu.
-* Người dùng có thể đăng nhập nhanh bằng tài khoản Google (hệ thống tự động liên kết hoặc tạo mới tài khoản).
-* Hệ thống duy trì phiên đăng nhập an toàn và cho phép làm mới phiên làm việc.
+* Đăng nhập nhanh Google. **Rule bảo mật**: Hệ thống chỉ tự động liên kết tài khoản Google nếu email đã được xác thực trước đó ở local account, nếu không yêu cầu xác minh thêm (ngăn ngừa account takeover).
+* Quản lý phiên làm việc bằng Access Token và Refresh Token, cho phép thu hồi token khi log out.
 * Người dùng có thể đặt lại mật khẩu qua email.
 * Người dùng có thể đổi mật khẩu (yêu cầu đang đăng nhập).
 * Người dùng có thể đăng xuất để kết thúc phiên làm việc an toàn.
@@ -147,22 +146,28 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 * Xem lịch trống (Availability Calendar) theo từng phòng.
 * Hiển thị thống kê tổng quan về nền tảng trên trang chủ.
 
-### FR-04 Booking
+### FR-04 Booking & Inventory Management
 
-* Customer gửi yêu cầu đặt phòng (Booking) với thông tin check-in, check-out, số khách, và các yêu cầu đặc biệt.
-* Hệ thống kiểm tra tình trạng phòng, xung đột lịch, và sức chứa trước khi ghi nhận yêu cầu.
-* Khi yêu cầu được tạo, hệ thống tạm giữ phòng để chờ đặt cọc.
+* **Inventory Locking**: Sử dụng Database-level constraints (PostgreSQL `EXCLUDE USING gist`) trên `(RoomId, DateRange)` để đảm bảo tính atomic, ngăn chặn tuyệt đối Overbooking khi 2 người đặt trùng phòng cùng lúc.
+* **Pricing Snapshot**: `TotalAmount` được snapshot và tính toán lúc tạo booking, không bị ảnh hưởng nếu Manager thay đổi giá `PricePerNight` sau đó.
+* **Quy trình Booking**: 
+  1. Yêu cầu đặt phòng → `Pending Deposit`.
+  2. **Hold Timeout**: Nếu sau 30 phút (configurable) khách không thanh toán cọc, Scheduled Job tự động chuyển Booking sang `Cancelled` và nhả phòng (Available).
+  3. Thanh toán thành công → Trạng thái `Confirmed`.
+  4. Nếu quá 24h từ giờ Check-in mà khách không đến, hệ thống chuyển sang trạng thái `No-show` (Cọc không hoàn).
 * Customer thanh toán đặt cọc 40% tổng giá trị đặt phòng qua hai phương thức:
   * **VNPay**: Xác nhận thanh toán tự động và tức thì.
   * **Chuyển khoản**: Cần Manager kiểm tra biên lai và xác nhận thủ công.
-* Khi tiền cọc được xác nhận: hệ thống tự động chuyển trạng thái Booking → Confirmed, tạo Accommodation Contract PDF và gửi qua email.
+* Khi tiền cọc được xác nhận: hệ thống tự động chuyển trạng thái Booking → Confirmed, tạo Accommodation Contract PDF và gửi qua email (chạy nền thông qua @Async của Spring Boot).
 * Customer thanh toán phần còn lại (60%) trước hoặc khi check-in.
 * Manager thực hiện quy trình Check-in và Check-out để cập nhật trạng thái thực tế của Booking và phòng.
-* Trước khi Check-out: Employee thực hiện Room Inspection (xem FR-23). Check-out bị chặn cho đến khi kiểm tra phòng hoàn tất và tất cả thanh toán được hoàn thành.
-* Nếu phát hiện hư hại: Damage Fee được Manager phê duyệt và cộng vào số tiền còn lại (Remaining Balance). Customer phải thanh toán trước khi Check-out.
-* Khi Check-out hoàn tất: hệ thống tự động chuyển trạng thái phòng sang Pending Cleaning và tạo HousekeepingTask (xem FR-21).
-* Customer hoặc Manager có thể huỷ Booking trước khi check-in. Nếu huỷ sau khi đã thanh toán đặt cọc, tiền cọc sẽ không được hoàn lại.
-* Xem trạng thái Booking chi tiết.
+* Trước khi Check-out: Employee thực hiện Room Inspection. Check-out bị chặn cho đến khi kiểm tra hoàn tất.
+* Nếu phát hiện hư hại: Damage Fee được Manager phê duyệt và cộng vào số tiền còn lại.
+* Khi Check-out hoàn tất: hệ thống tự động chuyển trạng thái phòng sang Pending Cleaning và tạo HousekeepingTask.
+* **Sửa / Hủy Booking**:
+  * Chỉnh sửa Booking: Hỗ trợ đổi ngày/phòng cho trạng thái Confirmed (tính toán phụ phí chênh lệch).
+  * Hủy Booking (Customer): Chính sách hủy linh hoạt. VD: Trước 7 ngày (hoàn 100%), 3-7 ngày (hoàn 50%), dưới 3 ngày (không hoàn).
+  * Hủy Booking (Manager): Phân biệt rõ Manager-initiated cancel (lỗi hệ thống/bất khả kháng) -> Bắt buộc hoàn cọc 100%.
 
 ### FR-05 Availability Calendar
 
@@ -203,8 +208,9 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 
 ### FR-10 Contract Management
 
-* Tự động tạo Accommodation Contract PDF khi đặt cọc thành công.
+* Tự động tạo Accommodation Contract PDF khi đặt cọc thành công (chạy nền thông qua @Async để không làm chậm API thanh toán).
 * Gửi contract qua email cho Customer.
+* **Immutable Snapshot**: Contract là tài liệu bất biến lưu trữ nội dung tại thời điểm tạo. Bất kỳ Damage Fee phát sinh thêm sẽ tạo Contract Addendum (Phụ lục hợp đồng).
 * Xem danh sách và chi tiết hợp đồng đặt phòng.
 * Tải PDF hợp đồng.
 * In hợp đồng.
@@ -215,12 +221,16 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 * Tạo hóa đơn thanh toán đặt cọc (40%) và phần còn lại (60%).
 * Theo dõi trạng thái hóa đơn.
 
-### FR-12 Payment Management
+### FR-12 Payment Management & Reconciliation
 
 * Thanh toán đặt cọc (Deposit Payment).
 * Thanh toán phần còn lại (Remaining Balance Payment).
-* Thanh toán phí bồi thường hư hại (Damage Fee Payment) — được tạo khi Manager phê duyệt Damage Report.
-* Hỗ trợ thanh toán trực tuyến tự động qua cổng VNPay (E-Wallet).
+* Thanh toán phí bồi thường hư hại (Damage Fee Payment).
+* Hỗ trợ thanh toán trực tuyến tự động qua cổng VNPay.
+* **VNPay Timeout & Reconciliation**: 
+  * Khi chuyển VNPay, status Payment là `Pending`.
+  * Có Cron Job Reconciliation chạy định kỳ 15 phút truy vấn VNPay API (dùng `OrderRef`) để cập nhật trạng thái các giao dịch `Pending` hoặc rớt mạng (tránh khách bị trừ tiền mà hệ thống chưa ghi nhận).
+* **Xác nhận chuyển khoản**: Manager bắt buộc phải upload PaymentReceipt khi duyệt bank transfer. Quá 24h không duyệt, hệ thống nhắc nhở.
 * Xem lịch sử thanh toán chi tiết kèm trạng thái.
 
 ### FR-13 Maintenance Management
@@ -242,11 +252,13 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 * Manager hoặc Admin có thể kiểm duyệt và ẩn (Hide) các đánh giá không phù hợp.
 * Xem đánh giá công khai của phòng.
 
-### FR-15 Notification Management
+### FR-15 Notification Engine
 
-* Hệ thống tự động phân loại thông báo (VD: Xác nhận đặt phòng, Hợp đồng, Thanh toán, Bảo trì, Kiểm tra phòng, Hư hại).
+* Hệ thống tự động phân loại thông báo.
+* Thông báo được xử lý qua luồng độc lập (@Async) để đảm bảo không chặn tiến trình chính. 
+* Hỗ trợ push thông báo real-time qua WebSocket cho các sự kiện Booking/Payment và Availability Calendar.
 * Gửi thông báo hệ thống và các sự kiện nghiệp vụ quan trọng.
-* Thông báo hỗ trợ liên kết trực tiếp để điều hướng nhanh đến dữ liệu liên quan.
+* Thông báo hỗ trợ liên kết trực tiếp để điều hướng nhanh.
 * Xem danh sách thông báo và số lượng thông báo chưa đọc.
 * Đánh dấu đã đọc cho từng thông báo hoặc toàn bộ danh sách.
 
@@ -307,19 +319,16 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 * Hiển thị tác vụ đã hoàn thành và đang chờ xử lý.
 * Hiển thị danh sách Room Inspection được gán.
 
-### FR-23 Room Inspection
+### FR-23 Room Inspection & Damage Resolution
 
 * Trước khi Check-out, Employee được gán thực hiện kiểm tra phòng (Room Inspection).
-* Employee kiểm tra tình trạng phòng và ghi nhận kết quả.
 * Nếu không có hư hại: Inspection status = PASSED. Booking đủ điều kiện Check-out.
-* Nếu phát hiện hư hại:
-  * Employee ghi nhận các hạng mục hư hại (DamageItem): tên hạng mục, mô tả, hình ảnh, chi phí ước tính.
-  * Hệ thống tạo Damage Report liên kết với RoomInspection.
-  * Manager xem xét và phê duyệt số tiền bồi thường (Approved Amount).
-  * Hệ thống tự động cộng Damage Fee vào Remaining Balance của Booking.
-  * Hệ thống tạo Payment (Type = Damage Fee) cho Customer.
-* Check-out bị chặn cho đến khi Room Inspection hoàn tất (PASSED hoặc FAILED_WITH_COMPENSATION).
-* Check-out bị chặn cho đến khi tất cả thanh toán (bao gồm Damage Fee nếu có) được hoàn thành.
+* Nếu phát hiện hư hại: Employee ghi nhận DamageItem.
+* **Kiểm soát chéo (Segregation of Duties)**:
+  * Manager duyệt Damage Fee. Nếu fee vượt quá 5 triệu VNĐ (configurable), hệ thống yêu cầu Admin đồng phê duyệt.
+  * Customer nhận thông báo và có quyền **Dispute** (phản đối) khoản phí trong 24h. Mọi Dispute sẽ được escalate lên Admin.
+* **Off-site Collection**: Nếu khách rời đi sớm và từ chối trả Damage Fee, Manager có thể đánh dấu Account của Customer là `Outstanding Debt`, chặn mọi booking tương lai cho đến khi thanh toán xong.
+* Check-out bị chặn cho đến khi Room Inspection hoàn tất.
 * Employee chỉ được kiểm tra phòng trong Property được gán.
 
 ---
@@ -399,6 +408,20 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 * Một Manager có thể quản lý nhiều Property.
 
 ---
+
+---
+
+## PricingRule (Mới - Cấu hình giá động)
+
+| Attribute     | Type    | Description                  |
+| ------------- | ------- | ---------------------------- |
+| Id            | UUID    | Rule identifier              |
+| PropertyId    | UUID    | Related property             |
+| RoomTypeId    | UUID    | Related room type (optional) |
+| StartDate     | Date    | Apply from date              |
+| EndDate       | Date    | Apply to date                |
+| PricePerNight | Decimal | Dynamic price                |
+| Priority      | Integer | Priority to override default |
 
 ## ManagerPropertyAssignment
 
@@ -490,6 +513,8 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 | SortOrder | Integer | Display order    |
 | CreatedAt | DateTime| Creation date    |
 
+*Constraint*: Unique Partial Index `(RoomId)` WHERE `IsPrimary = true` (Chỉ 1 ảnh chính).
+
 ---
 
 ## Booking
@@ -502,12 +527,17 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 | CheckInDate    | Date     | Check-in date         |
 | CheckOutDate   | Date     | Check-out date        |
 | GuestCount     | Integer  | Number of guests      |
-| TotalAmount    | Decimal  | Total booking amount  |
+| TotalAmount    | Decimal  | Snapshot total amount |
 | DepositAmount  | Decimal  | Deposit amount (40%)  |
 | RemainingAmount| Decimal  | Remaining balance     |
 | DamageFeeAmount| Decimal  | Approved damage fee   |
 | SpecialRequests| Text     | Special requests note |
 | Status         | Enum     | Booking status        |
+| HoldExpiresAt  | DateTime | Timeout giữ phòng     |
+| RowVersion     | Integer  | Optimistic locking    |
+| CancelledBy    | UUID     | Ai hủy phòng          |
+| CancelReason   | Text     | Lý do hủy phòng       |
+| CancelledAt    | DateTime | Thời gian hủy         |
 | CreatedAt      | DateTime | Submission date       |
 | UpdatedAt      | DateTime | Last update date      |
 
@@ -520,6 +550,7 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 * Pending Damage Payment
 * Checked-out
 * Cancelled
+* **No-show**
 
 ---
 
@@ -552,21 +583,25 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 
 ## Payment
 
-| Attribute        | Type     | Description                       |
-| ---------------- | -------- | --------------------------------- |
-| Id               | UUID     | Payment identifier                |
-| BookingId        | UUID     | Related booking                   |
-| CustomerId       | UUID     | Related customer                  |
-| Type             | Enum     | Deposit / Remaining Balance / Damage Fee |
-| Amount           | Decimal  | Paid amount                       |
-| Method           | Enum     | Bank Transfer / Cash / E-Wallet   |
-| Status           | Enum     | Pending / Paid / Failed           |
-| VerifiedBy       | UUID     | Auditor (Manager)                 |
-| VerifiedAt       | DateTime | Verification timestamp            |
-| VerificationNote | Text     | Approval/Rejection details        |
-| PaidAt           | DateTime | Actual payment date               |
-| CreatedAt        | DateTime | Creation date                     |
-| UpdatedAt        | DateTime | Last update date                  |
+| Attribute             | Type     | Description                              |
+| --------------------- | -------- | ---------------------------------------- |
+| Id                    | UUID     | Payment identifier                       |
+| BookingId             | UUID     | Related booking                          |
+| CustomerId            | UUID     | Related customer                         |
+| Type                  | Enum     | Deposit / Remaining Balance / Damage Fee |
+| Amount                | Decimal  | Paid amount                              |
+| Method                | Enum     | Bank Transfer / Cash / VNPay             |
+| Status                | Enum     | Pending / Paid / Failed / **Refunded**   |
+| GatewayTransactionId  | String   | Mã giao dịch cổng thanh toán             |
+| OrderRef              | String   | Mã đơn hàng đối soát (Idempotency Key)   |
+| GatewayResponseCode   | String   | Mã lỗi từ VNPay                          |
+| IpnReceivedAt         | DateTime | Thời gian nhận callback IPN              |
+| VerifiedBy            | UUID     | Auditor (Manager)                        |
+| VerifiedAt            | DateTime | Verification timestamp                   |
+| VerificationNote      | Text     | Approval/Rejection details               |
+| PaidAt                | DateTime | Actual payment date                      |
+| CreatedAt             | DateTime | Creation date                            |
+| UpdatedAt             | DateTime | Last update date                         |
 
 ---
 
@@ -583,6 +618,20 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 
 ---
 
+---
+
+## Attachment (Mới - Dùng chung thay cho PhotoUrls)
+
+| Attribute  | Type     | Description             |
+| ---------- | -------- | ----------------------- |
+| Id         | UUID     | Attachment identifier   |
+| EntityType | String   | Maintenance / DamageItem|
+| EntityId   | UUID     | Related entity ID       |
+| FileUrl    | String   | File URL                |
+| FileName   | String   | Original file name      |
+| FileSize   | Long     | File size in bytes      |
+| UploadedAt | DateTime | Upload timestamp        |
+
 ## MaintenanceTicket
 
 | Attribute          | Type     | Description              |
@@ -593,7 +642,6 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 | BookingId          | UUID     | Related booking          |
 | Title              | String   | Issue title              |
 | Description        | Text     | Issue description        |
-| PhotoUrls          | Text     | List of photo URLs       |
 | AssignedEmployeeId | UUID     | Assigned Employee        |
 | AssignedAt         | DateTime | Employee assignment date |
 | Status             | Enum     | Ticket status            |
@@ -660,6 +708,10 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 | UpdatedAt       | DateTime | Last update date     |
 
 ---
+
+---
+
+
 
 ## ActivityLog
 
@@ -773,25 +825,29 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 
 ## DamageReport
 
-| Attribute          | Type     | Description                  |
-| ------------------ | -------- | ---------------------------- |
-| Id                 | UUID     | Report identifier            |
-| InspectionId       | UUID     | Related RoomInspection       |
-| BookingId          | UUID     | Related Booking              |
-| TotalEstimatedCost | Decimal  | Total estimated damage cost  |
-| ApprovedAmount     | Decimal  | Manager-approved amount      |
-| ApprovedBy         | UUID     | Manager who approved         |
-| ApprovedAt         | DateTime | Approval timestamp           |
-| Status             | Enum     | Report status                |
-| Note               | Text     | Manager note                 |
-| CreatedAt          | DateTime | Creation date                |
-| UpdatedAt          | DateTime | Last update date             |
+| Attribute                 | Type     | Description                  |
+| ------------------------- | -------- | ---------------------------- |
+| Id                        | UUID     | Report identifier            |
+| InspectionId              | UUID     | Related RoomInspection       |
+| BookingId                 | UUID     | Related Booking              |
+| TotalEstimatedCost        | Decimal  | Total estimated damage cost  |
+| ApprovedAmount            | Decimal  | Manager-approved amount      |
+| ApprovedBy                | UUID     | Manager who approved         |
+| ApprovedAt                | DateTime | Approval timestamp           |
+| RequiresAdminEscalation   | Boolean  | Indicates if > 5M VND        |
+| AdminApproverId           | UUID     | Admin who co-approved        |
+| Status                    | Enum     | Report status                |
+| Note                      | Text     | Manager note                 |
+| CreatedAt                 | DateTime | Creation date                |
+| UpdatedAt                 | DateTime | Last update date             |
 
 ### Values
 
-* Pending Review
+* Draft
+* Pending Approval
 * Approved
-* Rejected
+* Disputed
+* Paid
 
 ---
 
@@ -803,13 +859,39 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 | DamageReportId | UUID     | Related DamageReport         |
 | ItemName       | String   | Damaged item name            |
 | Description    | Text     | Damage description           |
-| PhotoUrls      | Text     | Damage photo URLs            |
 | EstimatedCost  | Decimal  | Estimated repair/replace cost|
 | CreatedAt      | DateTime | Creation date                |
 
 ---
 
-## 6. Error Handling
+## 6. Roles & Permissions Matrix (RBAC)
+
+Dưới đây là ma trận phân quyền chi tiết các Entity cốt lõi (C=Create, R=Read, U=Update, D=Delete). Giới hạn dữ liệu phụ thuộc vào cột **Scope**.
+
+| Entity | Customer (Customer Scope) | Employee (Property Scope) | Manager (Property Scope) | Admin (Global Scope) |
+|---|---|---|---|---|
+| **Property/Floor/Room** | R | R | C, R, U, D | C, R, U, D |
+| **Booking** | C, R, U (Hủy/Sửa) | R | R, U | R |
+| **Payment** | R (Pay) | - | R, U (Verify) | R |
+| **Housekeeping** | - | R, U (Status) | C, R, U | R |
+| **Maintenance** | C, R, U | R, U (Status) | R, U (Verify) | R |
+| **Damage Report** | R (Dispute) | C, R | R, U (Approve) | R, U (Escalated Approve) |
+| **Contract** | R | - | R | R |
+| **Users / Employee** | R (Self) | R (Self) | C, R, U (Employee only) | C, R, U, D |
+
+**Luật kiểm soát chéo (Segregation of Duties):**
+1. Manager **không được phép** thanh toán thay khách nếu không đính kèm PaymentReceipt hợp lệ.
+2. Manager phê duyệt Damage Fee **phải** cho phép Customer thời gian phản hồi (Dispute). Mọi Dispute sẽ được leo thang lên Admin.
+
+---
+
+## 7. Error Handling
+
+* `BOOKING_HELD_TIMEOUT`: Hết thời gian giữ phòng do không thanh toán đặt cọc.
+* `ROOM_ALREADY_BOOKED`: Xung đột phòng (Overbooking phát hiện bởi DB Lock).
+* `UNAUTHORIZED_PROPERTY_ACCESS`: Manager hoặc Employee cố gắng truy cập/chỉnh sửa dữ liệu của Property không được gán.
+* `CHECKIN_DENIED_UNPAID`: Manager từ chối Check-in do khách chưa thanh toán đủ phần còn lại.
+* `PAYMENT_RECONCILIATION_MISMATCH`: Khớp lệch số liệu khi đối soát với VNPay.
 
 ### Authentication Errors
 
@@ -879,7 +961,11 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 
 ---
 
-## 7. Acceptance Criteria
+## 8. Acceptance Criteria
+
+* **Booking Creation**: Hệ thống không bao giờ cho phép 2 Customer đặt cùng 1 phòng, cùng 1 ngày (Zero Overbooking).
+* **VNPay Integration**: Hệ thống có khả năng tự động khôi phục và đối soát trạng thái đơn hàng bị lỗi IPN qua Cron Job.
+* **Damage Flow**: Customer nhận được Email cảnh báo khi Damage Report được tạo và có quyền bấm "Dispute" trên giao diện Customer Dashboard.
 
 ### User Management
 
@@ -903,21 +989,44 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 * Availability Calendar displays correct room statuses: Available, Pending Deposit, Reserved, Occupied, Pending Cleaning, Cleaning In Progress, Maintenance, Out Of Service.
 * Employee có thể xem danh sách phòng trong Property được gán.
 
-### Booking Process
+### Booking
 
-* Customers can submit bookings with check-in/check-out dates, guest count, and special requests.
-* System validates room availability, date range, and guest capacity before accepting booking.
-* Room status changes to Pending Deposit on booking creation to prevent double-booking.
-* Customers can pay deposit (40%) thông qua cổng thanh toán VNPay trực tuyến hoặc chuyển khoản ngân hàng.
-* Thanh toán qua VNPay tự động xác nhận thành công.
-* Thanh toán qua chuyển khoản ngân hàng yêu cầu Manager xác nhận.
-* Upon successful deposit confirmation: Booking status changes to Confirmed, Accommodation Contract PDF is generated and emailed.
-* Manager có thể thực hiện Check-in để tự động cập nhật trạng thái phòng.
-* Trước khi Check-out: Employee thực hiện Room Inspection. Check-out bị chặn cho đến khi kiểm tra hoàn tất.
-* Nếu phát hiện hư hại: Damage Fee được Manager phê duyệt và Customer phải thanh toán trước khi Check-out.
-* Khi Check-out hoàn tất: hệ thống tự động tạo HousekeepingTask và chuyển trạng thái phòng sang Pending Cleaning.
+| Attribute      | Type     | Description           |
+| -------------- | -------- | --------------------- |
+| Id             | UUID     | Booking identifier    |
+| CustomerId     | UUID     | Customer              |
+| RoomId         | UUID     | Booked room           |
+| CheckInDate    | Date     | Check-in date         |
+| CheckOutDate   | Date     | Check-out date        |
+| GuestCount     | Integer  | Number of guests      |
+| TotalAmount    | Decimal  | Snapshot total amount |
+| DepositAmount  | Decimal  | Deposit amount (40%)  |
+| RemainingAmount| Decimal  | Remaining balance     |
+| DamageFeeAmount| Decimal  | Approved damage fee   |
+| SpecialRequests| Text     | Special requests note |
+| Status         | Enum     | Booking status        |
+| HoldExpiresAt  | DateTime | Timeout giữ phòng     |
+| RowVersion     | Integer  | Optimistic locking    |
+| CancelledBy    | UUID     | Ai hủy phòng          |
+| CancelReason   | Text     | Lý do hủy phòng       |
+| CancelledAt    | DateTime | Thời gian hủy         |
+| CreatedAt      | DateTime | Submission date       |
+| UpdatedAt      | DateTime | Last update date      |
 
-### Contract Management
+### Values
+
+* Pending Deposit
+* Confirmed
+* Checked-in
+* Pending Inspection
+* Pending Damage Payment
+* Checked-out
+* Cancelled
+* **No-show**
+
+---
+
+## Contract Management
 
 * Accommodation Contracts are generated automatically after deposit payment.
 * Contracts can be viewed, downloaded as PDF, printed, and resent via email.
@@ -1005,7 +1114,7 @@ Nhân viên vận hành thuộc một Property duy nhất. Employee được gá
 
 ---
 
-## 8. Out of Scope
+## 9. Out of Scope
 
 Các chức năng sau không nằm trong phạm vi của phiên bản hiện tại:
 
@@ -1019,3 +1128,4 @@ Các chức năng sau không nằm trong phạm vi của phiên bản hiện t�
 * Hỗ trợ đa ngôn ngữ.
 * Hệ thống marketing tự động (ngoài quản lý banner cơ bản).
 * Quản lý nhiều chi nhánh doanh nghiệp lớn.
+

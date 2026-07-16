@@ -514,8 +514,12 @@ public class RoomService {
             MultipartFile file = files.get(i);
             String originalName = file.getOriginalFilename();
             if (originalName == null || originalName.isBlank()) originalName = "image.png";
-            originalName = originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
-            String fileName = UUID.randomUUID() + "_" + originalName;
+            String extension = "";
+            int dotIndex = originalName.lastIndexOf('.');
+            if (dotIndex >= 0) {
+                extension = originalName.substring(dotIndex);
+            }
+            String fileName = UUID.randomUUID().toString() + extension;
             Path filePath = dirPath.resolve(fileName);
 
             try {
@@ -590,7 +594,7 @@ public class RoomService {
         try {
             Path filePath = Paths.get(image.getImageUrl().replaceFirst("^/", ""));
             Files.deleteIfExists(filePath);
-        } catch (IOException ignored) {}
+        } catch (Exception ignored) {}
         roomImageRepository.delete(image);
 
         if (wasPrimary) {

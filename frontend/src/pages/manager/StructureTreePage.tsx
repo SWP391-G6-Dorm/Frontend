@@ -56,7 +56,7 @@ function FloorModal({ mode, propertyId, initial, onClose, onSuccess }: FloorModa
           floorNumber: Number(floorNumber),
           description: description.trim() || undefined,
         };
-        await floorApi.update(initial.id, payload);
+        await floorApi.update(propertyId, initial.id, payload);
       }
       onSuccess();
       onClose();
@@ -109,6 +109,7 @@ function FloorModal({ mode, propertyId, initial, onClose, onSuccess }: FloorModa
             className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm"
             placeholder="VD: Khu view biển"
             value={description}
+            maxLength={500}
             onChange={e => setDescription(e.target.value)}
           />
         </div>
@@ -146,91 +147,147 @@ interface TreeViewProps {
   onDeleteFloor: (floor: FloorNode) => void;
 }
 
+const getRoomStatusColor = (status: string) => {
+  switch (status) {
+    case 'AVAILABLE': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    case 'OCCUPIED': return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'RESERVED':
+    case 'PENDING_DEPOSIT': return 'bg-amber-100 text-amber-700 border-amber-200';
+    case 'CLEANING_IN_PROGRESS':
+    case 'PENDING_CLEANING': return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'MAINTENANCE':
+    case 'OUT_OF_SERVICE': return 'bg-red-100 text-red-700 border-red-200';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+};
+
 function TreeView({ structure, expandedFloors, onToggleFloor, onEditFloor, onDeleteFloor }: TreeViewProps) {
   if (structure.floors.length === 0) {
     return (
-      <p className="text-sm text-[#64748B] py-6 text-center">
-        Chưa có tầng nào. Nhấn &quot;Thêm tầng&quot; để bắt đầu.
-      </p>
+      <div className="flex flex-col items-center justify-center py-12 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-300">
+        <svg className="w-12 h-12 text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+        <p className="text-slate-500 font-medium text-center">Chưa có tầng nào.</p>
+        <p className="text-slate-400 text-sm mt-1 mb-4 text-center">Nhấn &quot;Add Floor&quot; để thiết lập cấu trúc cho homestay này.</p>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       {/* Property root */}
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F8FAFC] rounded-lg mb-3 border border-[#E2E8F0]">
-        <span className="font-semibold text-[#1E293B] text-sm">{structure.propertyName}</span>
+      <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-sm relative z-10">
+        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="font-bold text-base tracking-wide">{structure.propertyName}</h3>
+          <p className="text-teal-100 text-xs font-medium">{structure.floors.length} tầng, {structure.floors.reduce((acc, f) => acc + (f.roomCount ?? f.rooms.length), 0)} phòng</p>
+        </div>
       </div>
 
-      {structure.floors.map(floor => {
-        const expanded = expandedFloors.has(floor.id);
-        const roomCount = floor.roomCount ?? floor.rooms.length;
+      <div className="p-4">
+        {structure.floors.map(floor => {
+          const expanded = expandedFloors.has(floor.id);
+          const roomCount = floor.roomCount ?? floor.rooms.length;
+          
+          const floorDesc = floor.description?.trim();
+          const isRedundantDesc = floorDesc?.toLowerCase() === `tầng ${floor.floorNumber}` || floorDesc?.toLowerCase() === `floor ${floor.floorNumber}`;
 
-        return (
-          <div key={floor.id} className="relative ml-3 pl-4 border-l border-[#E2E8F0]">
-            {/* Floor row */}
-            <div className="flex items-center gap-2 py-2 group">
-              <button
-                type="button"
+          return (
+            <div key={floor.id} className="relative mb-2 last:mb-0">
+              {/* Floor row */}
+              <div 
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors group cursor-pointer border border-transparent hover:border-slate-200"
                 onClick={() => onToggleFloor(floor.id)}
-                className="text-[#64748B] text-xs w-4 flex-shrink-0"
-                aria-label={expanded ? 'Thu gọn' : 'Mở rộng'}
               >
-                {expanded ? '▼' : '▶'}
-              </button>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-semibold text-[#1E293B]">
-                  Tầng {floor.floorNumber}
-                </span>
-                {floor.description && (
-                  <span className="text-sm text-[#64748B] ml-2">— {floor.description}</span>
-                )}
-                <span className="text-xs text-[#94A3B8] ml-2">({roomCount} phòng)</span>
+                <button
+                  type="button"
+                  className={`w-6 h-6 flex items-center justify-center rounded-md bg-white border border-slate-200 shadow-sm text-slate-500 transition-all duration-200 hover:bg-teal-50 hover:text-teal-600 hover:border-teal-200 ${expanded ? 'rotate-90 bg-teal-50 border-teal-200 text-teal-600' : ''}`}
+                  aria-label={expanded ? 'Thu gọn' : 'Mở rộng'}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-700">
+                    Tầng {floor.floorNumber}
+                  </span>
+                  {!isRedundantDesc && floorDesc && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                      <span className="text-sm text-slate-500 font-medium truncate">{floorDesc}</span>
+                    </>
+                  )}
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 ml-auto group-hover:bg-white transition-colors">
+                    {roomCount} phòng
+                  </span>
+                </div>
+                <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-teal-700 bg-teal-50 border border-teal-100 px-2.5 py-1.5 rounded-md hover:bg-teal-100 transition-colors flex items-center gap-1"
+                    onClick={(e) => { e.stopPropagation(); onEditFloor(floor); }}
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-red-700 bg-red-50 border border-red-100 px-2.5 py-1.5 rounded-md hover:bg-red-100 transition-colors flex items-center gap-1"
+                    onClick={(e) => { e.stopPropagation(); onDeleteFloor(floor); }}
+                  >
+                    Xóa
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  type="button"
-                  className="text-xs text-[#0F766E] px-2 py-1 rounded hover:bg-[#CCFBF1]"
-                  onClick={() => onEditFloor(floor)}
-                >
-                  Sửa
-                </button>
-                <button
-                  type="button"
-                  className="text-xs text-[#EF4444] px-2 py-1 rounded hover:bg-[#FEE2E2]"
-                  onClick={() => onDeleteFloor(floor)}
-                >
-                  Xóa
-                </button>
+
+              {/* Room leaves (read-only) */}
+              <div className={`grid transition-all duration-300 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100 mt-2 mb-4' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="ml-6 pl-4 border-l-2 border-slate-100 pb-2 space-y-2">
+                    {floor.rooms.length === 0 ? (
+                      <p className="text-sm text-slate-400 py-2 italic flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Chưa có phòng trên tầng này.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {floor.rooms.map(room => (
+                          <div
+                            key={room.id}
+                            className="flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md hover:border-teal-300 transition-all duration-200"
+                          >
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="font-bold text-slate-700 truncate">Phòng {room.roomNumber}</span>
+                              <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${getRoomStatusColor(room.status)}`}>
+                                {ROOM_STATUS_VI[room.status] ?? room.status}
+                              </span>
+                            </div>
+                            {room.roomType && (
+                              <span className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+                                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                {room.roomType}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Room leaves (read-only) */}
-            {expanded && (
-              <div className="ml-6 border-l border-[#E2E8F0] pl-3 mb-2">
-                {floor.rooms.length === 0 ? (
-                  <p className="text-xs text-[#94A3B8] py-1">Chưa có phòng trên tầng này.</p>
-                ) : (
-                  floor.rooms.map(room => (
-                    <div
-                      key={room.id}
-                      className="flex items-center gap-2 py-1.5 text-sm text-[#475569]"
-                    >
-                      <span className="text-[#1E293B]">Phòng {room.roomNumber}</span>
-                      {room.roomType && (
-                        <span className="text-xs text-[#94A3B8]">{room.roomType}</span>
-                      )}
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#64748B]">
-                        {ROOM_STATUS_VI[room.status] ?? room.status}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -338,7 +395,7 @@ export default function StructureTreePage() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      await floorApi.remove(deleteTarget.id);
+      await floorApi.remove(selectedPropId, deleteTarget.id);
       setDeleteTarget(null);
       if (selectedPropId) loadStructure(selectedPropId);
     } catch (err: unknown) {
@@ -354,19 +411,25 @@ export default function StructureTreePage() {
 
   return (
     <ManagerLayout>
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-500">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="font-display text-[28px] font-bold text-[#1E293B]">
-            Cây cấu trúc
-          </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <div>
+            <h1 className="font-display text-3xl font-bold text-slate-800 tracking-tight">
+              Structure Tree
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">Quản lý cấu trúc tầng và phòng</p>
+          </div>
           {selectedPropId && properties.length > 0 && (
             <button
               type="button"
-              className="bg-[#0F766E] text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-[#0D6B63]"
+              className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-2 disabled:opacity-50"
               onClick={() => setFloorModal({ open: true, mode: 'add' })}
               disabled={treeLoading}
             >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
               Thêm tầng
             </button>
           )}
@@ -384,24 +447,30 @@ export default function StructureTreePage() {
         )}
 
         {properties.length > 0 && (
-          <>
-            {/* Property selector */}
+          <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200 space-y-6">
             <div className="max-w-md">
-              <label className="block text-sm text-[#64748B] mb-1.5">Chọn homestay</label>
-              <select
-                className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm bg-white"
-                value={selectedPropId}
-                onChange={e => setSelectedPropId(e.target.value)}
-                disabled={propLoading}
-              >
-                {propLoading ? (
-                  <option>Đang tải…</option>
-                ) : (
-                  properties.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))
-                )}
-              </select>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Homestay đang chọn</label>
+              <div className="relative">
+                <select
+                  className="w-full appearance-none bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all shadow-sm cursor-pointer pr-10"
+                  value={selectedPropId}
+                  onChange={e => setSelectedPropId(e.target.value)}
+                  disabled={propLoading}
+                >
+                  {propLoading ? (
+                    <option>Đang tải…</option>
+                  ) : (
+                    properties.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))
+                  )}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Tree card */}
@@ -418,7 +487,7 @@ export default function StructureTreePage() {
                 />
               ) : null}
             </div>
-          </>
+          </div>
         )}
       </div>
 

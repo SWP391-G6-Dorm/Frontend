@@ -275,10 +275,10 @@ export function SearchResultsContent({ variant = 'search' }: { variant?: SearchR
             <div className="flex items-center gap-2">
               <span className="body-sm text-charcoal">Sắp xếp:</span>
               <select
-                className="select"
+                className="select room-sort-select"
                 value={urlSort}
                 onChange={(e) => handleSortChange(e.target.value)}
-                style={{ width: 'auto', paddingRight: 36, fontSize: 14, height: 38 }}
+                aria-label="Sắp xếp kết quả"
               >
                 <option value="newest">Mới nhất</option>
                 <option value="price-asc">Giá: thấp → cao</option>

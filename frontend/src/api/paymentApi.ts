@@ -81,10 +81,22 @@ export const paymentApi = {
     return res.data;
   },
 
-  createVnpayUrl: async (bookingId: string, type: 'DEPOSIT' | 'REMAINING_BALANCE'): Promise<{ success: boolean; data: { paymentUrl: string } }> => {
+  /**
+   * SCR-20 deposit: POST /api/v1/payments/vnpay { bookingId }
+   * Remaining balance: legacy create-url with type query (unchanged until remaining screen API is aligned).
+   */
+  createVnpayUrl: async (
+    bookingId: string,
+    type: 'DEPOSIT' | 'REMAINING_BALANCE' = 'DEPOSIT',
+  ): Promise<{ success: boolean; data: { paymentUrl: string }; message?: string }> => {
+    if (type === 'DEPOSIT') {
+      const res = await api.post('/api/v1/payments/vnpay', { bookingId });
+      return res.data;
+    }
     const res = await api.post(`/api/v1/payments/vnpay/create-url?bookingId=${bookingId}&type=${type}`);
     return res.data;
   },
+
 
   getMyPayments: async (params?: { page?: number; size?: number; status?: string }): Promise<{ success: boolean; message?: string; data: PaymentPageResponse<PaymentSummaryResponse> }> => {
     const res = await api.get('/api/v1/customers/me/payments', { params });

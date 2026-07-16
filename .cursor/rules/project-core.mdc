@@ -1,0 +1,39 @@
+---
+description: Homestay booking project stack, roles, edit scope, and source-of-truth docs
+alwaysApply: true
+---
+
+# Project Core (SWP391_G6)
+
+Homestay / Resort Booking Management — multi-property discovery, booking, contracts, payments, ops (HK/inspection/damage), maintenance, reviews, reports.
+
+## Source of truth
+
+- Prefer `docs/Specification_v2.md` for product/business facts.
+- Agent standards: `docs/Agents.md`. Briefing summary: `docs/CLAUDE.md`.
+- Screens/API/UI: `docs/screen.md`, `docs/api-spec-by-screen.md`, `docs/DESIGN.md`.
+- DB dialect: **PostgreSQL** (not SQL Server). UI tokens: Modern Zen teal (`DESIGN.md`), not cream/orange from Figma prompt.
+
+## Stack
+
+- FE: React + TS + Vite + Tailwind + React Query + Zustand/Redux + Axios
+- BE: Spring Boot + Security + JPA + JWT + JavaMail + PDF + VNPay + Outbox + WebSocket
+
+## Roles (RBAC + property isolation)
+
+- **Guest** — public browse/auth only
+- **Customer** — own bookings/payments/contracts/tickets/reviews
+- **Employee** — one Property; assigned HK/maintenance/inspection/damage capture
+- **Manager** — assigned Properties only (structure, bookings, pay verify, approve damage)
+- **Admin** — global admin; damage co-approve if fee > 5,000,000 VND; no HK ops
+
+## Edit scope
+
+- Allowed: `frontend/`, `backend/`, `docs/`, `tests/`, `scripts/`
+- Never touch: `.env*`, `secrets/`, `node_modules/`, `dist/`, `build/`, `target/`, `coverage/`
+
+## Security (always)
+
+- Never hardcode/log secrets or tokens; use parameterized SQL; BCrypt; HTTPS in prod.
+- Enforce RBAC + property isolation; verify VNPay signatures and bank receipts before confirm.
+- Google account link only if local email already verified. Suspended users cannot login.
