@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
 import Alert from '../../components/ui/Alert';
-import ImageGallerySlider from '../../components/ui/ImageGallerySlider';
+import RoomGallery from '../../components/ui/RoomGallery';
 import RoomMiniCalendar, { isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
 import {
   fetchRoomById,
@@ -268,7 +268,7 @@ export default function RoomDetailPage() {
         </div>
 
         <div style={{ marginBottom: 36 }}>
-          <ImageGallerySlider images={galleryImages} alt={room.roomNumber} />
+          <RoomGallery images={galleryImages} alt={`${room.propertyName} – ${room.roomNumber}`} />
         </div>
 
         <div className="room-detail-grid">

@@ -13,9 +13,7 @@ import {
 } from '../../api/publicApi';
 import { formatStatValue } from '../../utils/mediaUrl';
 import SafeImage from '../../components/ui/SafeImage';
-import BannerCarousel, { type BannerSlide } from '../../components/public/BannerCarousel';
 import RoomCard from '../../components/ui/RoomCard';
-import { useAuthStore } from '../../store/authStore';
 
 /** Banner mặc định SCR-01 khi DB chưa có promotion (fallback hiển thị ngay) */
 const DEFAULT_PROMOTIONS: Promotion[] = [
@@ -69,7 +67,7 @@ const FALLBACK_BANNER_IMAGES = [
   'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&h=480&fit=crop',
 ];
 
-function promotionToSlide(promo: Promotion, index: number): BannerSlide {
+function promotionToSlide(promo: Promotion, index: number): { src: string; alt: string } {
   const src = promo.imageUrl?.trim() || FALLBACK_BANNER_IMAGES[index % FALLBACK_BANNER_IMAGES.length];
   return {
     src,
@@ -153,7 +151,6 @@ function SectionSkeleton({ count, cols = 4 }: { count: number; cols?: number }) 
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
   const [search, setSearch] = useState({ location: '', checkIn: '', checkOut: '', guests: '2' });
 
   const [featuredProperties, setFeaturedProperties] = useState<FeaturedProperty[]>([]);
@@ -165,8 +162,6 @@ export default function LandingPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [promotions, setPromotions] = useState<Promotion[]>(DEFAULT_PROMOTIONS);
   const [activePromoIndex, setActivePromoIndex] = useState(0);
-
-  const isGuest = !isAuthenticated;
 
   useEffect(() => {
     let cancelled = false;
@@ -233,6 +228,14 @@ export default function LandingPage() {
   }, [reloadKey]);
 
   useEffect(() => {
+    if (promotions.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setActivePromoIndex((i) => (i + 1) % promotions.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [promotions.length]);
+
+  useEffect(() => {
     if (window.location.hash === '#properties') {
       document.getElementById('properties')?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -266,109 +269,118 @@ export default function LandingPage() {
 
   const bannerSlides = promotions.map((promo, i) => promotionToSlide(promo, i));
   const safePromoIndex = promotions.length ? activePromoIndex % promotions.length : 0;
-  const activePromo = promotions[safePromoIndex] || DEFAULT_PROMOTIONS[0];
-
-  let finalCtaText = activePromo.ctaText;
-  let finalCtaUrl = activePromo.ctaUrl;
-  if (isGuest && (finalCtaText.toLowerCase().includes('book') || finalCtaText.toLowerCase().includes('đặt'))) {
-    finalCtaText = 'Đăng nhập để đặt';
-    finalCtaUrl = '/login';
-  }
 
   return (
     <PublicLayout>
-      {/* Hero — banner nhỏ gọn, phong cách thiên nhiên */}
-      <section className="landing-banner" aria-label="Banner trang chủ">
-        <div className="landing-banner-inner">
-          <h1 className="landing-banner-title">Find Your Zen</h1>
-          <p className="landing-banner-subtitle">
-            Homestay &amp; resort giữa thiên nhiên — đặt phòng nhẹ nhàng, minh bạch.
+      {/* Hero — Klook-style full-bleed banner + overlay search */}
+      <section className="landing-hero" aria-label="Banner trang chủ">
+        <div className="landing-hero-media" aria-hidden="true">
+          {bannerSlides.map((slide, i) => (
+            <SafeImage
+              key={`${slide.src}-${i}`}
+              src={slide.src}
+              alt=""
+              className={`landing-hero-bg-img${i === safePromoIndex ? ' is-active' : ''}`}
+            />
+          ))}
+          <div className="landing-hero-scrim" />
+          <span className="landing-hero-blob landing-hero-blob--warm" />
+          <span className="landing-hero-blob landing-hero-blob--gold" />
+        </div>
+
+        {promotions.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="landing-hero-nav landing-hero-nav--prev"
+              aria-label="Slide trước"
+              onClick={() => setActivePromoIndex((i) => (i - 1 + promotions.length) % promotions.length)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="landing-hero-nav landing-hero-nav--next"
+              aria-label="Slide tiếp theo"
+              onClick={() => setActivePromoIndex((i) => (i + 1) % promotions.length)}
+            >
+              ›
+            </button>
+          </>
+        )}
+
+        <div className="landing-hero-inner">
+          <h1 className="landing-hero-title">Find Your Zen</h1>
+          <p className="landing-hero-subtitle">
+            Từ homestay gần gũi đến resort ven biển — tìm chỗ nghỉ phù hợp mọi lúc, mọi nơi.
           </p>
 
-          <BannerCarousel
-            slides={bannerSlides}
-            activeIndex={safePromoIndex}
-            onChange={setActivePromoIndex}
-          />
-
-          <div className="landing-banner-dots" role="tablist" aria-label="Chọn slide banner">
-            {promotions.map((_, i) => (
-              <button
-                key={promotions[i].id ?? i}
-                type="button"
-                role="tab"
-                aria-selected={i === safePromoIndex}
-                aria-label={`Slide ${i + 1}`}
-                className={`landing-banner-dot${i === safePromoIndex ? ' is-active' : ''}`}
-                onClick={() => setActivePromoIndex(i)}
+          <form className="landing-hero-search" onSubmit={handleSearch}>
+            <div className="landing-hero-search-main">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" strokeLinecap="round" />
+              </svg>
+              <input
+                type="search"
+                placeholder="Đà Nẵng, Phú Quốc, Hội An..."
+                value={search.location}
+                autoComplete="off"
+                aria-label="Địa điểm"
+                onChange={(e) => setSearch((p) => ({ ...p, location: e.target.value }))}
               />
-            ))}
-          </div>
+              <button type="submit" className="landing-hero-search-btn">
+                Tìm kiếm
+              </button>
+            </div>
 
-          <p className="landing-banner-promo">
-            {activePromo.subtitle} — {activePromo.title.replace('\n', ' ')}
-            <Link to={finalCtaUrl}>{finalCtaText}</Link>
-          </p>
-
-          <div className="landing-banner-search">
-            <form onSubmit={handleSearch} className="hero-search-pill">
-              <div className="hero-search-field hero-search-field--location">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <input
-                  placeholder="Bạn muốn đi đâu?"
-                  value={search.location}
-                  autoComplete="off"
-                  aria-label="Địa điểm"
-                  onChange={(e) => setSearch((p) => ({ ...p, location: e.target.value }))}
-                />
-              </div>
-
-              <span className="hero-search-sep" aria-hidden="true" />
-
-              <div className="hero-search-field hero-search-field--date">
+            <div className="landing-hero-search-extra">
+              <label className="landing-hero-chip">
+                <span className="landing-hero-chip-label">Nhận phòng</span>
                 <input
                   type="date"
-                  aria-label="Ngày nhận phòng"
                   value={search.checkIn}
                   min={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setSearch((p) => ({ ...p, checkIn: e.target.value }))}
                 />
-              </div>
-
-              <span className="hero-search-sep" aria-hidden="true" />
-
-              <div className="hero-search-field hero-search-field--date">
+              </label>
+              <label className="landing-hero-chip">
+                <span className="landing-hero-chip-label">Trả phòng</span>
                 <input
                   type="date"
-                  aria-label="Ngày trả phòng"
                   value={search.checkOut}
                   min={search.checkIn || new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setSearch((p) => ({ ...p, checkOut: e.target.value }))}
                 />
-              </div>
-
-              <span className="hero-search-sep" aria-hidden="true" />
-
-              <div className="hero-search-field hero-search-field--guests">
+              </label>
+              <label className="landing-hero-chip landing-hero-chip--guests">
+                <span className="landing-hero-chip-label">Khách</span>
                 <input
                   type="number"
-                  aria-label="Số khách"
                   min={1}
                   max={20}
                   value={search.guests}
                   onChange={(e) => setSearch((p) => ({ ...p, guests: e.target.value }))}
                 />
-                <span className="hero-search-guest-label">khách</span>
-              </div>
+              </label>
+            </div>
+          </form>
 
-              <button type="submit" className="hero-search-btn">
-                <span className="hero-search-btn-text">Tìm phòng</span>
-              </button>
-            </form>
-          </div>
+          {promotions.length > 1 && (
+            <div className="landing-hero-dots" role="tablist" aria-label="Chọn slide banner">
+              {promotions.map((_, i) => (
+                <button
+                  key={promotions[i].id ?? i}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === safePromoIndex}
+                  aria-label={`Slide ${i + 1}`}
+                  className={`landing-hero-dot${i === safePromoIndex ? ' is-active' : ''}`}
+                  onClick={() => setActivePromoIndex(i)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
