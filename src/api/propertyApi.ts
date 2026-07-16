@@ -124,7 +124,7 @@ export const propertyApi = {
     return res.data;
   },
 
-  /** SCR-36: Update property */
+  /** Update property (not SCR-36 — SCR-36 is Payment Management) */
   update: async (id: string, payload: UpdatePropertyPayload): Promise<{ success: boolean; data: PropertySummary }> => {
     const res = await api.put(`/api/properties/${id}`, payload);
     return res.data;
@@ -133,12 +133,6 @@ export const propertyApi = {
   /** Delete property (MANAGER only) */
   delete: async (id: string): Promise<{ success: boolean }> => {
     const res = await api.delete(`/api/properties/${id}`);
-    return res.data;
-  },
-
-  /** @deprecated SCR-28 — dùng getStructureTree thay thế */
-  getStructure: async (id: string): Promise<{ success: boolean; data: PropertyStructure }> => {
-    const res = await api.get(`/api/properties/${id}/structure`);
     return res.data;
   },
 

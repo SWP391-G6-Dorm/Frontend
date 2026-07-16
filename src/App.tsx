@@ -287,7 +287,7 @@ function App() {
         <Route path="/manager/employees"
           element={<ProtectedRoute role="MANAGER"><EmployeeMgmtPage /></ProtectedRoute>} />
 
-        {/* Payments (SCR-47,48,49) */}
+        {/* Payments (SCR-36) */}
         <Route path="/manager/payments"
           element={<ProtectedRoute role="MANAGER"><PaymentMgmtListPage /></ProtectedRoute>} />
         <Route path="/manager/payments/:id/verify"

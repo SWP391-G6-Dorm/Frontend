@@ -70,12 +70,12 @@ export const contractApi = {
   },
 
   getContractPdfBlob: async (id: string): Promise<Blob> => {
-    const res = await api.get(`/api/v1/contracts/${id}/pdf`, { responseType: 'blob' });
+    const res = await api.get(`/api/contracts/${id}/pdf`, { responseType: 'blob' });
     return res.data;
   },
 
   downloadContractPdf: async (id: string, filename: string = 'contract.pdf') => {
-    const res = await api.get(`/api/v1/contracts/${id}/pdf`, { responseType: 'blob' });
+    const res = await api.get(`/api/contracts/${id}/pdf`, { responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');
     link.href = url;
