@@ -194,6 +194,47 @@
     padding-right: 44px;
   }
 
+  .room-sort-select {
+    width: auto;
+    min-width: 168px;
+    height: 40px;
+    min-height: 40px;
+    padding: 8px 36px 8px 14px;
+    font-size: 14px;
+    line-height: 1.35;
+    border-radius: 10px;
+  }
+
+  .room-search-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .room-search-card-price-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .room-search-card-cta {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: 9999px;
+    border: 1px solid var(--hairline-strong);
+    background: var(--surface-card);
+    color: var(--ink);
+  }
+
   /* ─────────────────────────────────────
      BADGES
   ───────────────────────────────────── */
@@ -317,6 +358,59 @@
   .room-detail-booking {
     position: sticky;
     top: 80px;
+  }
+
+  .room-booking-panel .input {
+    border-radius: 10px;
+    height: 40px;
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .room-booking-panel input[type="date"] {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .room-booking-panel .room-booking-stepper-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid var(--hairline-strong);
+    background: var(--surface-card);
+    color: var(--ink);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .room-booking-panel .room-booking-stepper-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .room-booking-panel .room-booking-stepper-btn:hover:not(:disabled) {
+    background: var(--surface-bone);
+  }
+
+  .room-booking-panel .room-booking-guest-input {
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .room-booking-panel .room-booking-price {
+    font-size: clamp(1.5rem, 4vw, 1.875rem);
+    font-weight: 700;
+    line-height: 1.2;
   }
   @media (max-width: 960px) {
     .room-detail-grid {
@@ -771,6 +865,255 @@
   @media (max-width: 520px) {
     .hero-search-pill {
       grid-template-columns: minmax(0, 1fr) auto;
+    }
+  }
+
+  /* Landing — compact nature banner (SCR-01) */
+  .landing-banner {
+    position: relative;
+    padding: 28px 24px 32px;
+    background: linear-gradient(180deg, #F4F7F2 0%, #FAFAF7 55%, var(--canvas) 100%);
+    overflow: hidden;
+  }
+
+  .landing-banner::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -60px;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(15, 118, 110, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .landing-banner::after {
+    content: '';
+    position: absolute;
+    bottom: -30px;
+    left: -40px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .landing-banner-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .landing-banner-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--primary);
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+
+  .landing-banner-subtitle {
+    font-size: 14px;
+    color: var(--mute);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .landing-banner-carousel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .landing-banner-slide {
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: transform 0.35s ease, opacity 0.35s ease, filter 0.35s ease;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  }
+
+  .landing-banner-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .landing-banner-slide--side {
+    width: 72px;
+    height: 120px;
+    opacity: 0.45;
+    filter: blur(1.5px);
+    transform: scale(0.92);
+    cursor: pointer;
+  }
+
+  .landing-banner-slide--side:hover {
+    opacity: 0.65;
+  }
+
+  .landing-banner-slide--center {
+    width: min(100%, 520px);
+    height: 200px;
+    flex: 1;
+    max-width: 520px;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1);
+    position: relative;
+  }
+
+  .landing-banner-main-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: landingBannerFade 0.45s ease;
+  }
+
+  @keyframes landingBannerFade {
+    from {
+      opacity: 0;
+      transform: scale(1.03);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .landing-banner-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--primary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+    transition: background 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+  }
+
+  .landing-banner-arrow:hover {
+    background: #fff;
+    transform: translateY(-50%) scale(1.05);
+  }
+
+  .landing-banner-arrow--prev {
+    left: 10px;
+  }
+
+  .landing-banner-arrow--next {
+    right: 10px;
+  }
+
+  .landing-banner-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .landing-banner-dot {
+    height: 3px;
+    width: 28px;
+    border-radius: 9999px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    background: var(--hairline);
+    transition: background 0.25s ease, width 0.25s ease;
+  }
+
+  .landing-banner-dot.is-active {
+    background: var(--primary);
+    width: 36px;
+  }
+
+  .landing-banner-promo {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--charcoal);
+    margin-bottom: 18px;
+    line-height: 1.5;
+    min-height: 20px;
+  }
+
+  .landing-banner-promo a {
+    color: var(--primary);
+    font-style: normal;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 4px;
+  }
+
+  .landing-banner-promo a:hover {
+    text-decoration: underline;
+  }
+
+  .landing-banner-search {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .landing-banner-search .hero-search-pill {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 0;
+    border-radius: 14px;
+    padding: 6px 6px 6px 12px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+  }
+
+  .landing-banner-search .hero-search-field--location {
+    flex: 1 1 120px;
+  }
+
+  .landing-banner-search .hero-search-field--date {
+    flex: 0 1 108px;
+  }
+
+  .landing-banner-search .hero-search-field--guests {
+    flex: 0 1 72px;
+  }
+
+  .landing-banner-search .hero-search-btn {
+    margin-left: auto;
+  }
+
+  @media (max-width: 640px) {
+    .landing-banner {
+      padding: 20px 16px 24px;
+    }
+
+    .landing-banner-slide--side {
+      display: none;
+    }
+
+    .landing-banner-slide--center {
+      height: 168px;
+      max-width: 100%;
+    }
+
+    .landing-banner-carousel {
+      gap: 0;
     }
   }
 

@@ -29,6 +29,7 @@ export function AddEditPromotionPage() {
     description: '',
     ctaText: 'Dat ngay',
     ctaUrl: '/search',
+    imageUrl: '',
     colorTheme: 'red',
     isActive: true,
     sortOrder: 0,
@@ -52,6 +53,7 @@ export function AddEditPromotionPage() {
             description: promo.description || '',
             ctaText: promo.ctaText || 'Dat ngay',
             ctaUrl: promo.ctaUrl || '/search',
+            imageUrl: promo.imageUrl || '',
             colorTheme: promo.colorTheme || 'red',
             isActive: promo.isActive ?? true,
             sortOrder: promo.sortOrder ?? 0,
@@ -85,6 +87,7 @@ export function AddEditPromotionPage() {
         description: form.description.trim() || undefined,
         ctaText: form.ctaText.trim(),
         ctaUrl: form.ctaUrl.trim(),
+        imageUrl: form.imageUrl.trim() || undefined,
         colorTheme: form.colorTheme.trim(),
         isActive: form.isActive,
         sortOrder: form.sortOrder,
@@ -156,6 +159,13 @@ export function AddEditPromotionPage() {
               <label className="form-label" htmlFor="promo-desc">Description</label>
               <textarea id="promo-desc" className="textarea" rows={3}
                 value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label className="form-label" htmlFor="promo-image">Banner Image URL</label>
+              <input id="promo-image" className="input"
+                value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))}
+                placeholder="https://images.unsplash.com/..." />
             </div>
 
             <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>

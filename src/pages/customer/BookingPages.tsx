@@ -9,6 +9,7 @@ import { fetchRoomById, checkRoomAvailability, type RoomDetail } from '../../api
 import { bookingApi, type BookingSummaryResponse } from '../../api/bookingApi';
 import SafeImage from '../../components/ui/SafeImage';
 import Pagination from '../../components/ui/Pagination';
+import { canAttemptBooking } from '../../utils/roomCalendar';
 
 export const formatBookingId = (uuid: string): string => {
   if (!uuid) return '';
@@ -153,8 +154,8 @@ export function BookingFormPage() {
     if (form.guestCount < 1) e.guestCount = 'Cần ít nhất 1 khách';
     if (form.guestCount > capacity) e.guestCount = `Tối đa ${capacity} khách`;
     if (form.specialRequests.length > 500) e.specialRequests = 'Ghi chú tối đa 500 ký tự';
-    if (room && room.status !== 'AVAILABLE')
-      e._ = 'Phòng hiện không khả dụng để đặt. Vui lòng chọn phòng khác.';
+    if (room && !canAttemptBooking(room.status))
+      e._ = 'Phòng đang bảo trì / ngưng phục vụ / đang dọn — không thể đặt lúc này.';
     if (datesAvailable === false)
       e._ = 'Phòng đã được đặt trong khoảng ngày này. Vui lòng chọn ngày khác.';
     return e;
@@ -194,7 +195,7 @@ export function BookingFormPage() {
     ?? room?.images?.[0]?.imageUrl
     ?? null;
 
-  const canSubmit = !loading && nights > 0 && room?.status === 'AVAILABLE' && datesAvailable !== false;
+  const canSubmit = !loading && nights > 0 && !!room && canAttemptBooking(room.status) && datesAvailable !== false;
 
   return (
     <CustomerLayout>
@@ -229,9 +230,9 @@ export function BookingFormPage() {
           <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'flex-start' }}>
             <div>
               {errors._ && <div className="alert alert-error" style={{ marginBottom: 16 }}>{errors._}</div>}
-              {room.status !== 'AVAILABLE' && (
+              {!canAttemptBooking(room.status) && (
                 <div className="alert alert-warning" style={{ marginBottom: 16 }}>
-                  Phòng đang ở trạng thái <strong>{room.status}</strong> — không thể đặt lúc này.
+                  Phòng đang bảo trì / ngưng phục vụ / đang dọn — không thể đặt lúc này.
                   <Link to="/rooms" className="text-primary" style={{ marginLeft: 8 }}>Chọn phòng khác →</Link>
                 </div>
               )}
