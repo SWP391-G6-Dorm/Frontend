@@ -1,0 +1,463 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+// ── Route Guards ─────────────────────────────────────────────────────────────
+import ProtectedRoute from './components/ProtectedRoute';
+import GuestRoute from './components/GuestRoute';
+import ManagerRedirectRoute from './components/ManagerRedirectRoute';
+
+// ── Public (SCR-01 → SCR-10) ─────────────────────────────────────────────────
+import LandingPage from './pages/public/LandingPage';
+import LoginPage from './pages/public/LoginPage';
+import RegisterPage from './pages/public/RegisterPage';
+import VerifyEmailPage from './pages/public/VerifyEmailPage';
+import ForgotPasswordPage from './pages/public/ForgotPasswordPage';
+import ResetPasswordPage from './pages/public/ResetPasswordPage';
+import RoomListingPage from './pages/public/RoomListingPage';
+import SearchResultsPage from './pages/public/SearchResultsPage';
+import RoomDetailPage from './pages/public/RoomDetailPage';
+import AvailabilityCalendarPage from './pages/public/AvailabilityCalendarPage';
+import AboutPage from './pages/public/AboutPage';
+import UnauthorizedPage from './pages/public/UnauthorizedPage';
+
+// ── Customer Portal ───────────────────────────────────────────────────────────
+import CustomerDashboardPage from './pages/customer/CustomerDashboardPage';
+// Profile (SCR-10, 11, 12)
+import UserProfilePage from './pages/customer/UserProfilePage';
+import EditProfilePage from './pages/customer/EditProfilePage';
+import ChangePasswordPage from './pages/customer/ChangePasswordPage';
+// Notifications (SCR-13, 14)
+import { NotificationCenterPage, NotificationDetailPage }
+  from './pages/customer/NotificationPages';
+// Bookings (SCR-17, 18, 19, 20)
+import BookingFormPage from './pages/customer/BookingFormPage';
+import BookingListPage from './pages/customer/BookingListPage';
+import BookingDetailPage from './pages/customer/BookingDetailPage';
+import BookingCancellationPage from './pages/customer/BookingCancellationPage';
+import ContractListPage from './pages/customer/ContractListPage';
+import ContractDetailPage from './pages/customer/ContractDetailPage';
+// Payments (SCR-21, 22, 23, 24)
+import DepositPaymentPage from './pages/customer/DepositPaymentPage';
+import RemainingPaymentPage from './pages/customer/RemainingPaymentPage';
+import PaymentHistoryPage from './pages/customer/PaymentHistoryPage';
+import VNPayResultPage from './pages/customer/VNPayResultPage';
+// Maintenance (SCR-27, 28, 29)
+import MaintenanceListPage from './pages/customer/MaintenanceListPage';
+import CreateMaintenancePage from './pages/customer/CreateMaintenancePage';
+import MaintenanceDetailPage from './pages/customer/MaintenanceDetailPage';
+// Reviews (SCR-30, 31)
+import ReviewRatingPage from './pages/customer/ReviewRatingPage';
+import MyReviewsPage from './pages/customer/MyReviewsPage';
+// Complaints
+import { CustomerComplaintListPage, CreateComplaintPage }
+  from './pages/customer/CustomerComplaintPages';
+
+// ── Manager Portal ────────────────────────────────────────────────────────────
+import ManagerDashboardPage from './pages/manager/ManagerDashboardPage';
+import PropertyListPage from './pages/manager/PropertyListPage';
+import PropertyDetailPage from './pages/manager/PropertyDetailPage';
+import AddPropertyPage from './pages/manager/AddPropertyPage';
+import EditPropertyPage from './pages/manager/EditPropertyPage';
+import StructureTreePage from './pages/manager/StructureTreePage';
+import FloorManagementPage from './pages/manager/FloorManagementPage';
+import RoomListPage from './pages/manager/RoomListPage';
+import RoomDetailMgmtPage from './pages/manager/RoomDetailMgmtPage';
+import AddRoomPage from './pages/manager/AddRoomPage';
+import EditRoomPage from './pages/manager/EditRoomPage';
+import RoomGalleryPage from './pages/manager/RoomGalleryPage';
+import RoomStatusPage from './pages/manager/RoomStatusPage';
+import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
+import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
+import BookingCheckInOutPage from './pages/manager/BookingCheckInOutPage';
+import HousekeepingSchedulePage from './pages/manager/HousekeepingSchedulePage';
+import HousekeepingTasksPage from './pages/manager/HousekeepingTasksPage';
+import MaintenanceTasksPage from './pages/manager/MaintenanceTasksPage';
+import InspectionsPage from './pages/manager/InspectionsPage';
+import DamageReportsPage from './pages/manager/DamageReportsPage';
+import PropertyReportsPage from './pages/manager/PropertyReportsPage';
+import EmployeeMgmtPage from './pages/manager/EmployeeMgmtPage';
+import PaymentMgmtListPage from './pages/manager/PaymentMgmtListPage';
+import PaymentMgmtVerificationPage from './pages/manager/PaymentMgmtVerificationPage';
+import PaymentMgmtDetailPage from './pages/manager/PaymentMgmtDetailPage';
+import ContractMgmtListPage from './pages/manager/ContractMgmtListPage';
+import ContractMgmtDetailPage from './pages/manager/ContractMgmtDetailPage';
+import ResendContractPage from './pages/manager/ResendContractPage';
+import { CustomerListPage } from './pages/manager/CustomerListPage';
+import { CustomerDetailPage } from './pages/manager/CustomerDetailPage';
+import { ComplaintListPage } from './pages/manager/ComplaintListPage';
+import { ComplaintDetailPage } from './pages/manager/ComplaintDetailPage';
+import { MaintenanceMgmtListPage } from './pages/manager/MaintenanceMgmtListPage';
+import { MaintenanceMgmtDetailPage } from './pages/manager/MaintenanceMgmtDetailPage';
+import { ReportsDashboardPage } from './pages/manager/ReportsDashboardPage';
+import { RevenueReportPage } from './pages/manager/RevenueReportPage';
+import { OccupancyReportPage } from './pages/manager/OccupancyReportPage';
+import { ActivityLogPage } from './pages/manager/ActivityLogPage';
+import { ReviewMgmtPage } from './pages/manager/ReviewMgmtPage';
+import PromotionMgmtPage from './pages/manager/PromotionMgmtPage';
+
+// ── Admin Portal (SCR-45 → SCR-58) ──────────────────────────────────────────
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import { PropertyMgmtListPage } from './pages/admin/PropertyMgmtListPage';
+import { CreatePropertyPage } from './pages/admin/CreatePropertyPage';
+import { EditPropertyAdminPage } from './pages/admin/EditPropertyAdminPage';
+import { ManagerAssignmentPage } from './pages/admin/ManagerAssignmentPage';
+import { ManagerDirectoryPage } from './pages/admin/ManagerDirectoryPage';
+import { CustomerDirectoryPage } from './pages/admin/CustomerDirectoryPage';
+import { PaymentReconciliationPage } from './pages/admin/PaymentReconciliationPage';
+import { DamageEscalationPage } from './pages/admin/DamageEscalationPage';
+import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
+import { GlobalReportsPage } from './pages/admin/GlobalReportsPage';
+import { SystemAdminPage } from './pages/admin/SystemAdminPage';
+import { PromotionAdminListPage } from './pages/admin/PromotionAdminListPage';
+import { AddEditPromotionPage } from './pages/admin/AddEditPromotionPage';
+
+// ── Employee Portal (SCR-59 → SCR-65) ────────────────────────────────────────
+import EmployeeDashboardPage from './pages/employee/EmployeeDashboardPage';
+import HousekeepingWorkspacePage from './pages/employee/HousekeepingWorkspacePage';
+import MaintenanceWorkspacePage from './pages/employee/MaintenanceWorkspacePage';
+import RoomInspectionHubPage from './pages/employee/RoomInspectionHubPage';
+import DamageReportListPage from './pages/employee/DamageReportListPage';
+import CreateDamageReportPage from './pages/employee/CreateDamageReportPage';
+import PropertyRoomListPage from './pages/employee/PropertyRoomListPage';
+
+/** Catch-all: redirect theo role */
+function CatchAllRedirect() {
+  const role = sessionStorage.getItem('userRole');
+  if (role === 'MANAGER')  return <Navigate to="/manager/dashboard"  replace />;
+  if (role === 'CUSTOMER') return <Navigate to="/customer/dashboard" replace />;
+  if (role === 'ADMIN')    return <Navigate to="/admin/dashboard"    replace />;
+  if (role === 'EMPLOYEE') return <Navigate to="/employee/dashboard" replace />;
+  return <Navigate to="/" replace />;
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+
+        {/* ─────────────── PUBLIC — Manager bị redirect về dashboard ─────────────── */}
+        <Route path="/" element={<ManagerRedirectRoute><LandingPage /></ManagerRedirectRoute>} />
+        <Route path="/rooms" element={<ManagerRedirectRoute><RoomListingPage /></ManagerRedirectRoute>} />
+        <Route path="/search" element={<ManagerRedirectRoute><SearchResultsPage /></ManagerRedirectRoute>} />
+        <Route path="/rooms/:id" element={<ManagerRedirectRoute><RoomDetailPage /></ManagerRedirectRoute>} />
+        <Route path="/rooms/:id/calendar" element={<ManagerRedirectRoute><AvailabilityCalendarPage /></ManagerRedirectRoute>} />
+        <Route path="/about" element={<ManagerRedirectRoute><AboutPage /></ManagerRedirectRoute>} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+        {/* ─────────────── GUEST ONLY — Redirect nếu đã login ─────────────── */}
+        <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+        <Route path="/verify-email" element={<GuestRoute><VerifyEmailPage /></GuestRoute>} />
+        <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
+        <Route path="/reset-password" element={<GuestRoute><ResetPasswordPage /></GuestRoute>} />
+
+        {/* ─────────────── CUSTOMER (SCR-11 to SCR-31) ─────────────── */}
+        <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
+
+        <Route path="/customer/dashboard"
+          element={<ProtectedRoute role="CUSTOMER"><CustomerDashboardPage /></ProtectedRoute>} />
+
+        {/* Profile (SCR-11,12,13) */}
+        <Route path="/customer/profile"
+          element={<ProtectedRoute role="CUSTOMER"><UserProfilePage /></ProtectedRoute>} />
+        <Route path="/customer/profile/edit"
+          element={<ProtectedRoute role="CUSTOMER"><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/customer/profile/change-password"
+          element={<ProtectedRoute role="CUSTOMER"><ChangePasswordPage /></ProtectedRoute>} />
+
+        {/* Notifications (SCR-13,14) */}
+        <Route path="/customer/notifications"
+          element={<ProtectedRoute role="CUSTOMER"><NotificationCenterPage /></ProtectedRoute>} />
+        <Route path="/customer/notifications/:id"
+          element={<ProtectedRoute role="CUSTOMER"><NotificationDetailPage /></ProtectedRoute>} />
+
+        {/* Bookings (SCR-17,18,19,20) */}
+        <Route path="/customer/bookings"
+          element={<ProtectedRoute role="CUSTOMER"><BookingListPage /></ProtectedRoute>} />
+        <Route path="/request-booking/:roomId"
+          element={<ProtectedRoute role="CUSTOMER"><BookingFormPage /></ProtectedRoute>} />
+        <Route path="/customer/bookings/:id"
+          element={<ProtectedRoute role="CUSTOMER"><BookingDetailPage /></ProtectedRoute>} />
+        <Route path="/customer/bookings/:id/cancel"
+          element={<ProtectedRoute role="CUSTOMER"><BookingCancellationPage /></ProtectedRoute>} />
+
+        {/* Contracts (SCR-25,26) */}
+        <Route path="/customer/contracts"
+          element={<ProtectedRoute role="CUSTOMER"><ContractListPage /></ProtectedRoute>} />
+        <Route path="/customer/contracts/:id"
+          element={<ProtectedRoute role="CUSTOMER"><ContractDetailPage /></ProtectedRoute>} />
+
+        {/* Payments (SCR-21,22,23,24) */}
+        <Route path="/customer/payments"
+          element={<ProtectedRoute role="CUSTOMER"><PaymentHistoryPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/:id/pay/deposit"
+          element={<ProtectedRoute role="CUSTOMER"><DepositPaymentPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/:id/pay"
+          element={<ProtectedRoute role="CUSTOMER"><DepositPaymentPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/:id/remaining"
+          element={<ProtectedRoute role="CUSTOMER"><RemainingPaymentPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/vnpay-result"
+          element={<ProtectedRoute role="CUSTOMER"><VNPayResultPage /></ProtectedRoute>} />
+
+        {/* Maintenance (SCR-27,28,29) */}
+        <Route path="/customer/maintenance"
+          element={<ProtectedRoute role="CUSTOMER"><MaintenanceListPage /></ProtectedRoute>} />
+        <Route path="/customer/maintenance/create"
+          element={<ProtectedRoute role="CUSTOMER"><CreateMaintenancePage /></ProtectedRoute>} />
+        <Route path="/customer/maintenance/:id"
+          element={<ProtectedRoute role="CUSTOMER"><MaintenanceDetailPage /></ProtectedRoute>} />
+
+        {/* Reviews (SCR-30,31) */}
+        <Route path="/customer/reviews"
+          element={<ProtectedRoute role="CUSTOMER"><MyReviewsPage /></ProtectedRoute>} />
+        <Route path="/customer/reviews/create"
+          element={<ProtectedRoute role="CUSTOMER"><ReviewRatingPage /></ProtectedRoute>} />
+
+        {/* Complaints */}
+        <Route path="/customer/complaints"
+          element={<ProtectedRoute role="CUSTOMER"><CustomerComplaintListPage /></ProtectedRoute>} />
+        <Route path="/customer/complaints/create"
+          element={<ProtectedRoute role="CUSTOMER"><CreateComplaintPage /></ProtectedRoute>} />
+
+        {/* ─────────────── MANAGER (SCR-32 to SCR-65) ─────────────── */}
+        <Route path="/manager" element={<Navigate to="/manager/dashboard" replace />} />
+
+        <Route path="/manager/dashboard"
+          element={<ProtectedRoute role="MANAGER"><ManagerDashboardPage /></ProtectedRoute>} />
+
+        {/* Profile (SCR-11,12,13) — shared with customer */}
+        <Route path="/manager/profile"
+          element={<ProtectedRoute role="MANAGER"><UserProfilePage /></ProtectedRoute>} />
+        <Route path="/manager/profile/edit"
+          element={<ProtectedRoute role="MANAGER"><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/manager/profile/change-password"
+          element={<ProtectedRoute role="MANAGER"><ChangePasswordPage /></ProtectedRoute>} />
+
+        {/* Notifications (SCR-13,14) */}
+        <Route path="/manager/notifications"
+          element={<ProtectedRoute role="MANAGER"><NotificationCenterPage /></ProtectedRoute>} />
+        <Route path="/manager/notifications/:id"
+          element={<ProtectedRoute role="MANAGER"><NotificationDetailPage /></ProtectedRoute>} />
+
+        {/* Properties (SCR-33,34,35,36) */}
+        <Route path="/manager/properties"
+          element={<ProtectedRoute role="MANAGER"><PropertyListPage /></ProtectedRoute>} />
+        <Route path="/manager/properties/add"
+          element={<ProtectedRoute role="MANAGER"><AddPropertyPage /></ProtectedRoute>} />
+        <Route path="/manager/properties/:id"
+          element={<ProtectedRoute role="MANAGER"><PropertyDetailPage /></ProtectedRoute>} />
+        <Route path="/manager/properties/:id/edit"
+          element={<ProtectedRoute role="MANAGER"><EditPropertyPage /></ProtectedRoute>} />
+
+        {/* Structure (SCR-37,38) */}
+        <Route path="/manager/structure"
+          element={<ProtectedRoute role="MANAGER"><StructureTreePage /></ProtectedRoute>} />
+        <Route path="/manager/floors"
+          element={<ProtectedRoute role="MANAGER"><FloorManagementPage /></ProtectedRoute>} />
+
+        {/* Rooms (SCR-39 to 44) */}
+        <Route path="/manager/rooms"
+          element={<ProtectedRoute role="MANAGER"><RoomListPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/add"
+          element={<ProtectedRoute role="MANAGER"><AddRoomPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/:id"
+          element={<ProtectedRoute role="MANAGER"><RoomDetailMgmtPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/:id/edit"
+          element={<ProtectedRoute role="MANAGER"><EditRoomPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/:id/gallery"
+          element={<ProtectedRoute role="MANAGER"><RoomGalleryPage /></ProtectedRoute>} />
+        <Route path="/manager/rooms/:id/status"
+          element={<ProtectedRoute role="MANAGER"><RoomStatusPage /></ProtectedRoute>} />
+
+        {/* Bookings (SCR-45,46) */}
+        <Route path="/manager/bookings"
+          element={<ProtectedRoute role="MANAGER"><BookingMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id/check-in"
+          element={<ProtectedRoute role="MANAGER"><BookingCheckInOutPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id/check-out"
+          element={<ProtectedRoute role="MANAGER"><BookingCheckInOutPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id"
+          element={<ProtectedRoute role="MANAGER"><BookingMgmtDetailPage /></ProtectedRoute>} />
+
+        <Route path="/manager/housekeeping/schedule"
+          element={<ProtectedRoute role="MANAGER"><HousekeepingSchedulePage /></ProtectedRoute>} />
+
+        <Route path="/manager/housekeeping/tasks"
+          element={<ProtectedRoute role="MANAGER"><HousekeepingTasksPage /></ProtectedRoute>} />
+
+        <Route path="/manager/employees"
+          element={<ProtectedRoute role="MANAGER"><EmployeeMgmtPage /></ProtectedRoute>} />
+
+        {/* Payments (SCR-47,48,49) */}
+        <Route path="/manager/payments"
+          element={<ProtectedRoute role="MANAGER"><PaymentMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/payments/:id/verify"
+          element={<ProtectedRoute role="MANAGER"><PaymentMgmtVerificationPage /></ProtectedRoute>} />
+        <Route path="/manager/payments/:id"
+          element={<ProtectedRoute role="MANAGER"><PaymentMgmtDetailPage /></ProtectedRoute>} />
+
+        {/* Contracts (SCR-50,51,52) */}
+        <Route path="/manager/contracts"
+          element={<ProtectedRoute role="MANAGER"><ContractMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/contracts/:id"
+          element={<ProtectedRoute role="MANAGER"><ContractMgmtDetailPage /></ProtectedRoute>} />
+        <Route path="/manager/contracts/:id/resend"
+          element={<ProtectedRoute role="MANAGER"><ResendContractPage /></ProtectedRoute>} />
+
+        {/* Customers (SCR-53,54) */}
+        <Route path="/manager/customers"
+          element={<ProtectedRoute role="MANAGER"><CustomerListPage /></ProtectedRoute>} />
+        <Route path="/manager/customers/:id"
+          element={<ProtectedRoute role="MANAGER"><CustomerDetailPage /></ProtectedRoute>} />
+
+        {/* Complaints (SCR-55,56) */}
+        <Route path="/manager/complaints"
+          element={<ProtectedRoute role="MANAGER"><ComplaintListPage /></ProtectedRoute>} />
+        <Route path="/manager/complaints/:id"
+          element={<ProtectedRoute role="MANAGER"><ComplaintDetailPage /></ProtectedRoute>} />
+
+        {/* Maintenance Tasks (SCR-41) */}
+        <Route path="/manager/maintenance/tasks"
+          element={<ProtectedRoute role="MANAGER"><MaintenanceTasksPage /></ProtectedRoute>} />
+
+        {/* Inspection Management (SCR-42) */}
+        <Route path="/manager/inspections"
+          element={<ProtectedRoute role="MANAGER"><InspectionsPage /></ProtectedRoute>} />
+
+        {/* Damage Report Management (SCR-43) */}
+        <Route path="/manager/damage-reports"
+          element={<ProtectedRoute role="MANAGER"><DamageReportsPage /></ProtectedRoute>} />
+
+        {/* Maintenance (SCR-57,58) */}
+        <Route path="/manager/maintenance"
+          element={<ProtectedRoute role="MANAGER"><MaintenanceMgmtListPage /></ProtectedRoute>} />
+        <Route path="/manager/maintenance/:id"
+          element={<ProtectedRoute role="MANAGER"><MaintenanceMgmtDetailPage /></ProtectedRoute>} />
+
+        {/* Property Reports (SCR-44) — gộp Doanh thu · Lấp đầy · Xu hướng theo Tabs */}
+        <Route path="/manager/reports/property"
+          element={<ProtectedRoute role="MANAGER"><PropertyReportsPage /></ProtectedRoute>} />
+
+        {/* Reports (SCR-59,60,61) */}
+        <Route path="/manager/reports"
+          element={<ProtectedRoute role="MANAGER"><ReportsDashboardPage /></ProtectedRoute>} />
+        <Route path="/manager/reports/revenue"
+          element={<ProtectedRoute role="MANAGER"><RevenueReportPage /></ProtectedRoute>} />
+        <Route path="/manager/reports/occupancy"
+          element={<ProtectedRoute role="MANAGER"><OccupancyReportPage /></ProtectedRoute>} />
+        <Route path="/manager/reports/bookings"
+          element={<ProtectedRoute role="MANAGER"><ReportsDashboardPage /></ProtectedRoute>} />
+
+        {/* Audit & Reviews (SCR-62,63) */}
+        <Route path="/manager/activity-log"
+          element={<ProtectedRoute role="MANAGER"><ActivityLogPage /></ProtectedRoute>} />
+        <Route path="/manager/reviews"
+          element={<ProtectedRoute role="MANAGER"><ReviewMgmtPage /></ProtectedRoute>} />
+
+        {/* Promotion / Banner Management */}
+        <Route path="/manager/promotions"
+          element={<ProtectedRoute role="MANAGER"><PromotionMgmtPage /></ProtectedRoute>} />
+
+        {/* ─────────────── ADMIN (SCR-45 to SCR-58) ─────────────── */}
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+
+        <Route path="/admin/dashboard"
+          element={<ProtectedRoute role="ADMIN"><AdminDashboardPage /></ProtectedRoute>} />
+
+        {/* Profile (SCR-10,11,12) */}
+        <Route path="/admin/profile"
+          element={<ProtectedRoute role="ADMIN"><UserProfilePage /></ProtectedRoute>} />
+        <Route path="/admin/profile/edit"
+          element={<ProtectedRoute role="ADMIN"><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/admin/profile/change-password"
+          element={<ProtectedRoute role="ADMIN"><ChangePasswordPage /></ProtectedRoute>} />
+
+        {/* Notifications (SCR-13,14) */}
+        <Route path="/admin/notifications"
+          element={<ProtectedRoute role="ADMIN"><NotificationCenterPage /></ProtectedRoute>} />
+        <Route path="/admin/notifications/:id"
+          element={<ProtectedRoute role="ADMIN"><NotificationDetailPage /></ProtectedRoute>} />
+
+        {/* Properties */}
+        <Route path="/admin/properties"
+          element={<ProtectedRoute role="ADMIN"><PropertyMgmtListPage /></ProtectedRoute>} />
+        <Route path="/admin/properties/create"
+          element={<ProtectedRoute role="ADMIN"><CreatePropertyPage /></ProtectedRoute>} />
+        <Route path="/admin/properties/:id/edit"
+          element={<ProtectedRoute role="ADMIN"><EditPropertyAdminPage /></ProtectedRoute>} />
+        <Route path="/admin/properties/:id/manager"
+          element={<ProtectedRoute role="ADMIN"><ManagerAssignmentPage /></ProtectedRoute>} />
+
+        {/* Users */}
+        <Route path="/admin/managers"
+          element={<ProtectedRoute role="ADMIN"><ManagerDirectoryPage /></ProtectedRoute>} />
+        <Route path="/admin/customers"
+          element={<ProtectedRoute role="ADMIN"><CustomerDirectoryPage /></ProtectedRoute>} />
+
+        {/* Finance */}
+        <Route path="/admin/payments/reconciliation"
+          element={<ProtectedRoute role="ADMIN"><PaymentReconciliationPage /></ProtectedRoute>} />
+
+        {/* Operations */}
+        <Route path="/admin/damage-escalation"
+          element={<ProtectedRoute role="ADMIN"><DamageEscalationPage /></ProtectedRoute>} />
+        <Route path="/admin/complaints"
+          element={<ProtectedRoute role="ADMIN"><AdminComplaintsPage /></ProtectedRoute>} />
+
+        {/* Reports */}
+        <Route path="/admin/reports"
+          element={<ProtectedRoute role="ADMIN"><GlobalReportsPage /></ProtectedRoute>} />
+
+        {/* Marketing */}
+        <Route path="/admin/promotions"
+          element={<ProtectedRoute role="ADMIN"><PromotionAdminListPage /></ProtectedRoute>} />
+        <Route path="/admin/promotions/create"
+          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+        <Route path="/admin/promotions/:id/edit"
+          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+
+        {/* System */}
+        <Route path="/admin/settings"
+          element={<ProtectedRoute role="ADMIN"><SystemAdminPage /></ProtectedRoute>} />
+
+        {/* ─────────────── EMPLOYEE (SCR-59 to SCR-65) ─────────────── */}
+        <Route path="/employee" element={<Navigate to="/employee/dashboard" replace />} />
+
+        <Route path="/employee/dashboard"
+          element={<ProtectedRoute role="EMPLOYEE"><EmployeeDashboardPage /></ProtectedRoute>} />
+
+        {/* Profile (SCR-10,11,12) */}
+        <Route path="/employee/profile"
+          element={<ProtectedRoute role="EMPLOYEE"><UserProfilePage /></ProtectedRoute>} />
+        <Route path="/employee/profile/edit"
+          element={<ProtectedRoute role="EMPLOYEE"><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/employee/profile/change-password"
+          element={<ProtectedRoute role="EMPLOYEE"><ChangePasswordPage /></ProtectedRoute>} />
+
+        {/* Notifications (SCR-13,14) */}
+        <Route path="/employee/notifications"
+          element={<ProtectedRoute role="EMPLOYEE"><NotificationCenterPage /></ProtectedRoute>} />
+        <Route path="/employee/notifications/:id"
+          element={<ProtectedRoute role="EMPLOYEE"><NotificationDetailPage /></ProtectedRoute>} />
+
+        <Route path="/employee/housekeeping"
+          element={<ProtectedRoute role="EMPLOYEE"><HousekeepingWorkspacePage /></ProtectedRoute>} />
+        <Route path="/employee/maintenance"
+          element={<ProtectedRoute role="EMPLOYEE"><MaintenanceWorkspacePage /></ProtectedRoute>} />
+        <Route path="/employee/inspections"
+          element={<ProtectedRoute role="EMPLOYEE"><RoomInspectionHubPage /></ProtectedRoute>} />
+        <Route path="/employee/damage"
+          element={<ProtectedRoute role="EMPLOYEE"><DamageReportListPage /></ProtectedRoute>} />
+        <Route path="/employee/damage/create"
+          element={<ProtectedRoute role="EMPLOYEE"><CreateDamageReportPage /></ProtectedRoute>} />
+        <Route path="/employee/rooms"
+          element={<ProtectedRoute role="EMPLOYEE"><PropertyRoomListPage /></ProtectedRoute>} />
+
+        {/* Catch-all — redirect theo role */}
+        <Route path="*" element={<CatchAllRedirect />} />
+
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
