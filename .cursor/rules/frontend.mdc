@@ -1,0 +1,33 @@
+---
+description: Frontend React/TypeScript architecture and Modern Zen UI rules
+globs: frontend/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend Rules
+
+## Architecture
+
+- Functional TypeScript components only; feature/component layout under `frontend/src/`.
+- Server state: React Query. Client state: Zustand or Redux Toolkit.
+- Centralized Axios instance with JWT + refresh + error interceptors.
+- Lazy-load / code-split routes. Responsive: **375px** and **1440px**.
+
+## UI (Modern Zen)
+
+- Tokens from `docs/DESIGN.md` / `docs/component-library.md` via Tailwind.
+- Fonts: **Outfit** (headings), **Plus Jakarta Sans** (body).
+- Primary: `#0F766E` (hover `#0D9488`). Canvas `#F8FAFC`, cards white.
+- Status badges: semantic color at **10% opacity** — never harsh solid fills.
+- WCAG 2.1 AA; every input has a real `<label>`; visible focus rings (no bare `outline: none`).
+- Buttons need loading/disabled states. Prefer toast over `window.alert()`.
+
+## API client
+
+```ts
+// Success/error envelope from backend — type against this shape
+type ApiResponse<T> = { success: boolean; message: string; data?: T; errors?: { field: string; message: string }[] };
+```
+
+- Auth header: `Authorization: Bearer <access_token>`
+- Lists: paginate with `?page=&size=&sort=`

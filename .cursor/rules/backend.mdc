@@ -1,0 +1,36 @@
+---
+description: Spring Boot layered architecture, API envelope, transactions, jobs
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Backend Rules
+
+## Architecture
+
+- Layers: `Controller → Service → Repository → Entity`. Thin controllers, DTOs, constructor injection.
+- Validate DTOs (Bean Validation); handle errors via `@RestControllerAdvice`.
+- Entities: UUID `id`, `createdAt`/`updatedAt`. DB naming: `snake_case`.
+- Paginate every list endpoint. Index FKs: `email`, `property_id`, `room_id`, `booking_id`, `customer_id`.
+
+## API envelope
+
+```json
+{ "success": true, "message": "Success", "data": {} }
+{ "success": false, "message": "...", "errors": [{ "field": "email", "message": "..." }] }
+```
+
+- Auth: `Authorization: Bearer <access_token>`
+- Uploads: `multipart/form-data`
+- HTTP: 200/201/400/401/403/404/409/500 — screen contracts in `docs/api-spec-by-screen.md`
+
+## Transactions & async
+
+- `@Transactional` for: booking create, deposit/remaining/damage pay, contract gen, cancel, check-in/out, HK complete.
+- Outbox (`outbox_events`) for contract email / notifications; `@Async` for PDF/email so payment APIs stay fast.
+- Jobs: Hold Timeout cancel unpaid deposit after **30 min**; VNPay Reconciliation every **15 min** via `OrderRef`.
+
+## Isolation
+
+- Manager/Employee queries MUST filter by assigned `PropertyId`. Never leak cross-property data.
+- Prefer PostgreSQL exclusion constraint for booking date ranges over app-only checks.
