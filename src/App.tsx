@@ -180,7 +180,7 @@ function App() {
         <Route path="/customer/bookings/:id/cancel"
           element={<ProtectedRoute role="CUSTOMER"><BookingCancellationPage /></ProtectedRoute>} />
 
-        {/* Contracts (SCR-25,26) */}
+        {/* Contracts — SCR-21 list + Contract Detail */}
         <Route path="/customer/contracts"
           element={<ProtectedRoute role="CUSTOMER"><ContractListPage /></ProtectedRoute>} />
         <Route path="/customer/contracts/:id"

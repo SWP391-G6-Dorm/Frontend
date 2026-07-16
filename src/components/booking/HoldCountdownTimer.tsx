@@ -15,7 +15,7 @@ export interface HoldCountdownTimerProps {
 }
 
 /**
- * SCR-20 — countdown from Booking.holdExpiresAt (default hold 30 min).
+ * SCR-20 — countdown from Booking.holdExpiresAt (default hold 10 min).
  * Calls onExpire once when the window ends.
  */
 export default function HoldCountdownTimer({
@@ -74,7 +74,7 @@ export default function HoldCountdownTimer({
         </div>
       )}
       {!expired && (
-        <p className="body-sm mt-1 opacity-90">Vui lòng thanh toán trước khi hết giờ giữ chỗ (mặc định 30 phút).</p>
+        <p className="body-sm mt-1 opacity-90">Vui lòng thanh toán trước khi hết giờ giữ chỗ (mặc định 10 phút).</p>
       )}
     </div>
   );
