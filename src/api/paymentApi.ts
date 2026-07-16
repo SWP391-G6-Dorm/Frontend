@@ -1,5 +1,9 @@
 import api from './axiosInstance';
 
+export interface PaymentReceiptInfo {
+  fileUrl: string;
+}
+
 export interface PaymentSummaryResponse {
   id: string;
   bookingId: string;
@@ -10,6 +14,7 @@ export interface PaymentSummaryResponse {
   status: string;
   paidAt?: string | null;
   createdAt: string;
+  receipt?: PaymentReceiptInfo | null;
 }
 
 export interface PaymentPageResponse<T> {
@@ -29,6 +34,9 @@ export interface PaymentDetailResponse {
   method: string;
   amount: number;
   status: string;
+  orderRef?: string | null;
+  gatewayTransactionId?: string | null;
+  gatewayResponseCode?: string | null;
   verifiedByName: string | null;
   verifiedAt: string | null;
   paidAt: string | null;
@@ -57,27 +65,24 @@ export interface ManagerPaymentsParams {
   sort?: string;
 }
 
+/** SCR-36 — canonical path per docs: /api/v1/managers/payments */
+const MANAGER_PAYMENTS_BASE = '/api/v1/managers/payments';
+
 export async function fetchManagerPaymentsV1(
   params: ManagerPaymentsParams,
 ): Promise<PageResponse<PaymentSummaryResponse>> {
-  const res = await api.get('/api/v1/manager/payments', { params });
+  const res = await api.get(MANAGER_PAYMENTS_BASE, { params });
   return res.data.data;
 }
 
 export const paymentApi = {
-  /** @deprecated Use fetchManagerPaymentsV1 for manager list (SCR-36) */
-  getAllPayments: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<PaymentSummaryResponse> }> => {
-    const res = await api.get('/api/manager/payments', { params });
-    return res.data;
-  },
-
   getPaymentDetail: async (id: string): Promise<{ success: boolean; data: PaymentDetailResponse }> => {
-    const res = await api.get(`/api/manager/payments/${id}`);
+    const res = await api.get(`${MANAGER_PAYMENTS_BASE}/${id}`);
     return res.data;
   },
 
   verifyPayment: async (id: string, status: 'PAID' | 'FAILED', note: string) => {
-    const res = await api.post(`/api/manager/payments/${id}/verify`, { status, note });
+    const res = await api.post(`${MANAGER_PAYMENTS_BASE}/${id}/verify`, { status, note });
     return res.data;
   },
 
@@ -97,8 +102,15 @@ export const paymentApi = {
     return res.data;
   },
 
-
-  getMyPayments: async (params?: { page?: number; size?: number; status?: string }): Promise<{ success: boolean; message?: string; data: PaymentPageResponse<PaymentSummaryResponse> }> => {
+  getMyPayments: async (params?: {
+    page?: number;
+    size?: number;
+    status?: string;
+  }): Promise<{
+    success: boolean;
+    message?: string;
+    data: PaymentPageResponse<PaymentSummaryResponse>;
+  }> => {
     const res = await api.get('/api/v1/customers/me/payments', { params });
     return res.data;
   },

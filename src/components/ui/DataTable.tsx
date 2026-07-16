@@ -28,9 +28,10 @@ interface DataTableProps<T> {
   className?: string;
   footer?: React.ReactNode;
   getRowClassName?: (row: T) => string;
+  onRowClick?: (row: T) => void;
 }
 
-export function DataTable<T>({ columns, data, keyExtractor, actions, className = '', footer, getRowClassName }: DataTableProps<T>) {
+export function DataTable<T>({ columns, data, keyExtractor, actions, className = '', footer, getRowClassName, onRowClick }: DataTableProps<T>) {
   const [openDropdownId, setOpenDropdownId] = useState<string | number | null>(null);
 
   const toggleDropdown = (id: string | number) => {
@@ -45,7 +46,9 @@ export function DataTable<T>({ columns, data, keyExtractor, actions, className =
             {columns.map((col, idx) => (
               <th 
                 key={idx}
-                className="text-left px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0]"
+                className={`px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0] ${
+                  col.className ?? 'text-left'
+                }`}
               >
                 {col.header}
               </th>
@@ -61,7 +64,11 @@ export function DataTable<T>({ columns, data, keyExtractor, actions, className =
           {data.map((row) => {
             const rowKey = keyExtractor(row);
             return (
-              <tr key={rowKey} className={`group transition-colors duration-150 bg-white hover:bg-[#F8FAFC] ${getRowClassName?.(row) ?? ''}`}>
+              <tr
+                key={rowKey}
+                className={`group transition-colors duration-150 bg-white hover:bg-[#F8FAFC] ${onRowClick ? 'cursor-pointer' : ''} ${getRowClassName?.(row) ?? ''}`}
+                onClick={() => onRowClick?.(row)}
+              >
                 {columns.map((col, idx) => (
                   <td key={idx} className={`px-4 py-3 text-sm text-[#334155] border-b border-[#F1F5F9] group-last:border-none ${col.className || ''}`}>
                     {typeof col.accessor === 'function' ? col.accessor(row) : (row[col.accessor] as React.ReactNode)}
@@ -69,7 +76,11 @@ export function DataTable<T>({ columns, data, keyExtractor, actions, className =
                 ))}
                 
                 {actions && actions.length > 0 && (
-                  <td className="px-4 py-3 border-b border-[#F1F5F9] group-last:border-none text-right relative" onMouseLeave={() => setOpenDropdownId(null)}>
+                  <td
+                    className="px-4 py-3 border-b border-[#F1F5F9] group-last:border-none text-right relative"
+                    onMouseLeave={() => setOpenDropdownId(null)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button 
                       className="w-8 h-8 inline-flex items-center justify-center rounded-full text-[#64748B] hover:bg-[#E2E8F0] transition-colors"
                       onClick={() => toggleDropdown(rowKey)}

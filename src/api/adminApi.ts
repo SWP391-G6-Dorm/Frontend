@@ -310,11 +310,3 @@ export async function deletePromotion(id: string): Promise<{ success: boolean }>
   const res = await api.delete(`/api/admin/promotions/${id}`);
   return res.data;
 }
-
-// ── Legacy export (backward compat with any existing imports) ──────────────────
-export const adminApi = {
-  searchUsers:  (params: { page?: number; size?: number; role?: string; status?: string; keyword?: string }) =>
-    getCustomers(params),
-  getUserById:  getAdminUserById,
-  updateUser:   (id: string, payload: { role: string; status: string }) => updateAdminUser(id, payload),
-};

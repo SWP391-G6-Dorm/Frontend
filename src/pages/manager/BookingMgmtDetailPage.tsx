@@ -195,6 +195,12 @@ export default function BookingMgmtDetailPage() {
     || (booking.status === 'PENDING_INSPECTION' && booking.checkOutBlockedReason)
     || booking.status === 'PENDING_DAMAGE_PAYMENT'
   );
+  const showCheckInButton = booking?.status === 'CONFIRMED';
+  const checkInBlockedReason = booking && showCheckInButton && !booking.canCheckIn
+    ? (booking.checkInDate > new Date().toISOString().slice(0, 10)
+      ? `Chỉ check-in từ ngày ${formatDate(booking.checkInDate)}`
+      : 'Booking chưa đủ điều kiện nhận phòng')
+    : null;
 
   return (
     <ManagerLayout>
@@ -319,22 +325,27 @@ export default function BookingMgmtDetailPage() {
               <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-sm">
                 <h2 className="font-semibold text-[#1E293B] mb-4">Thao tác</h2>
                 <div className="flex flex-col gap-3">
-                  {booking.canCheckIn && (
+                  {showCheckInButton && (
                     <button
                       type="button"
-                      className="btn-primary w-full"
+                      className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={() => navigate(`/manager/bookings/${id}/check-in`)}
+                      disabled={!booking.canCheckIn}
+                      title={checkInBlockedReason ?? undefined}
                     >
                       Nhận phòng
                     </button>
                   )}
 
+                  {checkInBlockedReason && (
+                    <p className="text-xs text-[#B45309]">{checkInBlockedReason}</p>
+                  )}
+
                   {showCheckOutButton && (
                     <button
                       type="button"
-                      className="btn-primary w-full disabled:opacity-50"
-                      onClick={() => booking.canCheckOut && navigate(`/manager/bookings/${id}/check-out`)}
-                      disabled={!booking.canCheckOut}
+                      className="btn-primary w-full"
+                      onClick={() => navigate(`/manager/bookings/${id}/check-out`)}
                       title={booking.checkOutBlockedReason ?? undefined}
                     >
                       Trả phòng
