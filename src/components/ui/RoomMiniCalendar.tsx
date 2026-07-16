@@ -5,7 +5,9 @@ import { addMonths, type BookedRange } from '../../utils/roomCalendar';
 export type { BookedRange, DayStatus } from '../../utils/roomCalendar';
 export {
   DAY_STYLES,
+  canAttemptBooking,
   isRangeAvailable,
+  isRoomOpsBlocked,
   parseLocalDate,
   statusForDay,
 } from '../../utils/roomCalendar';
