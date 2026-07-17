@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import {
   fetchRoomById,
@@ -12,19 +12,25 @@ import DataTable from '../../components/ui/DataTable';
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const ROOM_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  AVAILABLE:       { label: 'Available',       color: '#fff',    bg: '#2b9a66' },
-  PENDING_DEPOSIT: { label: 'Pending Deposit', color: '#202020', bg: '#F59E0B' },
-  RESERVED:        { label: 'Reserved',        color: '#fff',    bg: '#2563EB' },
-  OCCUPIED:        { label: 'Occupied',        color: '#fff',    bg: '#DC2626' },
-  MAINTENANCE:     { label: 'Maintenance',     color: '#fff',    bg: '#6B7280' },
+  AVAILABLE:            { label: 'Trống',           color: '#fff',    bg: '#2b9a66' },
+  PENDING_DEPOSIT:      { label: 'Chờ cọc',         color: '#202020', bg: '#F59E0B' },
+  RESERVED:             { label: 'Đã đặt',          color: '#fff',    bg: '#2563EB' },
+  OCCUPIED:             { label: 'Đang ở',          color: '#fff',    bg: '#0F766E' },
+  PENDING_CLEANING:     { label: 'Chờ dọn',         color: '#fff',    bg: '#D97706' },
+  CLEANING_IN_PROGRESS: { label: 'Đang dọn',        color: '#fff',    bg: '#2563EB' },
+  MAINTENANCE:          { label: 'Bảo trì',         color: '#fff',    bg: '#DC2626' },
+  OUT_OF_SERVICE:       { label: 'Ngưng phục vụ',   color: '#fff',    bg: '#6B7280' },
 };
 
 const BOOKING_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING_DEPOSIT: { label: 'Pending Deposit', color: '#202020', bg: '#FEF3C7' },
-  CONFIRMED:       { label: 'Confirmed',       color: '#fff',    bg: '#2b9a66' },
-  CHECKED_IN:      { label: 'Checked In',      color: '#fff',    bg: '#2563EB' },
-  CHECKED_OUT:     { label: 'Checked Out',     color: '#fff',    bg: '#7C3AED' },
-  CANCELLED:       { label: 'Cancelled',       color: '#fff',    bg: '#DC2626' },
+  PENDING_DEPOSIT:         { label: 'Chờ cọc',           color: '#202020', bg: '#FEF3C7' },
+  CONFIRMED:               { label: 'Đã xác nhận',       color: '#fff',    bg: '#2b9a66' },
+  CHECKED_IN:              { label: 'Đã check-in',       color: '#fff',    bg: '#2563EB' },
+  PENDING_INSPECTION:      { label: 'Chờ kiểm tra',      color: '#202020', bg: '#FEF3C7' },
+  PENDING_DAMAGE_PAYMENT:  { label: 'Chờ thanh toán hư hại', color: '#fff', bg: '#DC2626' },
+  CHECKED_OUT:             { label: 'Đã check-out',      color: '#fff',    bg: '#7C3AED' },
+  CANCELLED:               { label: 'Đã hủy',            color: '#fff',    bg: '#DC2626' },
+  NO_SHOW:                 { label: 'Không đến',         color: '#fff',    bg: '#6B7280' },
 };
 
 const ACTIVE_BOOKING_STATUSES = new Set(['CONFIRMED', 'CHECKED_IN', 'PENDING_DEPOSIT']);
@@ -167,12 +173,12 @@ function GalleryCard({ room }: { room: RoomDetail }) {
   return (
     <CardBox>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <SectionTitle>Gallery</SectionTitle>
+        <SectionTitle>Thư viện ảnh</SectionTitle>
         <Link
-          to={`/manager/rooms/${room.id}/gallery`}
+          to={`/manager/rooms/${room.id}/edit?tab=gallery`}
           className="btn-ghost btn-sm"
         >
-          Manage Gallery →
+          Quản lý ảnh →
         </Link>
       </div>
 
@@ -185,12 +191,11 @@ function GalleryCard({ room }: { room: RoomDetail }) {
             textAlign: 'center',
           }}
         >
-          <span style={{ fontSize: 36, display: 'block', marginBottom: 8 }}>🖼️</span>
           <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 8 }}>
-            No images uploaded yet
+            Chưa có ảnh nào
           </p>
-          <Link to={`/manager/rooms/${room.id}/gallery`} className="btn-outline btn-sm">
-            + Upload Images
+          <Link to={`/manager/rooms/${room.id}/edit?tab=gallery`} className="btn-outline btn-sm">
+            + Tải ảnh lên
           </Link>
         </div>
       ) : (
@@ -208,7 +213,7 @@ function GalleryCard({ room }: { room: RoomDetail }) {
             >
               <img
                 src={img.imageUrl}
-                alt="Room"
+                alt="Phòng"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 onError={e => {
                   (e.target as HTMLImageElement).src =
@@ -230,7 +235,7 @@ function GalleryCard({ room }: { room: RoomDetail }) {
                     letterSpacing: 0.5,
                   }}
                 >
-                  PRIMARY
+                  Đại diện
                 </span>
               )}
             </div>
@@ -240,7 +245,10 @@ function GalleryCard({ room }: { room: RoomDetail }) {
 
       {images.length > 6 && (
         <p className="body-sm" style={{ color: 'var(--charcoal)', marginTop: 10, textAlign: 'right' }}>
-          +{images.length - 6} more · <Link to={`/manager/rooms/${room.id}/gallery`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>Manage all</Link>
+          +{images.length - 6} ảnh nữa ·{' '}
+          <Link to={`/manager/rooms/${room.id}/edit?tab=gallery`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+            Quản lý tất cả
+          </Link>
         </p>
       )}
     </CardBox>
@@ -266,7 +274,7 @@ function ActiveBookingBanner({ booking }: { booking: RoomBookingSummary }) {
       <span style={{ fontSize: 20, flexShrink: 0 }}>⚡</span>
       <div>
         <p style={{ fontWeight: 700, color: '#92400E', fontSize: 14, marginBottom: 2 }}>
-          Active Booking — {booking.customerName}
+          Đang có booking — {booking.customerName}
         </p>
         <p className="body-sm" style={{ color: '#92400E' }}>
           {fmtDate(booking.checkInDate)} → {fmtDate(booking.checkOutDate)} ·{' '}
@@ -276,7 +284,7 @@ function ActiveBookingBanner({ booking }: { booking: RoomBookingSummary }) {
           to={`/manager/bookings/${booking.id}`}
           style={{ color: '#92400E', fontSize: 13, fontWeight: 600, textDecoration: 'underline', marginTop: 4, display: 'inline-block' }}
         >
-          View Booking →
+          Xem booking →
         </Link>
       </div>
     </div>
@@ -300,29 +308,29 @@ function BookingHistoryCard({ roomId: _roomId, bookings, total, page, loading, o
   const activeBooking = bookings.find(b => ACTIVE_BOOKING_STATUSES.has(b.status));
 
   const columns = [
-    { header: 'Customer', accessor: (b: any) => (
+    { header: 'Khách', accessor: (b: RoomBookingSummary) => (
       <div>
         <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>{b.customerName}</p>
         <p className="body-sm" style={{ color: 'var(--charcoal)', margin: 0 }}>{b.customerEmail}</p>
       </div>
     )},
-    { header: 'Check-in', accessor: (b: any) => <span className="body-sm">{fmtDate(b.checkInDate)}</span> },
-    { header: 'Check-out', accessor: (b: any) => <span className="body-sm">{fmtDate(b.checkOutDate)}</span> },
-    { header: 'Amount', accessor: (b: any) => <div style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(b.totalAmount)}</div> },
-    { header: 'Status', accessor: (b: any) => <BookingStatusBadge status={b.status} /> },
-    { header: '', accessor: (b: any) => <Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">View</Link> }
+    { header: 'Check-in', accessor: (b: RoomBookingSummary) => <span className="body-sm">{fmtDate(b.checkInDate)}</span> },
+    { header: 'Check-out', accessor: (b: RoomBookingSummary) => <span className="body-sm">{fmtDate(b.checkOutDate)}</span> },
+    { header: 'Số tiền', accessor: (b: RoomBookingSummary) => <div style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(b.totalAmount)}</div> },
+    { header: 'Trạng thái', accessor: (b: RoomBookingSummary) => <BookingStatusBadge status={b.status} /> },
+    { header: '', accessor: (b: RoomBookingSummary) => <Link to={`/manager/bookings/${b.id}`} className="btn-ghost btn-sm">Xem</Link> },
   ];
 
   return (
     <CardBox>
-      <SectionTitle>Booking History</SectionTitle>
+      <SectionTitle>Lịch sử đặt phòng</SectionTitle>
 
       {activeBooking && <ActiveBookingBanner booking={activeBooking} />}
 
       {loading ? (
         <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--charcoal)' }}>
           <div className="spinner" style={{ margin: '0 auto 8px' }} />
-          Loading bookings…
+          Đang tải booking…
         </div>
       ) : bookings.length === 0 ? (
         <div
@@ -333,20 +341,18 @@ function BookingHistoryCard({ roomId: _roomId, bookings, total, page, loading, o
             textAlign: 'center',
           }}
         >
-          <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>📋</span>
           <p className="body-sm" style={{ color: 'var(--charcoal)' }}>
-            No bookings yet for this room
+            Chưa có booking nào cho phòng này
           </p>
         </div>
       ) : (
         <>
-          <DataTable 
+          <DataTable
             columns={columns}
             data={bookings}
             keyExtractor={(b) => b.id}
           />
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div
               style={{
@@ -357,7 +363,7 @@ function BookingHistoryCard({ roomId: _roomId, bookings, total, page, loading, o
               }}
             >
               <p className="body-sm" style={{ color: 'var(--charcoal)' }}>
-                {total} booking{total !== 1 ? 's' : ''} total
+                Tổng {total} booking
               </p>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
@@ -365,7 +371,7 @@ function BookingHistoryCard({ roomId: _roomId, bookings, total, page, loading, o
                   disabled={page === 0}
                   onClick={() => onPageChange(page - 1)}
                 >
-                  ← Prev
+                  ← Trước
                 </button>
                 <span style={{ display: 'flex', alignItems: 'center', fontSize: 13, color: 'var(--charcoal)' }}>
                   {page + 1} / {totalPages}
@@ -375,7 +381,7 @@ function BookingHistoryCard({ roomId: _roomId, bookings, total, page, loading, o
                   disabled={page >= totalPages - 1}
                   onClick={() => onPageChange(page + 1)}
                 >
-                  Next →
+                  Sau →
                 </button>
               </div>
             </div>
@@ -390,20 +396,16 @@ function BookingHistoryCard({ roomId: _roomId, bookings, total, page, loading, o
 
 export default function RoomDetailMgmtPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
 
-  // ── Room detail state
   const [room, setRoom]       = useState<RoomDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
 
-  // ── Booking history state
   const [bookings, setBookings]             = useState<RoomBookingSummary[]>([]);
   const [bookingsTotal, setBookingsTotal]   = useState(0);
   const [bookingPage, setBookingPage]       = useState(0);
   const [bookingsLoading, setBookingsLoading] = useState(false);
 
-  // ── Load room detail ──────────────────────────────────────────────────────────
   const loadRoom = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -411,19 +413,19 @@ export default function RoomDetailMgmtPage() {
     try {
       const data = await fetchRoomById(id);
       setRoom(data);
-    } catch (err: any) {
-      const status = err?.response?.status;
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
+      const status = axiosErr?.response?.status;
       if (status === 404) {
-        setError('Room not found. It may have been deleted.');
+        setError('Không tìm thấy phòng. Phòng có thể đã bị xóa.');
       } else {
-        setError(err?.response?.data?.message ?? 'Failed to load room. Please try again.');
+        setError(axiosErr?.response?.data?.message ?? 'Không tải được thông tin phòng. Vui lòng thử lại.');
       }
     } finally {
       setLoading(false);
     }
   }, [id]);
 
-  // ── Load booking history ──────────────────────────────────────────────────────
   const loadBookings = useCallback(async (page: number) => {
     if (!id) return;
     setBookingsLoading(true);
@@ -432,7 +434,6 @@ export default function RoomDetailMgmtPage() {
       setBookings(data.content ?? []);
       setBookingsTotal(data.totalElements ?? 0);
     } catch {
-      // Non-critical — room detail still shows
       setBookings([]);
     } finally {
       setBookingsLoading(false);
@@ -445,12 +446,9 @@ export default function RoomDetailMgmtPage() {
     if (room) loadBookings(bookingPage);
   }, [room, bookingPage, loadBookings]);
 
-  // ── Error / Loading ───────────────────────────────────────────────────────────
-
   if (loading) {
     return (
       <ManagerLayout>
-        {/* Breadcrumb skeleton */}
         <div style={{ height: 20, width: 200, background: 'var(--surface-bone)', borderRadius: 6, marginBottom: 24, animation: 'pulse 1.4s ease-in-out infinite' }} />
         <PageSkeleton />
       </ManagerLayout>
@@ -461,9 +459,9 @@ export default function RoomDetailMgmtPage() {
     return (
       <ManagerLayout>
         <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
-          <Link to="/manager/rooms" className="text-primary" style={{ textDecoration: 'none' }}>Rooms</Link>
+          <Link to="/manager/rooms" className="text-primary" style={{ textDecoration: 'none' }}>Danh sách phòng</Link>
           <span>›</span>
-          <span>Room Detail</span>
+          <span>Chi tiết phòng</span>
         </div>
         <div
           className="card"
@@ -477,28 +475,25 @@ export default function RoomDetailMgmtPage() {
           }}
         >
           <span style={{ fontSize: 48 }}>⚠️</span>
-          <h2 className="heading-sm">{error || 'Room not found'}</h2>
+          <h2 className="heading-sm">{error || 'Không tìm thấy phòng'}</h2>
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-            <button className="btn-primary" onClick={loadRoom}>Retry</button>
-            <Link to="/manager/rooms" className="btn-outline">Back to Rooms</Link>
+            <button className="btn-primary" onClick={loadRoom}>Thử lại</button>
+            <Link to="/manager/rooms" className="btn-outline">Quay lại danh sách</Link>
           </div>
         </div>
       </ManagerLayout>
     );
   }
 
-  // ── Derived values ────────────────────────────────────────────────────────────
   const primaryImage = room.images?.find(img => img.isPrimary) ?? room.images?.[0];
-  const roomStatusConfig = ROOM_STATUS[room.status] ?? { label: room.status, color: '#fff', bg: '#6B7280' };
   const isOccupied = ['OCCUPIED', 'CHECKED_IN', 'RESERVED', 'PENDING_DEPOSIT'].includes(room.status);
 
-  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <ManagerLayout>
 
-      {/* ── Breadcrumb ── */}
+      {/* Breadcrumb */}
       <div className="flex items-center gap-2 body-sm" style={{ marginBottom: 20, color: 'var(--charcoal)' }}>
-        <Link to="/manager/rooms" className="text-primary" style={{ textDecoration: 'none' }}>Rooms</Link>
+        <Link to="/manager/rooms" className="text-primary" style={{ textDecoration: 'none' }}>Danh sách phòng</Link>
         <span style={{ color: 'var(--stone)' }}>›</span>
         {room.propertyName && (
           <>
@@ -509,7 +504,7 @@ export default function RoomDetailMgmtPage() {
         <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{room.roomNumber}</span>
       </div>
 
-      {/* ── Page Header ── */}
+      {/* Header */}
       <div
         style={{
           display: 'flex',
@@ -522,40 +517,37 @@ export default function RoomDetailMgmtPage() {
       >
         <div>
           <h1 className="heading-md" style={{ marginBottom: 6 }}>
-            {room.roomNumber}
+            Phòng {room.roomNumber}
             <span style={{ color: 'var(--charcoal)', fontWeight: 400, marginLeft: 8 }}>— {room.roomType}</span>
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <RoomStatusBadge status={room.status} />
             {room.averageRating > 0 && (
               <span className="body-sm" style={{ color: 'var(--charcoal)' }}>
-                ⭐ {room.averageRating.toFixed(1)} ({room.totalReviews} review{room.totalReviews !== 1 ? 's' : ''})
+                ⭐ {room.averageRating.toFixed(1)} ({room.totalReviews} đánh giá)
               </span>
             )}
           </div>
         </div>
 
-        {/* Header action buttons */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Link to={`/manager/rooms/${room.id}/edit`} className="btn-primary btn-sm">
-            ✏️ Edit Room
+            Sửa phòng
           </Link>
-          <Link to={`/manager/rooms/${room.id}/gallery`} className="btn-outline btn-sm">
-            🖼️ Gallery
+          <Link to={`/manager/rooms/${room.id}/edit?tab=gallery`} className="btn-outline btn-sm">
+            Thư viện ảnh
           </Link>
-          <Link to={`/manager/rooms/${room.id}/status`} className="btn-ghost btn-sm">
-            🔄 Status
+          <Link to={`/manager/rooms/${room.id}/edit?tab=status`} className="btn-ghost btn-sm">
+            Trạng thái
           </Link>
         </div>
       </div>
 
-      {/* ── Two-column layout ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, alignItems: 'start' }}>
 
-        {/* ── LEFT COLUMN ── */}
+        {/* Cột trái */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Primary hero image */}
           {primaryImage && (
             <div style={{ borderRadius: 14, overflow: 'hidden', height: 280, background: 'var(--surface-bone)' }}>
               <img
@@ -570,16 +562,15 @@ export default function RoomDetailMgmtPage() {
             </div>
           )}
 
-          {/* Room Profile Card */}
           <CardBox>
-            <SectionTitle>Room Profile</SectionTitle>
-            <InfoRow label="Property" value={room.propertyName} />
-            <InfoRow label="Address"  value={room.propertyAddress || '—'} />
-            <InfoRow label="Floor"    value={`Floor ${room.floorNumber}`} />
-            <InfoRow label="Type"     value={room.roomType} />
-            <InfoRow label="Capacity" value={`${room.capacity} guests`} />
-            <InfoRow label="Area"     value={`${room.area} m²`} />
-            <InfoRow label="Price / Night" value={
+            <SectionTitle>Thông tin phòng</SectionTitle>
+            <InfoRow label="Homestay" value={room.propertyName} />
+            <InfoRow label="Địa chỉ" value={room.propertyAddress || '—'} />
+            <InfoRow label="Tầng" value={`Tầng ${room.floorNumber}`} />
+            <InfoRow label="Loại phòng" value={room.roomType} />
+            <InfoRow label="Sức chứa" value={`${room.capacity} khách`} />
+            <InfoRow label="Diện tích" value={`${room.area} m²`} />
+            <InfoRow label="Giá / đêm" value={
               <span style={{ color: 'var(--primary)', fontWeight: 700 }}>
                 {fmt(room.pricePerNight)}
               </span>
@@ -587,14 +578,14 @@ export default function RoomDetailMgmtPage() {
 
             {room.description && (
               <div style={{ marginTop: 16 }}>
-                <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 6 }}>Description</p>
+                <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 6 }}>Mô tả</p>
                 <p className="body-md" style={{ color: 'var(--body)', lineHeight: 1.6 }}>{room.description}</p>
               </div>
             )}
 
             {room.amenities && room.amenities.length > 0 && (
               <div style={{ marginTop: 16 }}>
-                <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 8 }}>Amenities</p>
+                <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 8 }}>Tiện nghi</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {room.amenities.map(a => (
                     <span
@@ -616,10 +607,8 @@ export default function RoomDetailMgmtPage() {
             )}
           </CardBox>
 
-          {/* Gallery Card */}
           <GalleryCard room={room} />
 
-          {/* Booking History */}
           <BookingHistoryCard
             roomId={room.id}
             bookings={bookings}
@@ -630,12 +619,11 @@ export default function RoomDetailMgmtPage() {
           />
         </div>
 
-        {/* ── RIGHT COLUMN (sticky) ── */}
+        {/* Cột phải */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'sticky', top: 24 }}>
 
-          {/* Status Card */}
           <CardBox>
-            <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 12 }}>Current Status</p>
+            <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 12 }}>Trạng thái hiện tại</p>
             <div style={{ marginBottom: 16 }}>
               <RoomStatusBadge status={room.status} large />
             </div>
@@ -651,90 +639,87 @@ export default function RoomDetailMgmtPage() {
                 }}
               >
                 <p className="body-sm" style={{ color: '#92400E' }}>
-                  ⚠️ Room is currently in use
+                  ⚠️ Phòng đang được sử dụng
                 </p>
               </div>
             )}
 
             <Link
-              to={`/manager/rooms/${room.id}/status`}
+              to={`/manager/rooms/${room.id}/edit?tab=status`}
               className="btn-outline"
               style={{ display: 'block', textAlign: 'center', width: '100%' }}
             >
-              Update Status
+              Cập nhật trạng thái
             </Link>
           </CardBox>
 
-          {/* Room Stats */}
           <CardBox>
-            <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 14 }}>Room Stats</p>
+            <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 14 }}>Thống kê</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Total Bookings</span>
+                <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Tổng booking</span>
                 <span style={{ fontWeight: 700 }}>{bookingsTotal}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Reviews</span>
+                <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Đánh giá</span>
                 <span style={{ fontWeight: 700 }}>{room.totalReviews ?? 0}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Avg Rating</span>
+                <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Điểm TB</span>
                 <span style={{ fontWeight: 700 }}>
                   {room.averageRating > 0 ? `⭐ ${room.averageRating.toFixed(1)}` : '—'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Images</span>
+                <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Số ảnh</span>
                 <span style={{ fontWeight: 700 }}>{room.images?.length ?? 0}</span>
               </div>
             </div>
           </CardBox>
 
-          {/* Actions Card */}
           <CardBox>
-            <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 14 }}>Actions</p>
+            <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 14 }}>Thao tác</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Link
                 to={`/manager/rooms/${room.id}/edit`}
                 className="btn-primary"
                 style={{ display: 'block', textAlign: 'center' }}
               >
-                ✏️ Edit Room
+                Sửa phòng
               </Link>
               <Link
-                to={`/manager/rooms/${room.id}/gallery`}
+                to={`/manager/rooms/${room.id}/edit?tab=gallery`}
                 className="btn-outline"
                 style={{ display: 'block', textAlign: 'center' }}
               >
-                🖼️ Manage Gallery
+                Thư viện ảnh
               </Link>
               <Link
-                to={`/manager/rooms/${room.id}/status`}
+                to={`/manager/rooms/${room.id}/edit?tab=status`}
                 className="btn-ghost"
                 style={{ display: 'block', textAlign: 'center' }}
               >
-                🔄 Update Status
+                Cập nhật trạng thái
               </Link>
               <div style={{ borderTop: '1px solid var(--hairline)', paddingTop: 8, marginTop: 4 }}>
-                <button
+                <Link
+                  to="/manager/rooms"
                   className="btn-ghost btn-sm"
-                  style={{ width: '100%', color: 'var(--charcoal)' }}
-                  onClick={() => navigate(-1)}
+                  style={{ display: 'block', textAlign: 'center', width: '100%', color: 'var(--charcoal)' }}
                 >
-                  ← Back
-                </button>
+                  ← Quay lại
+                </Link>
               </div>
             </div>
           </CardBox>
 
-          {/* Meta info */}
           <div style={{ padding: '8px 0' }}>
             <p className="body-sm" style={{ color: 'var(--stone)' }}>
-              Room ID: <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{room.id.slice(0, 8)}…</span>
+              Mã phòng: <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{room.id.slice(0, 8)}…</span>
             </p>
             {room.createdAt && (
               <p className="body-sm" style={{ color: 'var(--stone)', marginTop: 4 }}>
-                Created: {new Date(room.createdAt).toLocaleDateString('vi-VN')}
+                Tạo ngày: {new Date(room.createdAt).toLocaleDateString('vi-VN')}
               </p>
             )}
           </div>

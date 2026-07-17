@@ -38,6 +38,7 @@ import ContractDetailPage from './pages/customer/ContractDetailPage';
 // Payments (SCR-21, 22, 23, 24)
 import DepositPaymentPage from './pages/customer/DepositPaymentPage';
 import RemainingPaymentPage from './pages/customer/RemainingPaymentPage';
+import DamageFeePaymentPage from './pages/customer/DamageFeePaymentPage';
 import PaymentHistoryPage from './pages/customer/PaymentHistoryPage';
 import VNPayResultPage from './pages/customer/VNPayResultPage';
 // Maintenance (SCR-27, 28, 29)
@@ -102,7 +103,8 @@ import { EditPropertyAdminPage } from './pages/admin/EditPropertyAdminPage';
 import { ManagerAssignmentPage } from './pages/admin/ManagerAssignmentPage';
 import { ManagerDirectoryPage } from './pages/admin/ManagerDirectoryPage';
 import { CustomerDirectoryPage } from './pages/admin/CustomerDirectoryPage';
-import { PaymentReconciliationPage } from './pages/admin/PaymentReconciliationPage';
+// SCR-52 deferred (demo mock VNPay — no real discrepancy). Keep page file + backend API.
+// import { PaymentReconciliationPage } from './pages/admin/PaymentReconciliationPage';
 import { DamageEscalationPage } from './pages/admin/DamageEscalationPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { GlobalReportsPage } from './pages/admin/GlobalReportsPage';
@@ -195,6 +197,8 @@ function App() {
           element={<ProtectedRoute role="CUSTOMER"><DepositPaymentPage /></ProtectedRoute>} />
         <Route path="/customer/payments/:id/remaining"
           element={<ProtectedRoute role="CUSTOMER"><RemainingPaymentPage /></ProtectedRoute>} />
+        <Route path="/customer/payments/:id/damage"
+          element={<ProtectedRoute role="CUSTOMER"><DamageFeePaymentPage /></ProtectedRoute>} />
         <Route path="/customer/payments/vnpay-result"
           element={<ProtectedRoute role="CUSTOMER"><VNPayResultPage /></ProtectedRoute>} />
 
@@ -287,7 +291,7 @@ function App() {
         <Route path="/manager/employees"
           element={<ProtectedRoute role="MANAGER"><EmployeeMgmtPage /></ProtectedRoute>} />
 
-        {/* Payments (SCR-47,48,49) */}
+        {/* Payments (SCR-36) */}
         <Route path="/manager/payments"
           element={<ProtectedRoute role="MANAGER"><PaymentMgmtListPage /></ProtectedRoute>} />
         <Route path="/manager/payments/:id/verify"
@@ -393,9 +397,10 @@ function App() {
         <Route path="/admin/customers"
           element={<ProtectedRoute role="ADMIN"><CustomerDirectoryPage /></ProtectedRoute>} />
 
-        {/* Finance */}
+        {/* Finance — SCR-52 Payment Reconciliation deferred (mock VNPay demo).
         <Route path="/admin/payments/reconciliation"
           element={<ProtectedRoute role="ADMIN"><PaymentReconciliationPage /></ProtectedRoute>} />
+        */}
 
         {/* Operations */}
         <Route path="/admin/damage-escalation"

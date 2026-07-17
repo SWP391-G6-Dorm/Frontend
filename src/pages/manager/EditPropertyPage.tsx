@@ -1,4 +1,4 @@
-// EditPropertyPage.tsx — SCR-36: Edit Property
+// EditPropertyPage.tsx — Edit Property (NOT SCR-36; SCR-36 = Payment Management)
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';

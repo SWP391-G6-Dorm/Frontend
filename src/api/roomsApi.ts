@@ -75,12 +75,6 @@ export async function fetchRooms(params: FetchRoomsParams): Promise<RoomsPageRes
 }
 
 // SCR-39: Manager-only room list with full filter support
-/** @deprecated SCR-29 — dùng fetchManagerRoomsV1 thay thế */
-export async function fetchRoomsManager(params: FetchRoomsParams): Promise<RoomsPageResponse> {
-  const res = await api.get('/api/rooms/manager', { params });
-  return res.data.data;
-}
-
 /** SCR-29 — Manager room list (v1, property-scoped) */
 export async function fetchManagerRoomsV1(params: FetchRoomsParams): Promise<RoomsPageResponse> {
   const clean: Record<string, string | number> = {};
@@ -93,11 +87,6 @@ export async function fetchManagerRoomsV1(params: FetchRoomsParams): Promise<Roo
   if (params.roomType) clean.roomType = params.roomType;
   const res = await api.get('/api/v1/manager/rooms', { params: clean });
   return res.data.data;
-}
-
-// SCR-39: Delete room (only allowed if no active bookings)
-export async function deleteRoom(id: string): Promise<void> {
-  await api.delete(`/api/rooms/${id}`);
 }
 
 export async function fetchPropertyOptions(): Promise<PropertyOption[]> {
@@ -274,12 +263,6 @@ export interface UpdateRoomPayload {
   amenities?: string[];
 }
 
-/** @deprecated Use createRoomV1 */
-export async function createRoom(payload: CreateRoomPayload): Promise<RoomDetail> {
-  const res = await api.post('/api/rooms', payload);
-  return res.data.data;
-}
-
 export async function createRoomV1(payload: CreateRoomPayload): Promise<RoomDetail> {
   const res = await api.post('/api/v1/manager/rooms', payload);
   return res.data.data;
@@ -287,12 +270,6 @@ export async function createRoomV1(payload: CreateRoomPayload): Promise<RoomDeta
 
 export async function fetchManagerRoomV1(id: string): Promise<RoomDetail> {
   const res = await api.get(`/api/v1/manager/rooms/${id}`);
-  return res.data.data;
-}
-
-/** @deprecated Use updateRoomV1 */
-export async function updateRoom(id: string, payload: UpdateRoomPayload): Promise<RoomDetail> {
-  const res = await api.put(`/api/rooms/${id}`, payload);
   return res.data.data;
 }
 
@@ -307,15 +284,6 @@ export interface UpdateRoomStatusPayload {
   endDate?: string;
   reason?: string;
   note?: string;
-}
-
-/** @deprecated Use updateRoomStatusV1 */
-export async function updateRoomStatus(
-  id: string,
-  payload: UpdateRoomStatusPayload,
-): Promise<RoomDetail> {
-  const res = await api.patch(`/api/rooms/${id}/status`, payload);
-  return res.data.data;
 }
 
 export async function updateRoomStatusV1(
