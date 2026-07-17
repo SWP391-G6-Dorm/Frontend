@@ -16,22 +16,6 @@ export interface AdminUser {
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  /** SCR-50 — số property ACTIVE được gán (Manager). */
-  propertiesAssigned?: number | null;
-  /** SCR-51 — tổng đơn đặt phòng (Customer). */
-  totalBookings?: number | null;
-  /** SCR-51 — tổng chi tiêu PAID (Customer). */
-  totalSpend?: number | null;
-}
-
-export interface AdminCustomerBookingSummary {
-  id: string;
-  roomNumber: string;
-  propertyName: string;
-  checkInDate: string;
-  checkOutDate: string;
-  status: string;
-  totalAmount: number;
 }
 
 export interface PageResponse<T> {
@@ -84,16 +68,13 @@ export interface AdminDamageReport {
 
 export interface AdminComplaint {
   id: string;
-  customerId?: string | null;
+  customerId: string;
   customerName: string;
-  subject: string;
+  bookingId: string;
   description: string;
   status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'CLOSED';
-  resolution?: string | null;
+  resolution?: string;
   createdAt: string;
-  resolvedAt?: string | null;
-  /** @deprecated Entity không có booking — giữ optional để tránh crash FE cũ. */
-  bookingId?: string | null;
 }
 
 /** Banner promotion — khop entity Promotion / Manager PromotionItem (SCR-57/58) */
@@ -104,7 +85,6 @@ export interface Promotion {
   description?: string;
   ctaText: string;
   ctaUrl: string;
-  imageUrl?: string | null;
   colorTheme: string;
   isActive: boolean;
   sortOrder: number;
@@ -118,7 +98,6 @@ export interface PromotionPayload {
   description?: string;
   ctaText: string;
   ctaUrl: string;
-  imageUrl?: string;
   colorTheme: string;
   isActive: boolean;
   sortOrder: number;
@@ -196,15 +175,6 @@ export async function getAdminUserById(id: string): Promise<{ success: boolean; 
   return res.data;
 }
 
-/** GET /api/admin/users/{id}/bookings — SCR-51 drawer */
-export async function getAdminCustomerBookings(
-  id: string,
-  params?: { page?: number; size?: number },
-): Promise<{ success: boolean; data: PageResponse<AdminCustomerBookingSummary> }> {
-  const res = await api.get(`/api/admin/users/${id}/bookings`, { params });
-  return res.data;
-}
-
 /** PUT /api/admin/users/{id} — activate/deactivate user */
 export async function updateAdminUser(id: string, payload: { role?: string; status?: string }): Promise<{ success: boolean }> {
   const res = await api.put(`/api/admin/users/${id}`, payload);
@@ -236,27 +206,13 @@ export async function coApproveDamageReport(id: string, approvedFee: number): Pr
 // ── SCR-54: Complaint Management ──────────────────────────────────────────────
 
 /** GET /api/admin/complaints */
-export async function getAdminComplaints(params?: {
-  page?: number;
-  size?: number;
-  status?: string;
-  keyword?: string;
-}): Promise<{ success: boolean; data: PageResponse<AdminComplaint> }> {
+export async function getAdminComplaints(params?: { page?: number; size?: number; status?: string }): Promise<{ success: boolean; data: PageResponse<AdminComplaint> }> {
   const res = await api.get('/api/admin/complaints', { params });
   return res.data;
 }
 
-/** PUT /api/admin/complaints/{id}/status — Investigate / Resolve / Close */
-export async function updateAdminComplaintStatus(
-  id: string,
-  payload: { status: string; resolution?: string },
-): Promise<{ success: boolean; data: AdminComplaint; message?: string }> {
-  const res = await api.put(`/api/admin/complaints/${id}/status`, payload);
-  return res.data;
-}
-
-/** PATCH /api/admin/complaints/{id}/resolve — backward compatible */
-export async function resolveComplaint(id: string, resolution: string): Promise<{ success: boolean; data?: AdminComplaint }> {
+/** PATCH /api/admin/complaints/{id}/resolve */
+export async function resolveComplaint(id: string, resolution: string): Promise<{ success: boolean }> {
   const res = await api.patch(`/api/admin/complaints/${id}/resolve`, { resolution });
   return res.data;
 }

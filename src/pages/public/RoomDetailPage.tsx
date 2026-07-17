@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
 import Alert from '../../components/ui/Alert';
-import RoomGallery from '../../components/ui/RoomGallery';
-import RoomMiniCalendar, { canAttemptBooking, isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
+import ImageGallerySlider from '../../components/ui/ImageGallerySlider';
+import RoomMiniCalendar, { isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
 import {
   fetchRoomById,
   fetchRoomCalendar,
@@ -252,7 +252,7 @@ export default function RoomDetailPage() {
     ? room.amenities.map((a) => fixAmenityLabel(a))
     : ['WiFi', 'Điều hòa', 'Smart TV', 'Nước nóng'];
 
-  const canBook = canAttemptBooking(room.status);
+  const canBook = room.status === 'AVAILABLE';
   const displayReviews = reviews.length > 0 ? reviews : room.reviews ?? [];
 
   return (
@@ -269,7 +269,7 @@ export default function RoomDetailPage() {
         </div>
 
         <div style={{ marginBottom: 36 }}>
-          <RoomGallery images={galleryImages} alt={`${room.propertyName} – ${room.roomNumber}`} />
+          <ImageGallerySlider images={galleryImages} alt={room.roomNumber} />
         </div>
 
         <div className="room-detail-grid">
@@ -381,33 +381,33 @@ export default function RoomDetailPage() {
 
           {/* Booking panel — luôn hiển thị bên phải (desktop) / dưới nội dung (mobile) */}
           <div className="room-detail-booking">
-            <div className="card-lg room-booking-panel" style={{ padding: 28, boxShadow: '0 8px 24px rgba(32,32,32,0.08)' }}>
+            <div className="card-lg" style={{ padding: 28, boxShadow: '0 8px 24px rgba(32,32,32,0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 20 }}>
-                <span className="room-booking-price text-primary font-display">₫{price.toLocaleString('vi-VN')}</span>
+                <span className="display-md text-primary font-display">₫{price.toLocaleString('vi-VN')}</span>
                 <span className="body-md text-charcoal">/đêm</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-                <div style={{ minWidth: 0 }}>
-                  <label className="form-label" style={{ fontSize: 12 }} htmlFor="room-check-in">Nhận phòng</label>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontSize: 12 }}>Check-in</label>
                   <input
-                    id="room-check-in"
                     type="date"
                     className="input"
                     value={checkIn}
                     min={new Date().toISOString().slice(0, 10)}
                     onChange={(e) => { setCheckIn(e.target.value); setBookError(''); }}
+                    style={{ borderRadius: 10, height: 40, fontSize: 14 }}
                   />
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <label className="form-label" style={{ fontSize: 12 }} htmlFor="room-check-out">Trả phòng</label>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontSize: 12 }}>Check-out</label>
                   <input
-                    id="room-check-out"
                     type="date"
                     className="input"
                     value={checkOut}
                     min={checkIn || new Date().toISOString().slice(0, 10)}
                     onChange={(e) => { setCheckOut(e.target.value); setBookError(''); }}
+                    style={{ borderRadius: 10, height: 40, fontSize: 14 }}
                   />
                 </div>
               </div>
@@ -425,38 +425,37 @@ export default function RoomDetailPage() {
               )}
 
               <div style={{ marginBottom: 20 }}>
-                <label className="form-label" style={{ fontSize: 12 }} htmlFor="room-guests">Số khách</label>
+                <label className="form-label" style={{ fontSize: 12 }}>Số khách</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
                     type="button"
-                    className="room-booking-stepper-btn"
-                    aria-label="Giảm số khách"
+                    className="btn-outline"
+                    style={{ width: 40, height: 40, padding: 0, borderRadius: 10 }}
                     onClick={() => setGuests((g) => Math.max(1, g - 1))}
                     disabled={guests <= 1}
                   >
                     −
                   </button>
                   <input
-                    id="room-guests"
                     type="number"
                     min={1}
                     max={room.capacity}
-                    className="input room-booking-guest-input"
+                    className="input"
                     value={guests}
                     readOnly
-                    aria-label="Số khách"
+                    style={{ borderRadius: 10, height: 40, fontSize: 14, textAlign: 'center', flex: 1 }}
                   />
                   <button
                     type="button"
-                    className="room-booking-stepper-btn"
-                    aria-label="Tăng số khách"
+                    className="btn-outline"
+                    style={{ width: 40, height: 40, padding: 0, borderRadius: 10 }}
                     onClick={() => setGuests((g) => Math.min(room.capacity, g + 1))}
                     disabled={guests >= room.capacity}
                   >
                     +
                   </button>
                 </div>
-                <p className="body-sm text-charcoal" style={{ marginTop: 6, marginBottom: 0 }}>Tối đa {room.capacity} khách</p>
+                <p className="body-sm text-charcoal" style={{ marginTop: 6 }}>Tối đa {room.capacity} khách</p>
               </div>
 
               {nights > 0 && (
@@ -477,11 +476,11 @@ export default function RoomDetailPage() {
               )}
 
               {!canBook ? (
-                <Alert variant="warning" message="Phòng đang bảo trì / ngưng phục vụ / đang dọn — không thể đặt lúc này." />
+                <Alert variant="warning" message="Phòng hiện không khả dụng để đặt." />
               ) : !isAuthenticated || role !== 'CUSTOMER' ? (
                 <>
                   <button type="button" className="btn-primary" style={{ width: '100%', height: 44 }} onClick={handleBookNow}>
-                    Đặt phòng — Đăng nhập
+                    Book Now — Đăng nhập
                   </button>
                   <p className="body-sm text-charcoal" style={{ textAlign: 'center', marginTop: 12 }}>
                     Bạn cần tài khoản khách hàng để hoàn tất đặt phòng
@@ -496,9 +495,9 @@ export default function RoomDetailPage() {
                     onClick={handleBookNow}
                     disabled={!!dateError}
                   >
-                    Đặt phòng
+                    Book Now
                   </button>
-                  <p className="body-sm text-charcoal" style={{ textAlign: 'center', marginTop: 12, marginBottom: 0 }}>
+                  <p className="body-sm text-charcoal" style={{ textAlign: 'center', marginTop: 12 }}>
                     Cọc 40% để xác nhận đặt phòng
                   </p>
                 </>

@@ -120,7 +120,6 @@ function KanbanColumn({
 
 export default function HousekeepingTasksPage() {
   const [properties, setProperties] = useState<AssignedProperty[]>([]);
-  const [propLoading, setPropLoading] = useState(true);
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
   const [fromDate, setFromDate] = useState(daysAgoStr(6));
   const [toDate, setToDate] = useState(todayStr());
@@ -146,7 +145,6 @@ export default function HousekeepingTasksPage() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
-    setPropLoading(true);
     managerApi.getMyAssignedProperties()
       .then(res => {
         if (res.success && res.data) {
@@ -156,8 +154,7 @@ export default function HousekeepingTasksPage() {
           }
         }
       })
-      .catch(() => setError('Không thể tải danh sách homestay.'))
-      .finally(() => setPropLoading(false));
+      .catch(() => setError('Không thể tải danh sách homestay.'));
   }, []);
 
   const loadTasks = useCallback(() => {
@@ -303,8 +300,6 @@ export default function HousekeepingTasksPage() {
     ? drawerTask.status === 'COMPLETED' || drawerTask.status === 'CANCELLED'
     : true;
 
-  const showEmptyAssigned = !propLoading && properties.length === 0;
-
   return (
     <ManagerLayout>
       <div className="space-y-6">
@@ -318,7 +313,7 @@ export default function HousekeepingTasksPage() {
               </Link>
             </p>
           </div>
-          <button type="button" className="btn-primary" onClick={openCreateModal} disabled={showEmptyAssigned}>
+          <button type="button" className="btn-primary" onClick={openCreateModal}>
             Tạo tác vụ
           </button>
         </div>
@@ -328,93 +323,84 @@ export default function HousekeepingTasksPage() {
           <Alert variant="success" message={successMsg} closeable onClose={() => setSuccessMsg(null)} />
         )}
 
-        {showEmptyAssigned ? (
+        <div className="flex flex-wrap gap-3 items-end bg-white rounded-xl border border-[#E2E8F0] p-4">
+          <div className="min-w-[180px] flex-1 sm:max-w-xs">
+            <label className="block text-sm font-medium text-[#334155] mb-1">Homestay</label>
+            <select
+              className="input-field w-full"
+              value={selectedPropertyId}
+              onChange={e => setSelectedPropertyId(e.target.value)}
+            >
+              <option value="">— Chọn homestay —</option>
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#334155] mb-1">Từ ngày</label>
+            <input
+              type="date"
+              className="input-field"
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#334155] mb-1">Đến ngày</label>
+            <input
+              type="date"
+              className="input-field"
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {STATUS_FILTERS.map(f => (
+              <button
+                key={f.value}
+                type="button"
+                className={`px-3 py-1.5 text-sm rounded-full border ${
+                  statusFilter === f.value
+                    ? 'border-[#0F766E] bg-[#0F766E]/10 text-[#0F766E] font-semibold'
+                    : 'border-[#E2E8F0] text-[#64748B]'
+                }`}
+                onClick={() => setStatusFilter(f.value)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {!selectedPropertyId ? (
+          <div className="text-center py-16 text-[#64748B]">
+            Vui lòng chọn homestay để xem tác vụ dọn phòng.
+          </div>
+        ) : loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {BOARD_COLUMNS.map(col => (
+              <div key={col.key} className="h-64 bg-[#F1F5F9] rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : isEmpty ? (
           <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
-            <p className="text-[#64748B] m-0">Bạn chưa được gán homestay nào.</p>
+            <p className="text-[#64748B] mb-4">Không có tác vụ dọn phòng trong khoảng thời gian này.</p>
+            <button type="button" className="btn-primary" onClick={openCreateModal}>
+              Tạo tác vụ
+            </button>
           </div>
         ) : (
-          <>
-            <div className="flex flex-wrap gap-3 items-end bg-white rounded-xl border border-[#E2E8F0] p-4">
-              <div className="min-w-[180px] flex-1 sm:max-w-xs">
-                <label className="block text-sm font-medium text-[#334155] mb-1">Homestay</label>
-                <select
-                  className="input-field w-full"
-                  value={selectedPropertyId}
-                  onChange={e => setSelectedPropertyId(e.target.value)}
-                  disabled={propLoading}
-                >
-                  <option value="">— Chọn homestay —</option>
-                  {properties.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#334155] mb-1">Từ ngày</label>
-                <input
-                  type="date"
-                  className="input-field"
-                  value={fromDate}
-                  onChange={e => setFromDate(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#334155] mb-1">Đến ngày</label>
-                <input
-                  type="date"
-                  className="input-field"
-                  value={toDate}
-                  onChange={e => setToDate(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {STATUS_FILTERS.map(f => (
-                  <button
-                    key={f.value}
-                    type="button"
-                    className={`px-3 py-1.5 text-sm rounded-full border ${
-                      statusFilter === f.value
-                        ? 'border-[#0F766E] bg-[#0F766E]/10 text-[#0F766E] font-semibold'
-                        : 'border-[#E2E8F0] text-[#64748B]'
-                    }`}
-                    onClick={() => setStatusFilter(f.value)}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {!selectedPropertyId ? (
-              <div className="text-center py-16 text-[#64748B]">
-                Vui lòng chọn homestay để xem tác vụ dọn phòng.
-              </div>
-            ) : loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {BOARD_COLUMNS.map(col => (
-                  <div key={col.key} className="h-64 bg-[#F1F5F9] rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : isEmpty ? (
-              <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
-                <p className="text-[#64748B] mb-4">Không có tác vụ dọn phòng trong khoảng thời gian này.</p>
-                <button type="button" className="btn-primary" onClick={openCreateModal}>
-                  Tạo tác vụ
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col lg:flex-row gap-4 overflow-x-auto">
-                {BOARD_COLUMNS.map(col => (
-                  <KanbanColumn
-                    key={col.key}
-                    title={col.title}
-                    tasks={grouped[col.key]}
-                    onTaskClick={openDrawer}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+          <div className="flex flex-col lg:flex-row gap-4 overflow-x-auto">
+            {BOARD_COLUMNS.map(col => (
+              <KanbanColumn
+                key={col.key}
+                title={col.title}
+                tasks={grouped[col.key]}
+                onTaskClick={openDrawer}
+              />
+            ))}
+          </div>
         )}
       </div>
 

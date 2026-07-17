@@ -6,23 +6,6 @@ export interface BookedRange {
 
 export type DayStatus = 'past' | 'available' | 'pending' | 'reserved' | 'occupied' | 'maintenance';
 
-/** Ops statuses that block booking for any dates (Spec FR-04). */
-const OPS_BLOCKED_ROOM_STATUSES = new Set([
-  'MAINTENANCE',
-  'OUT_OF_SERVICE',
-  'PENDING_CLEANING',
-  'CLEANING_IN_PROGRESS',
-]);
-
-export function isRoomOpsBlocked(roomStatus: string): boolean {
-  return OPS_BLOCKED_ROOM_STATUSES.has((roomStatus ?? '').toUpperCase());
-}
-
-/** True when room can accept new bookings for some date range (not ops-blocked). */
-export function canAttemptBooking(roomStatus: string): boolean {
-  return !isRoomOpsBlocked(roomStatus);
-}
-
 /** Màu ô lịch theo SCR-08 / SCR-10 design spec */
 export const DAY_STYLES: Record<DayStatus, { bg: string; color: string; label: string }> = {
   past: { bg: 'transparent', color: 'var(--stone)', label: 'Đã qua' },
@@ -56,15 +39,19 @@ export function statusForDay(dateKeyStr: string, ranges: BookedRange[], roomStat
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   if (day < today) return 'past';
-  if (isRoomOpsBlocked(roomStatus)) {
+  if (
+    roomStatus === 'MAINTENANCE' ||
+    roomStatus === 'OUT_OF_SERVICE' ||
+    roomStatus === 'PENDING_CLEANING' ||
+    roomStatus === 'CLEANING_IN_PROGRESS'
+  ) {
     return 'maintenance';
   }
 
   for (const range of ranges) {
     const start = parseLocalDate(range.checkIn);
     const end = parseLocalDate(range.checkOut);
-    // Inventory includes checkout day (1-day turnover buffer); billing nights stay half-open
-    if (day >= start && day <= end) {
+    if (day >= start && day < end) {
       const st = range.bookingStatus?.toUpperCase() ?? '';
       if (st === 'PENDING_DEPOSIT') return 'pending';
       if (st === 'CHECKED_IN') return 'occupied';
@@ -81,13 +68,11 @@ export function isRangeAvailable(
   ranges: BookedRange[],
   roomStatus: string,
 ): boolean {
-  // Inventory is date-range based — do NOT require Room.status === AVAILABLE
-  if (isRoomOpsBlocked(roomStatus)) return false;
+  if (roomStatus !== 'AVAILABLE') return false;
   if (!checkIn || !checkOut || checkOut <= checkIn) return false;
   const start = parseLocalDate(checkIn);
   const end = parseLocalDate(checkOut);
-  // New booking locks [checkIn, checkOut] inclusive — all those days must be free
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+  for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
     const key = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
     if (statusForDay(key, ranges, roomStatus) !== 'available') return false;
   }

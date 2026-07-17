@@ -4,7 +4,6 @@ import CustomerLayout from '../../layouts/CustomerLayout';
 import Alert from '../../components/ui/Alert';
 import { bookingApi } from '../../api/bookingApi';
 import { fetchRoomById, type RoomDetail } from '../../api/roomsApi';
-import { canAttemptBooking } from '../../utils/roomCalendar';
 
 function formatVnd(amount: number) {
   return `${amount.toLocaleString('vi-VN')} ₫`;
@@ -64,7 +63,7 @@ export default function BookingFormPage() {
   const pricePerNight = room?.pricePerNight ?? 0;
   const totalAmount = nights * pricePerNight;
   const depositAmount = totalAmount * 0.4;
-  const canBook = room ? canAttemptBooking(room.status) : false;
+  const canBook = room?.status === 'AVAILABLE';
   const imageUrl = room ? roomImageUrl(room) : '';
 
   function validate() {
@@ -100,13 +99,7 @@ export default function BookingFormPage() {
         guestCount: form.guestCount,
         specialRequests: form.specialRequests || undefined,
       });
-      const bookingId = res.data.id || res.data.bookingId;
-      if (!bookingId) {
-        setApiError('Đặt phòng thành công nhưng thiếu mã booking. Vui lòng mở Đặt phòng của tôi.');
-        return;
-      }
-      // SCR-16 → SCR-20 Order Review & Payment
-      navigate(`/customer/payments/${bookingId}/pay`);
+      navigate(`/customer/bookings/${res.data.id}`);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setApiError(axiosErr?.response?.data?.message ?? 'Đặt phòng thất bại. Vui lòng thử lại.');
@@ -152,10 +145,7 @@ export default function BookingFormPage() {
 
         {!canBook && (
           <div style={{ marginBottom: 16 }}>
-            <Alert
-              variant="warning"
-              message="Phòng đang bảo trì / ngưng phục vụ / đang dọn — không thể đặt lúc này."
-            />
+            <Alert variant="warning" message="Phòng hiện không khả dụng để đặt. Vui lòng chọn phòng khác." />
           </div>
         )}
 
@@ -223,7 +213,7 @@ export default function BookingFormPage() {
             <div style={{ marginBottom: 20 }}>
               <Alert
                 variant="info"
-                message="Sau khi xác nhận, bạn sẽ chuyển sang màn xem lại đơn và thanh toán cọc 40% qua VNPay (giữ chỗ 10 phút)."
+                message="Sau khi xác nhận đặt phòng, bạn cần thanh toán cọc 40% để giữ chỗ. Hợp đồng sẽ được gửi qua email sau khi thanh toán thành công."
               />
             </div>
 
@@ -233,7 +223,7 @@ export default function BookingFormPage() {
                 className="btn-primary"
                 disabled={submitting || nights === 0 || !canBook}
               >
-                {submitting ? 'Đang xử lý...' : 'Continue to Payment'}
+                {submitting ? 'Đang xử lý...' : 'Xác nhận đặt phòng'}
               </button>
               <Link to={`/rooms/${roomId}`} className="btn-ghost">Hủy</Link>
             </div>

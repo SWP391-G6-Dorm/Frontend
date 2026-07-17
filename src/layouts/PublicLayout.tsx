@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 const NAV_LINKS = [
-  { label: 'Home', path: '/' },
   { label: 'Rooms', path: '/rooms' },
+  { label: 'Properties', path: '/#properties' },
   { label: 'About', path: '/about' },
 ];
 
@@ -12,10 +12,10 @@ const FOOTER_COLUMNS = [
   {
     title: 'Explore',
     links: [
-      { label: 'Browse Rooms', to: '/rooms' },
+      { label: 'Rooms', to: '/rooms' },
       { label: 'Homestay', to: '/rooms' },
       { label: 'Resort & Villa', to: '/rooms' },
-      { label: 'Destinations', to: '/#properties' },
+      { label: 'Best Deals', to: '/rooms' },
     ],
   },
   {
@@ -23,14 +23,14 @@ const FOOTER_COLUMNS = [
     links: [
       { label: 'Help Center', to: '/about' },
       { label: 'Contact Us', to: '/about' },
-      { label: 'Send Feedback', to: '/about' },
+      { label: 'Report Issue', to: '/about' },
       { label: 'FAQ', to: '/about' },
     ],
   },
   {
     title: 'Company',
     links: [
-      { label: 'About Us', to: '/about' },
+      { label: 'About', to: '/about' },
       { label: 'Privacy Policy', to: '/about' },
       { label: 'Terms of Service', to: '/about' },
       { label: 'Careers', to: '/about' },
@@ -39,7 +39,7 @@ const FOOTER_COLUMNS = [
 ];
 
 const FOOTER_BOTTOM_LINKS = [
-  { label: 'Privacy', to: '/about' },
+  { label: 'Privacy Policy', to: '/about' },
   { label: 'Terms', to: '/about' },
   { label: 'Sitemap', to: '/' },
 ];

@@ -51,25 +51,11 @@ export interface BookingDetailResponse {
   totalAmount: number;
   depositAmount: number;
   remainingAmount: number;
-  damageFeeAmount?: number;
-  /** ISO datetime — deposit hold window (SCR-20 countdown) */
-  holdExpiresAt?: string | null;
-  cancelReason?: string | null;
   status: string;
   specialRequests: string;
   createdAt: string;
   isReviewed?: boolean;
   payments?: BookingPaymentInfo[];
-}
-
-/** POST /api/v1/bookings (SCR-16) — may return slim or full booking shape */
-export interface CreateBookingResponse {
-  id?: string;
-  bookingId?: string;
-  totalAmount: number;
-  depositAmount: number;
-  status: string;
-  holdExpiresAt?: string | null;
 }
 
 export interface PageResponse<T> {
@@ -101,9 +87,7 @@ export const bookingApi = {
     const res = await api.get('/api/bookings/my-active');
     return res.data;
   },
-  createBooking: async (
-    payload: CreateBookingPayload,
-  ): Promise<{ success: boolean; message: string; data: CreateBookingResponse & Partial<BookingDetailResponse> }> => {
+  createBooking: async (payload: CreateBookingPayload): Promise<{ success: boolean; message: string; data: BookingDetailResponse }> => {
     const res = await api.post('/api/v1/bookings', payload);
     return res.data;
   },

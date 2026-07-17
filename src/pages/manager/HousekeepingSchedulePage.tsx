@@ -140,7 +140,6 @@ function ScheduleColumn({
 
 export default function HousekeepingSchedulePage() {
   const [properties, setProperties] = useState<AssignedProperty[]>([]);
-  const [propLoading, setPropLoading] = useState(true);
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [schedule, setSchedule] = useState<HousekeepingSchedule | null>(null);
@@ -150,16 +149,13 @@ export default function HousekeepingSchedulePage() {
   const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
-    setPropLoading(true);
     managerApi.getMyAssignedProperties().then(res => {
       const list = res.data ?? [];
       setProperties(list);
       if (list.length > 0) {
         setSelectedPropertyId(prev => prev || list[0].id);
       }
-    })
-    .catch(() => setLoadError('Không thể tải danh sách homestay.'))
-    .finally(() => setPropLoading(false));
+    }).catch(() => setLoadError('Không thể tải danh sách homestay.'));
   }, []);
 
   const loadSchedule = useCallback(async () => {
@@ -209,8 +205,6 @@ export default function HousekeepingSchedulePage() {
     && summary.inProgress === 0
     && summary.completed === 0;
 
-  const showEmptyAssigned = !propLoading && properties.length === 0;
-
   return (
     <ManagerLayout>
       <div className="space-y-6">
@@ -236,96 +230,87 @@ export default function HousekeepingSchedulePage() {
           <Alert variant="error" message={actionError} closeable onClose={() => setActionError(null)} />
         )}
 
-        {showEmptyAssigned ? (
-          <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-12 text-center">
-            <p className="text-[#64748B] m-0">Bạn chưa được gán homestay nào.</p>
+        <div className="flex flex-wrap gap-3 items-end bg-white rounded-[16px] border border-[#E2E8F0] p-4">
+          <div className="min-w-[200px]">
+            <label className="form-label" htmlFor="hk-property">Homestay</label>
+            <select
+              id="hk-property"
+              className="input w-full"
+              value={selectedPropertyId}
+              onChange={e => setSelectedPropertyId(e.target.value)}
+            >
+              {properties.length === 0 && <option value="">— Chưa có homestay —</option>}
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </div>
-        ) : (
+          <div>
+            <label className="form-label" htmlFor="hk-date">Ngày</label>
+            <input
+              id="hk-date"
+              type="date"
+              className="input"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn-outline btn-sm"
+            onClick={loadSchedule}
+            disabled={loading || assigning}
+          >
+            Làm mới
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-pulse">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-20 bg-[#E2E8F0] rounded-[12px]" />
+            ))}
+          </div>
+        ) : schedule && summary && (
           <>
-            <div className="flex flex-wrap gap-3 items-end bg-white rounded-[16px] border border-[#E2E8F0] p-4">
-              <div className="min-w-[200px]">
-                <label className="form-label" htmlFor="hk-property">Homestay</label>
-                <select
-                  id="hk-property"
-                  className="input w-full"
-                  value={selectedPropertyId}
-                  onChange={e => setSelectedPropertyId(e.target.value)}
-                  disabled={propLoading}
-                >
-                  {properties.length === 0 && <option value="">— Chưa có homestay —</option>}
-                  {properties.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="form-label" htmlFor="hk-date">Ngày</label>
-                <input
-                  id="hk-date"
-                  type="date"
-                  className="input"
-                  value={selectedDate}
-                  onChange={e => setSelectedDate(e.target.value)}
-                />
-              </div>
-              <button
-                type="button"
-                className="btn-outline btn-sm"
-                onClick={loadSchedule}
-                disabled={loading || assigning}
-              >
-                Làm mới
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <KpiCard label="Chờ xử lý" value={summary.pending} accent="text-amber-600" />
+              <KpiCard label="Đang dọn" value={summary.inProgress} accent="text-blue-600" />
+              <KpiCard label="Hoàn tất" value={summary.completed} accent="text-emerald-600" />
+              <KpiCard label="Chưa gán" value={summary.unassigned} accent="text-[#1E293B]" />
             </div>
 
-            {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-pulse">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-20 bg-[#E2E8F0] rounded-[12px]" />
-                ))}
+            {isEmpty ? (
+              <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-12 text-center">
+                <p className="text-[#64748B]">Không có tác vụ dọn phòng trong ngày này.</p>
+                <p className="text-xs text-[#94A3B8] mt-2">
+                  Tác vụ được tạo tự động sau khi khách trả phòng (check-out).
+                </p>
               </div>
-            ) : schedule && summary && (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <KpiCard label="Chờ xử lý" value={summary.pending} accent="text-amber-600" />
-                  <KpiCard label="Đang dọn" value={summary.inProgress} accent="text-blue-600" />
-                  <KpiCard label="Hoàn tất" value={summary.completed} accent="text-emerald-600" />
-                  <KpiCard label="Chưa gán" value={summary.unassigned} accent="text-[#1E293B]" />
+            ) : (
+              <div className="overflow-x-auto pb-2">
+                <div className="flex gap-4 min-w-max">
+                  <ScheduleColumn
+                    title="Chưa gán"
+                    subtitle={`${schedule.unassigned.length} tác vụ`}
+                    tasks={schedule.unassigned}
+                    onAssign={handleAssign}
+                    onDragStart={() => {}}
+                    dragMessage="Chỉ kéo sang cột nhân viên để gán"
+                  />
+                  {schedule.employees.map(emp => (
+                    <ScheduleColumn
+                      key={emp.employeeId}
+                      title={emp.employeeName}
+                      subtitle={`${emp.tasks.length} tác vụ`}
+                      tasks={emp.tasks}
+                      employeeId={emp.employeeId}
+                      onAssign={handleAssign}
+                      onDragStart={() => {}}
+                    />
+                  ))}
                 </div>
-
-                {isEmpty ? (
-                  <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-12 text-center">
-                    <p className="text-[#64748B]">Không có tác vụ dọn phòng trong ngày này.</p>
-                    <p className="text-xs text-[#94A3B8] mt-2">
-                      Tác vụ được tạo tự động sau khi khách trả phòng (check-out).
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto pb-2">
-                    <div className="flex gap-4 min-w-max">
-                      <ScheduleColumn
-                        title="Chưa gán"
-                        subtitle={`${schedule.unassigned.length} tác vụ`}
-                        tasks={schedule.unassigned}
-                        onAssign={handleAssign}
-                        onDragStart={() => {}}
-                        dragMessage="Chỉ kéo sang cột nhân viên để gán"
-                      />
-                      {schedule.employees.map(emp => (
-                        <ScheduleColumn
-                          key={emp.employeeId}
-                          title={emp.employeeName}
-                          subtitle={`${emp.tasks.length} tác vụ`}
-                          tasks={emp.tasks}
-                          employeeId={emp.employeeId}
-                          onAssign={handleAssign}
-                          onDragStart={() => {}}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
+              </div>
             )}
           </>
         )}
