@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 
 // ── Route Guards ─────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/ProtectedRoute';
@@ -53,18 +53,13 @@ import { CustomerComplaintListPage, CreateComplaintPage }
 
 // ── Manager Portal ────────────────────────────────────────────────────────────
 import ManagerDashboardPage from './pages/manager/ManagerDashboardPage';
-import PropertyListPage from './pages/manager/PropertyListPage';
 import PropertyDetailPage from './pages/manager/PropertyDetailPage';
-import AddPropertyPage from './pages/manager/AddPropertyPage';
-import EditPropertyPage from './pages/manager/EditPropertyPage';
 import StructureTreePage from './pages/manager/StructureTreePage';
 import FloorManagementPage from './pages/manager/FloorManagementPage';
 import RoomListPage from './pages/manager/RoomListPage';
 import RoomDetailMgmtPage from './pages/manager/RoomDetailMgmtPage';
 import AddRoomPage from './pages/manager/AddRoomPage';
 import EditRoomPage from './pages/manager/EditRoomPage';
-import RoomGalleryPage from './pages/manager/RoomGalleryPage';
-import RoomStatusPage from './pages/manager/RoomStatusPage';
 import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
 import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
 import BookingCheckInOutPage from './pages/manager/BookingCheckInOutPage';
@@ -127,6 +122,12 @@ function CatchAllRedirect() {
   if (role === 'ADMIN')    return <Navigate to="/admin/dashboard"    replace />;
   if (role === 'EMPLOYEE') return <Navigate to="/employee/dashboard" replace />;
   return <Navigate to="/" replace />;
+}
+
+/** Legacy SCR-32/33 dedicated pages → SCR-31 tabs */
+function LegacyRoomTabRedirect({ tab }: { tab: 'gallery' | 'status' }) {
+  const { id } = useParams();
+  return <Navigate to={`/manager/rooms/${id}/edit?tab=${tab}`} replace />;
 }
 
 function App() {
@@ -238,15 +239,11 @@ function App() {
         <Route path="/manager/notifications/:id"
           element={<ProtectedRoute role="MANAGER"><NotificationDetailPage /></ProtectedRoute>} />
 
-        {/* Properties (SCR-33,34,35,36) */}
+        {/* Property (FR-06 read-only detail + selector khi nhiều property) */}
         <Route path="/manager/properties"
-          element={<ProtectedRoute role="MANAGER"><PropertyListPage /></ProtectedRoute>} />
-        <Route path="/manager/properties/add"
-          element={<ProtectedRoute role="MANAGER"><AddPropertyPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><PropertyDetailPage /></ProtectedRoute>} />
         <Route path="/manager/properties/:id"
           element={<ProtectedRoute role="MANAGER"><PropertyDetailPage /></ProtectedRoute>} />
-        <Route path="/manager/properties/:id/edit"
-          element={<ProtectedRoute role="MANAGER"><EditPropertyPage /></ProtectedRoute>} />
 
         {/* Structure (SCR-37,38) */}
         <Route path="/manager/structure"
@@ -263,10 +260,11 @@ function App() {
           element={<ProtectedRoute role="MANAGER"><RoomDetailMgmtPage /></ProtectedRoute>} />
         <Route path="/manager/rooms/:id/edit"
           element={<ProtectedRoute role="MANAGER"><EditRoomPage /></ProtectedRoute>} />
+        {/* Legacy SCR-32/33 → SCR-31 tabs */}
         <Route path="/manager/rooms/:id/gallery"
-          element={<ProtectedRoute role="MANAGER"><RoomGalleryPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><LegacyRoomTabRedirect tab="gallery" /></ProtectedRoute>} />
         <Route path="/manager/rooms/:id/status"
-          element={<ProtectedRoute role="MANAGER"><RoomStatusPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><LegacyRoomTabRedirect tab="status" /></ProtectedRoute>} />
 
         {/* Bookings (SCR-45,46) */}
         <Route path="/manager/bookings"

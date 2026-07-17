@@ -416,7 +416,7 @@ export default function FloorManagementPage() {
         style={{ marginBottom: 24, color: 'var(--charcoal)' }}
       >
         <Link to="/manager/properties" className="text-primary" style={{ textDecoration: 'none' }}>
-          Properties
+          My Property
         </Link>
         <span style={{ color: 'var(--stone)' }}>/</span>
         <span>Floor Management</span>
