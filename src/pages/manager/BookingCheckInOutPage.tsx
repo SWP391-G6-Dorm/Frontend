@@ -25,6 +25,17 @@ const STATUS_VI: Record<string, { label: string; variant: StatusVariant }> = {
   NO_SHOW:                { label: 'Không đến',                variant: 'danger' },
 };
 
+/** Spec giữ PENDING_DAMAGE_PAYMENT đến check-out; nhãn đổi khi phí đã PAID. */
+function resolveBookingStatus(
+  status: string,
+  damageFeePaid?: boolean,
+): { label: string; variant: StatusVariant } {
+  if (status === 'PENDING_DAMAGE_PAYMENT' && damageFeePaid) {
+    return { label: 'Sẵn sàng trả phòng', variant: 'warning' };
+  }
+  return STATUS_VI[status] ?? { label: status, variant: 'neutral' };
+}
+
 function formatVnd(value: number | undefined): string {
   if (value == null) return '—';
   return new Intl.NumberFormat('vi-VN').format(value) + ' ₫';
@@ -189,6 +200,7 @@ export default function BookingCheckInOutPage() {
   const [depositCollected, setDepositCollected] = useState(false);
   const [keyReturned, setKeyReturned] = useState(false);
   const [depositRefunded, setDepositRefunded] = useState(false);
+  const [damageFeeCollected, setDamageFeeCollected] = useState(false);
   const [note, setNote] = useState('');
 
   const loadBooking = useCallback(async () => {
@@ -280,12 +292,17 @@ export default function BookingCheckInOutPage() {
       setSubmitError('Vui lòng xác nhận đã nhận lại chìa khóa.');
       return;
     }
+    if (isDamageUnpaid(booking) && !damageFeeCollected) {
+      setSubmitError('Phải thu phí thiệt hại tại quầy (tick bên dưới) hoặc khách trả online trước khi Check-out.');
+      return;
+    }
 
     setSubmitting(true);
     try {
       const result = await checkOutBookingV1(id, {
         keyReturned: true,
         depositRefunded,
+        damageFeeCollected: isDamageUnpaid(booking) ? damageFeeCollected : undefined,
         note: note.trim() || undefined,
       });
 
@@ -303,12 +320,16 @@ export default function BookingCheckInOutPage() {
   }
 
   const statusCfg = booking
-    ? STATUS_VI[booking.status] ?? { label: booking.status, variant: 'neutral' as StatusVariant }
+    ? resolveBookingStatus(
+        booking.status,
+        booking.damageFeePaid ?? ((booking.damageFeeAmount ?? 0) > 0 && !isDamageUnpaid(booking)),
+      )
     : null;
 
   const title = isCheckIn ? 'Check-in Guest' : 'Check-out Guest';
   const breadcrumbAction = isCheckIn ? 'Check-in' : 'Check-out';
   const showRemainingCheckbox = Boolean(booking && isCheckIn && isRemainingUnpaid(booking));
+  const showDamageCheckbox = Boolean(booking && !isCheckIn && isDamageUnpaid(booking));
 
   const checkInBlocked = Boolean(booking && isCheckIn && !booking.canCheckIn);
   const inspectionWaiting = Boolean(
@@ -316,11 +337,15 @@ export default function BookingCheckInOutPage() {
       && (booking.checkOutBlockedReason?.includes('kiểm tra') || booking.checkOutBlockedReason?.includes('Inspection')),
   );
   const unpaidBlocking = Boolean(
-    booking && !isCheckIn && (
-      isRemainingUnpaid(booking) || isDamageUnpaid(booking) || booking.status === 'PENDING_DAMAGE_PAYMENT'
-    ),
+    booking && !isCheckIn && isRemainingUnpaid(booking),
   );
-  const checkOutBlocked = Boolean(booking && !isCheckIn && !booking.canCheckOut);
+  const checkOutBlocked = Boolean(
+    booking && !isCheckIn && !booking.canCheckOut && !showDamageCheckbox,
+  );
+  const checkOutCanSubmit = Boolean(
+    booking && !checkOutBlocked && !inspectionWaiting && !unpaidBlocking && keyReturned
+      && (!showDamageCheckbox || damageFeeCollected) && !submitting,
+  );
   const checkInCanSubmit = Boolean(
     booking && !checkInBlocked && idCardFront && idCardBack && keyHandedOver
       && (!showRemainingCheckbox || depositCollected) && !submitting,
@@ -517,23 +542,37 @@ export default function BookingCheckInOutPage() {
                   {unpaidBlocking && (
                     <Alert
                       variant="error"
-                      message={
-                        booking.status === 'PENDING_DAMAGE_PAYMENT' || isDamageUnpaid(booking)
-                          ? 'Còn khoản Damage Fee chưa thanh toán — không thể trả phòng.'
-                          : 'Còn khoản Remaining chưa thanh toán — không thể trả phòng.'
-                      }
+                      message="Còn khoản Remaining chưa thanh toán — không thể trả phòng."
                     />
                   )}
-                  {checkOutBlocked && booking.checkOutBlockedReason && !inspectionWaiting && !unpaidBlocking && (
+                  {showDamageCheckbox && (
+                    <Alert
+                      variant="warning"
+                      message="Phí thiệt hại chưa PAID — thu tại quầy (tick bên dưới) hoặc khách trả VNPay. Hệ thống sẽ ghi Payment DAMAGE_FEE = PAID (CASH)."
+                    />
+                  )}
+                  {checkOutBlocked && booking.checkOutBlockedReason && !inspectionWaiting && !unpaidBlocking && !showDamageCheckbox && (
                     <Alert variant="warning" message={booking.checkOutBlockedReason} />
                   )}
-                  {!checkOutBlocked && booking.status === 'PENDING_INSPECTION' && (
+                  {!checkOutBlocked && booking.status === 'PENDING_INSPECTION' && !showDamageCheckbox && (
                     <Alert variant="info" message="Kiểm tra phòng đã PASSED. Xác nhận chìa khóa để hoàn tất trả phòng." />
                   )}
                   {!checkOutBlocked && booking.status === 'CHECKED_IN' && (
                     <Alert variant="info" message="Xác nhận sẽ chuyển booking sang chờ kiểm tra phòng (Pending Inspection)." />
                   )}
+                  {booking.status === 'PENDING_DAMAGE_PAYMENT' && !showDamageCheckbox && (
+                    <Alert variant="info" message="Phí thiệt hại đã thanh toán. Xác nhận chìa khóa để hoàn tất trả phòng." />
+                  )}
 
+                  {showDamageCheckbox && (
+                    <Checkbox
+                      id="damage-fee-collected"
+                      label={`Đã thu đủ phí thiệt hại (${formatVnd(booking.damageFeeAmount)}) tại quầy — sẽ ghi nhận Payment PAID (CASH)`}
+                      checked={damageFeeCollected}
+                      onChange={e => setDamageFeeCollected(e.target.checked)}
+                      disabled={checkOutBlocked || submitting}
+                    />
+                  )}
                   <Checkbox
                     id="key-returned"
                     label="Đã nhận lại chìa khóa"
@@ -565,7 +604,7 @@ export default function BookingCheckInOutPage() {
                     <button
                       type="submit"
                       className="btn-primary"
-                      disabled={checkOutBlocked || submitting || !keyReturned}
+                      disabled={!checkOutCanSubmit}
                     >
                       {submitting ? 'Đang xử lý…' : 'Confirm Check-out'}
                     </button>

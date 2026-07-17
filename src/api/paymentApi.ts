@@ -92,7 +92,7 @@ export const paymentApi = {
    */
   createVnpayUrl: async (
     bookingId: string,
-    type: 'DEPOSIT' | 'REMAINING_BALANCE' = 'DEPOSIT',
+    type: 'DEPOSIT' | 'REMAINING_BALANCE' | 'DAMAGE_FEE' = 'DEPOSIT',
   ): Promise<{ success: boolean; data: { paymentUrl: string }; message?: string }> => {
     if (type === 'DEPOSIT') {
       const res = await api.post('/api/v1/payments/vnpay', { bookingId });

@@ -76,10 +76,16 @@ export interface AdminDamageReport {
   propertyName: string;
   reportedBy: string;
   totalFee: number;
+  /** Manager-proposed fee after SCR-43 escalate. */
+  approvedAmount?: number | null;
   status: 'ESCALATED' | 'APPROVED' | 'PENDING_REVIEW';
+  managerNote?: string | null;
+  managerName?: string | null;
+  requiresAdminEscalation?: boolean;
   items: { name: string; estimatedCost: number }[];
-  attachments: { url: string; type: string }[];
+  attachments: { url: string; type?: string; fileName?: string | null }[];
   createdAt: string;
+  escalatedAt?: string | null;
 }
 
 export interface AdminComplaint {
@@ -221,15 +227,18 @@ export async function getPaymentReconciliation(params?: { status?: string; page?
 
 // ── SCR-53: Damage Escalation ──────────────────────────────────────────────────
 
-/** GET /api/admin/damage-reports?status=ESCALATED */
+/** Docs: GET /api/v1/admin/damage-reports/escalated (legacy /api/admin dual-mapped on BE). */
 export async function getEscalatedDamageReports(params?: { page?: number; size?: number }): Promise<{ success: boolean; data: PageResponse<AdminDamageReport> }> {
-  const res = await api.get('/api/admin/damage-reports', { params: { status: 'ESCALATED', ...params } });
+  const res = await api.get('/api/v1/admin/damage-reports/escalated', { params });
   return res.data;
 }
 
-/** PATCH /api/admin/damage-reports/{id}/co-approve */
-export async function coApproveDamageReport(id: string, approvedFee: number): Promise<{ success: boolean }> {
-  const res = await api.patch(`/api/admin/damage-reports/${id}/co-approve`, { approvedFee });
+/** Docs: POST .../{id}/approve body { approvedFee?, note? }. */
+export async function coApproveDamageReport(
+  id: string,
+  payload: { approvedFee?: number; note?: string },
+): Promise<{ success: boolean; data?: AdminDamageReport }> {
+  const res = await api.post(`/api/v1/admin/damage-reports/${id}/approve`, payload);
   return res.data;
 }
 
