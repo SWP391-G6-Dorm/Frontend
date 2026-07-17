@@ -13,26 +13,7 @@ import {
 import { floorApi, type FloorSummary } from '../../api/floorApi';
 import RoomGalleryTab from './tabs/RoomGalleryTab';
 import RoomStatusTab from './tabs/RoomStatusTab';
-
-const AMENITY_OPTIONS = [
-  'WiFi',
-  'Điều hòa',
-  'Hồ bơi riêng',
-  'Bếp',
-  'Bếp nhỏ',
-  'View biển',
-  'Bãi đỗ xe',
-  'Minibar',
-  'Ban công',
-  'Smart TV',
-  'TV',
-  'Room service',
-  'Tủ lạnh',
-  'Bàn làm việc',
-  'Máy giặt',
-  'Nước nóng',
-  'Tủ quần áo',
-] as const;
+import { AMENITY_OPTIONS, fixAmenityLabels } from '../../utils/amenities';
 
 type TabKey = 'info' | 'gallery' | 'status';
 
@@ -138,7 +119,7 @@ export default function EditRoomPage() {
       area: room.area ? String(room.area) : '',
       description: room.description ?? '',
     });
-    setAmenities(room.amenities ?? []);
+    setAmenities(fixAmenityLabels(room.amenities));
 
     if (room.propertyId) {
       setFloorsLoading(true);
@@ -261,7 +242,16 @@ export default function EditRoomPage() {
               {room.roomType ? ` · ${room.roomType}` : ''}
             </p>
           </div>
-          <Link to={`/manager/rooms/${id}`} className="btn-ghost btn-sm shrink-0">
+          <Link
+            to={`/manager/rooms/${id}`}
+            className="btn-outline btn-sm shrink-0"
+            style={{
+              borderRadius: 9999,
+              borderColor: 'var(--primary)',
+              color: 'var(--primary)',
+              background: 'rgba(15, 118, 110, 0.06)',
+            }}
+          >
             ← Quay lại
           </Link>
         </div>
