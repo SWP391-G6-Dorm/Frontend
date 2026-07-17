@@ -20,6 +20,17 @@ const STATUS_VI: Record<string, { label: string; variant: StatusVariant }> = {
   NO_SHOW:                { label: 'Không đến',                    variant: 'danger' },
 };
 
+/** Spec: status stays PENDING_DAMAGE_PAYMENT until check-out; label changes after fee is PAID. */
+function resolveStatusBadge(
+  status: string,
+  damageFeePaid?: boolean,
+): { label: string; variant: StatusVariant } {
+  if (status === 'PENDING_DAMAGE_PAYMENT' && damageFeePaid) {
+    return { label: 'Sẵn sàng trả phòng', variant: 'warning' };
+  }
+  return STATUS_VI[status] ?? { label: status, variant: 'neutral' };
+}
+
 const PAYMENT_TYPE_VI: Record<string, string> = {
   DEPOSIT: 'Đặt cọc',
   REMAINING_BALANCE: 'Phần còn lại',
@@ -182,8 +193,12 @@ export default function BookingMgmtDetailPage() {
     );
   }
 
+  const damageFeePaid = Boolean(
+    booking?.damageFeePaid
+    || (booking?.payments ?? []).some(p => p.type === 'DAMAGE_FEE' && p.status === 'PAID'),
+  );
   const statusCfg = booking
-    ? STATUS_VI[booking.status] ?? { label: booking.status, variant: 'neutral' as StatusVariant }
+    ? resolveStatusBadge(booking.status, damageFeePaid)
     : null;
 
   const nights = booking

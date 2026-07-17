@@ -52,6 +52,8 @@ export interface BookingDetailResponse {
   depositAmount: number;
   remainingAmount: number;
   damageFeeAmount?: number;
+  /** True when DAMAGE_FEE payment is PAID (booking may still be PENDING_DAMAGE_PAYMENT until check-out). */
+  damageFeePaid?: boolean;
   /** ISO datetime — deposit hold window (SCR-20 countdown) */
   holdExpiresAt?: string | null;
   cancelReason?: string | null;
@@ -145,6 +147,7 @@ export async function fetchManagerBookingsV1(
 
 export interface ManagerBookingDetail extends BookingDetailResponse {
   damageFeeAmount?: number;
+  damageFeePaid?: boolean;
   canCheckIn?: boolean;
   canCheckOut?: boolean;
   checkOutBlockedReason?: string | null;
@@ -192,6 +195,8 @@ export interface ManagerCheckInForm {
 
 export interface ManagerCheckOutPayload {
   depositRefunded?: boolean;
+  /** true = thu phí thiệt hại CASH tại quầy; BE ghi Payment DAMAGE_FEE = PAID */
+  damageFeeCollected?: boolean;
   keyReturned: boolean;
   note?: string;
 }

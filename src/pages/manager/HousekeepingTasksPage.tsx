@@ -314,7 +314,7 @@ export default function HousekeepingTasksPage() {
             <p className="text-sm text-[#64748B] mt-1 m-0">
               Kanban quản lý dọn phòng —{' '}
               <Link to="/manager/housekeeping/schedule" className="text-[#0F766E] hover:underline">
-                Xem lịch phân công
+                Schedule board
               </Link>
             </p>
           </div>

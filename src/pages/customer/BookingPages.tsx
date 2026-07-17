@@ -14,14 +14,19 @@ function extractApiError(err: unknown, fallback: string): string {
   return fallback;
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, damageFeePaid }: { status: string; damageFeePaid?: boolean }) {
   const m: Record<string, { cls: string; l: string }> = {
     PENDING_DEPOSIT: { cls: 'badge-warning', l: 'Chờ cọc' },
     CONFIRMED:       { cls: 'badge-success', l: 'Đã xác nhận' },
     CHECKED_IN:      { cls: 'badge-info',    l: 'Đang ở' },
+    PENDING_INSPECTION: { cls: 'badge-info', l: 'Đang kiểm tra' },
+    PENDING_DAMAGE_PAYMENT: { cls: 'badge-error', l: 'Chờ phí thiệt hại' },
     CHECKED_OUT:     { cls: 'badge-purple',  l: 'Đã trả phòng' },
     CANCELLED:       { cls: 'badge-error',   l: 'Đã hủy' },
   };
+  if (status === 'PENDING_DAMAGE_PAYMENT' && damageFeePaid) {
+    return <span className="badge badge-warning">Sẵn sàng trả phòng</span>;
+  }
   const s = m[status] || { cls: 'badge-neutral', l: status };
   return <span className={`badge ${s.cls}`}>{s.l}</span>;
 }
@@ -40,6 +45,9 @@ const STATUS_BANNER: Record<string, { bg: string; border: string; icon: string; 
   PENDING_DEPOSIT: { bg: '#fff7ed', border: '#fed7aa', icon: '⏳', title: 'Chờ thanh toán cọc' },
   CONFIRMED:       { bg: '#f0fdf4', border: '#bbf7d0', icon: '✓',  title: 'Đã xác nhận' },
   CHECKED_IN:      { bg: '#eff6ff', border: '#bfdbfe', icon: '🏠', title: 'Đang lưu trú' },
+  PENDING_INSPECTION: { bg: '#eff6ff', border: '#bfdbfe', icon: '🔍', title: 'Đang kiểm tra phòng' },
+  PENDING_DAMAGE_PAYMENT: { bg: '#fef2f2', border: '#fecaca', icon: '⚠️', title: 'Chờ thanh toán phí thiệt hại' },
+  PENDING_DAMAGE_PAYMENT_PAID: { bg: '#fffbeb', border: '#fde68a', icon: '✓', title: 'Đã thanh toán phí thiệt hại — chờ trả phòng' },
   CHECKED_OUT:     { bg: '#f5f3ff', border: '#ddd6fe', icon: '👋', title: 'Đã trả phòng' },
   CANCELLED:       { bg: '#fef2f2', border: '#fecaca', icon: '✕',  title: 'Đã hủy' },
 };
@@ -108,18 +116,28 @@ export function BookingDetailPage() {
 
   const depositPayment = payments.find(p => p.type === 'DEPOSIT');
   const remainingPayment = payments.find(p => p.type === 'REMAINING_BALANCE');
+  const damagePayment = payments.find(p => p.type === 'DAMAGE_FEE');
+  const damageFeeAmount = Number(booking.damageFeeAmount ?? 0);
 
   const depositPaid = depositPayment?.status === 'PAID' || booking.status !== 'PENDING_DEPOSIT';
   const remainingPaid = remainingPayment?.status === 'PAID';
+  const damagePaid = damagePayment?.status === 'PAID';
 
   const depositDisplayStatus = depositPayment?.status ?? (depositPaid ? 'PAID' : 'PENDING');
   const remainingDisplayStatus = remainingPayment?.status ?? (remainingPaid ? 'PAID' : 'PENDING');
+  const damageDisplayStatus = damagePayment?.status ?? (damageFeeAmount > 0 ? 'PENDING' : '');
 
   const canCancel = ['PENDING_DEPOSIT', 'CONFIRMED'].includes(booking.status);
   const showPayDeposit = booking.status === 'PENDING_DEPOSIT';
   const showPayRemaining = booking.status === 'CONFIRMED' && !remainingPaid;
+  const showPayDamage = damageFeeAmount > 0 && !damagePaid;
 
-  const banner = STATUS_BANNER[booking.status] ?? STATUS_BANNER.PENDING_DEPOSIT;
+  const damageFeePaid = booking.damageFeePaid
+    || (damageFeeAmount > 0 && damagePaid);
+  const bannerKey = booking.status === 'PENDING_DAMAGE_PAYMENT' && damageFeePaid
+    ? 'PENDING_DAMAGE_PAYMENT_PAID'
+    : booking.status;
+  const banner = STATUS_BANNER[bannerKey] ?? STATUS_BANNER.PENDING_DEPOSIT;
 
   return (
     <CustomerLayout>
@@ -141,7 +159,7 @@ export function BookingDetailPage() {
             Booking #{bookingCode(booking.id)} · Tạo ngày {new Date(booking.createdAt).toLocaleDateString('vi-VN')}
           </p>
         </div>
-        <StatusBadge status={booking.status} />
+        <StatusBadge status={booking.status} damageFeePaid={damageFeePaid} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6" style={{ alignItems: 'flex-start' }}>
@@ -235,6 +253,38 @@ export function BookingDetailPage() {
                   {PAYMENT_STATUS_LABEL[remainingDisplayStatus] ?? remainingDisplayStatus}
                 </span>
               </div>
+
+              {damageFeeAmount > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                  background: damagePaid ? '#f0fdf4' : '#fef2f2', borderRadius: 10,
+                  border: `1px solid ${damagePaid ? '#bbf7d0' : '#fecaca'}`,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: damagePaid ? '#2b9a66' : '#dc2626',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    {damagePaid ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+                    ) : (
+                      <span style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>3</span>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14 }}>Phí thiệt hại</p>
+                    <p className="body-sm text-charcoal">{formatVndList(damageFeeAmount)}</p>
+                    {damagePayment?.paidAt && (
+                      <p className="body-sm text-charcoal" style={{ fontSize: 11 }}>
+                        Thanh toán: {new Date(damagePayment.paidAt).toLocaleString('vi-VN')}
+                      </p>
+                    )}
+                  </div>
+                  <span className={`badge ${paymentBadgeCls(damageDisplayStatus)}`}>
+                    {PAYMENT_STATUS_LABEL[damageDisplayStatus] ?? damageDisplayStatus}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -255,10 +305,18 @@ export function BookingDetailPage() {
               <span className="body-sm text-charcoal">Còn lại (60%)</span>
               <span style={{ fontWeight: 600 }}>{formatVndList(remainingAmount)}</span>
             </div>
+            {damageFeeAmount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span className="body-sm text-charcoal">Phí thiệt hại</span>
+                <span style={{ fontWeight: 600, color: 'var(--error)' }}>{formatVndList(damageFeeAmount)}</span>
+              </div>
+            )}
             <div className="divider" style={{ margin: '12px 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
               <span style={{ fontWeight: 700 }}>Tổng cộng</span>
-              <span style={{ fontWeight: 800, fontSize: 18 }}>{formatVndList(booking.totalAmount)}</span>
+              <span style={{ fontWeight: 800, fontSize: 18 }}>
+                {formatVndList(Number(booking.totalAmount) + damageFeeAmount)}
+              </span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -270,6 +328,11 @@ export function BookingDetailPage() {
               {showPayRemaining && (
                 <Link to={`/customer/payments/${booking.id}/remaining`} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
                   Thanh toán phần còn lại ({formatVndList(remainingAmount)})
+                </Link>
+              )}
+              {showPayDamage && (
+                <Link to={`/customer/payments/${booking.id}/damage`} className="btn-primary" style={{ width: '100%', justifyContent: 'center', background: '#dc2626' }}>
+                  Thanh toán phí thiệt hại ({formatVndList(damageFeeAmount)})
                 </Link>
               )}
               {booking.status === 'CHECKED_OUT' && !booking.isReviewed && (
