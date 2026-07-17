@@ -8,6 +8,7 @@ import {
   RoomBookingSummary,
 } from '../../api/roomsApi';
 import DataTable from '../../components/ui/DataTable';
+import { fixAmenityLabel } from '../../utils/amenities';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,14 @@ const BOOKING_STATUS: Record<string, { label: string; color: string; bg: string 
 };
 
 const ACTIVE_BOOKING_STATUSES = new Set(['CONFIRMED', 'CHECKED_IN', 'PENDING_DEPOSIT']);
+
+const accentBtnStyle: React.CSSProperties = {
+  borderRadius: 9999,
+  borderColor: 'var(--primary)',
+  color: 'var(--primary)',
+  background: 'rgba(15, 118, 110, 0.06)',
+  flexShrink: 0,
+};
 
 function fmt(n: number) {
   return '₫' + n.toLocaleString('vi-VN');
@@ -172,11 +181,12 @@ function GalleryCard({ room }: { room: RoomDetail }) {
 
   return (
     <CardBox>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <SectionTitle>Thư viện ảnh</SectionTitle>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12 }}>
+        <h2 className="heading-sm" style={{ margin: 0 }}>Thư viện ảnh</h2>
         <Link
           to={`/manager/rooms/${room.id}/edit?tab=gallery`}
-          className="btn-ghost btn-sm"
+          className="btn-outline btn-sm"
+          style={accentBtnStyle}
         >
           Quản lý ảnh →
         </Link>
@@ -530,17 +540,13 @@ export default function RoomDetailMgmtPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Link to={`/manager/rooms/${room.id}/edit`} className="btn-primary btn-sm">
-            Sửa phòng
-          </Link>
-          <Link to={`/manager/rooms/${room.id}/edit?tab=gallery`} className="btn-outline btn-sm">
-            Thư viện ảnh
-          </Link>
-          <Link to={`/manager/rooms/${room.id}/edit?tab=status`} className="btn-ghost btn-sm">
-            Trạng thái
-          </Link>
-        </div>
+        <Link
+          to="/manager/rooms"
+          className="btn-outline btn-sm shrink-0"
+          style={accentBtnStyle}
+        >
+          ← Quay lại
+        </Link>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, alignItems: 'start' }}>
@@ -563,7 +569,16 @@ export default function RoomDetailMgmtPage() {
           )}
 
           <CardBox>
-            <SectionTitle>Thông tin phòng</SectionTitle>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+              <h2 className="heading-sm" style={{ margin: 0 }}>Thông tin phòng</h2>
+              <Link
+                to={`/manager/rooms/${room.id}/edit`}
+                className="btn-outline btn-sm"
+                style={accentBtnStyle}
+              >
+                Sửa phòng
+              </Link>
+            </div>
             <InfoRow label="Homestay" value={room.propertyName} />
             <InfoRow label="Địa chỉ" value={room.propertyAddress || '—'} />
             <InfoRow label="Tầng" value={`Tầng ${room.floorNumber}`} />
@@ -587,21 +602,24 @@ export default function RoomDetailMgmtPage() {
               <div style={{ marginTop: 16 }}>
                 <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 8 }}>Tiện nghi</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {room.amenities.map(a => (
-                    <span
-                      key={a}
-                      style={{
-                        background: 'var(--surface-bone)',
-                        borderRadius: 9999,
-                        padding: '3px 10px',
-                        fontSize: 12,
-                        color: 'var(--charcoal)',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {a}
-                    </span>
-                  ))}
+                  {room.amenities.map(a => {
+                    const label = fixAmenityLabel(a);
+                    return (
+                      <span
+                        key={a}
+                        style={{
+                          background: 'var(--surface-bone)',
+                          borderRadius: 9999,
+                          padding: '3px 10px',
+                          fontSize: 12,
+                          color: 'var(--charcoal)',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -623,7 +641,9 @@ export default function RoomDetailMgmtPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'sticky', top: 24 }}>
 
           <CardBox>
-            <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 12 }}>Trạng thái hiện tại</p>
+            <p style={{ color: 'var(--ink)', marginBottom: 12, fontWeight: 700, fontSize: 14 }}>
+              Trạng thái hiện tại
+            </p>
             <div style={{ marginBottom: 16 }}>
               <RoomStatusBadge status={room.status} large />
             </div>
@@ -638,7 +658,7 @@ export default function RoomDetailMgmtPage() {
                   marginBottom: 14,
                 }}
               >
-                <p className="body-sm" style={{ color: '#92400E' }}>
+                <p className="body-sm" style={{ color: '#92400E', margin: 0 }}>
                   ⚠️ Phòng đang được sử dụng
                 </p>
               </div>
@@ -646,8 +666,15 @@ export default function RoomDetailMgmtPage() {
 
             <Link
               to={`/manager/rooms/${room.id}/edit?tab=status`}
-              className="btn-outline"
-              style={{ display: 'block', textAlign: 'center', width: '100%' }}
+              className="btn-outline btn-sm"
+              style={{
+                ...accentBtnStyle,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                textAlign: 'center',
+              }}
             >
               Cập nhật trạng thái
             </Link>
@@ -673,42 +700,6 @@ export default function RoomDetailMgmtPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="body-sm" style={{ color: 'var(--charcoal)' }}>Số ảnh</span>
                 <span style={{ fontWeight: 700 }}>{room.images?.length ?? 0}</span>
-              </div>
-            </div>
-          </CardBox>
-
-          <CardBox>
-            <p className="body-sm" style={{ color: 'var(--charcoal)', marginBottom: 14 }}>Thao tác</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Link
-                to={`/manager/rooms/${room.id}/edit`}
-                className="btn-primary"
-                style={{ display: 'block', textAlign: 'center' }}
-              >
-                Sửa phòng
-              </Link>
-              <Link
-                to={`/manager/rooms/${room.id}/edit?tab=gallery`}
-                className="btn-outline"
-                style={{ display: 'block', textAlign: 'center' }}
-              >
-                Thư viện ảnh
-              </Link>
-              <Link
-                to={`/manager/rooms/${room.id}/edit?tab=status`}
-                className="btn-ghost"
-                style={{ display: 'block', textAlign: 'center' }}
-              >
-                Cập nhật trạng thái
-              </Link>
-              <div style={{ borderTop: '1px solid var(--hairline)', paddingTop: 8, marginTop: 4 }}>
-                <Link
-                  to="/manager/rooms"
-                  className="btn-ghost btn-sm"
-                  style={{ display: 'block', textAlign: 'center', width: '100%', color: 'var(--charcoal)' }}
-                >
-                  ← Quay lại
-                </Link>
               </div>
             </div>
           </CardBox>
