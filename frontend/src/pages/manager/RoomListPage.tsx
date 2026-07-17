@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faPen, faImage, faTag, faBed, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faPen, faImage, faTag, faBed, faSearch, faEye } from '@fortawesome/free-solid-svg-icons';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import Alert from '../../components/ui/Alert';
 import { DataTable, StatusBadge } from '../../components/ui';
@@ -226,7 +226,9 @@ export default function RoomListPage() {
               <FontAwesomeIcon icon={faBed} className="w-6 h-6 text-slate-300" />
             </div>
           )}
-          <span className="font-extrabold text-slate-800 text-base">{r.roomNumber}</span>
+          <span className="font-extrabold text-base text-primary hover:underline">
+            {r.roomNumber}
+          </span>
         </div>
       ),
     },
@@ -262,9 +264,38 @@ export default function RoomListPage() {
   ];
 
   const actions = [
-    { label: <div className="flex items-center gap-2"><FontAwesomeIcon icon={faPen} className="text-slate-500 w-4" /> Sửa</div>, onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/edit`) },
-    { label: <div className="flex items-center gap-2"><FontAwesomeIcon icon={faImage} className="text-slate-500 w-4" /> Thư viện ảnh</div>, onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/gallery`) },
-    { label: <div className="flex items-center gap-2"><FontAwesomeIcon icon={faTag} className="text-slate-500 w-4" /> Trạng thái</div>, onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/status`) },
+    {
+      label: (
+        <div className="flex items-center gap-2">
+          <FontAwesomeIcon icon={faEye} className="text-slate-500 w-4" /> Xem chi tiết
+        </div>
+      ),
+      onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}`),
+    },
+    {
+      label: (
+        <div className="flex items-center gap-2">
+          <FontAwesomeIcon icon={faPen} className="text-slate-500 w-4" /> Sửa
+        </div>
+      ),
+      onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/edit`),
+    },
+    {
+      label: (
+        <div className="flex items-center gap-2">
+          <FontAwesomeIcon icon={faImage} className="text-slate-500 w-4" /> Thư viện ảnh
+        </div>
+      ),
+      onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/edit?tab=gallery`),
+    },
+    {
+      label: (
+        <div className="flex items-center gap-2">
+          <FontAwesomeIcon icon={faTag} className="text-slate-500 w-4" /> Trạng thái
+        </div>
+      ),
+      onClick: (r: RoomListItem) => navigate(`/manager/rooms/${r.id}/edit?tab=status`),
+    },
   ];
 
   return (
@@ -402,6 +433,7 @@ export default function RoomListPage() {
                   data={rooms}
                   keyExtractor={r => r.id}
                   actions={actions}
+                  onRowClick={(r) => navigate(`/manager/rooms/${r.id}`)}
                   getRowClassName={() => 'hover:bg-slate-50 transition-colors'}
                 />
                 <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
