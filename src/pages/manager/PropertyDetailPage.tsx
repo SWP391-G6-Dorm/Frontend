@@ -146,7 +146,7 @@ export default function PropertyDetailPage() {
           <div className="card-lg" style={{ padding: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 className="heading-sm">Floor & Room Summary</h2>
-              <Link to={`/manager/structure?propertyId=${property.id}`} className="btn-ghost btn-sm" id="btn-manage-floors">
+              <Link to={`/manager/floors?propertyId=${property.id}`} className="btn-ghost btn-sm" id="btn-manage-floors">
                 Manage Floors →
               </Link>
             </div>
@@ -231,9 +231,9 @@ export default function PropertyDetailPage() {
                 style={{ justifyContent: 'center', textAlign: 'center' }} id="btn-quick-rooms">
                 🛏️ All Rooms
               </Link>
-              <Link to={`/manager/structure?propertyId=${property.id}`} className="btn-ghost"
+              <Link to={`/manager/floors?propertyId=${property.id}`} className="btn-ghost"
                 style={{ justifyContent: 'center', textAlign: 'center' }} id="btn-quick-floors">
-                🏢 Structure Tree
+                🏢 Floor Management
               </Link>
             </div>
           </div>

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
 import Alert from '../../components/ui/Alert';
 import { Drawer, StatusBadge } from '../../components/ui';
@@ -52,26 +51,9 @@ function shortId(id: string): string {
   return `BK-${id.slice(0, 8).toUpperCase()}`;
 }
 
-/** Pending Review (warning) vs Escalated to Admin (info) per screendesign. */
-function badge(status: string, requiresAdminEscalation?: boolean, approvedByName?: string | null) {
-  if (status === 'PENDING_APPROVAL' && requiresAdminEscalation) {
-    const escalatedToAdmin = !!approvedByName;
-    return (
-      <StatusBadge
-        status={escalatedToAdmin ? 'Đã chuyển Admin' : 'Cần escalate Admin'}
-        variant="info"
-      />
-    );
-  }
+function badge(status: string) {
   const cfg = STATUS_VI[status] ?? { label: status, variant: 'neutral' as StatusVariant };
   return <StatusBadge status={cfg.label} variant={cfg.variant} />;
-}
-
-function photoSrc(url: string): string {
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
-    return url;
-  }
-  return url.startsWith('/') ? url : `/${url}`;
 }
 
 export default function DamageReportsPage() {
@@ -90,7 +72,6 @@ export default function DamageReportsPage() {
   const [detail, setDetail] = useState<DamageReportDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [approvedAmount, setApprovedAmount] = useState('');
-  const [approveNote, setApproveNote] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [drawerSubmitting, setDrawerSubmitting] = useState(false);
   const [drawerError, setDrawerError] = useState<string | null>(null);
@@ -148,7 +129,6 @@ export default function DamageReportsPage() {
   function openDrawer(row: DamageReportSummary) {
     setDetail(null);
     setApprovedAmount('');
-    setApproveNote('');
     setRejectReason('');
     setDrawerError(null);
     setDetailLoading(true);
@@ -163,24 +143,13 @@ export default function DamageReportsPage() {
 
   async function handleApprove() {
     if (!detail) return;
-    const amount = approvedAmount ? Number(approvedAmount) : undefined;
-    if (amount == null || Number.isNaN(amount) || amount <= 0) {
-      setDrawerError('Vui lòng nhập số tiền duyệt hợp lệ (> 0).');
-      return;
-    }
     setDrawerSubmitting(true);
     setDrawerError(null);
     try {
-      await approveDamageReportV1(detail.id, {
-        approvedAmount: amount,
-        note: approveNote.trim() || undefined,
-      });
+      const amount = approvedAmount ? Number(approvedAmount) : undefined;
+      await approveDamageReportV1(detail.id, { approvedAmount: amount });
       setDetail(null);
-      setSuccessMsg(
-        detail.requiresAdminEscalation
-          ? 'Đã chuyển Admin đồng phê duyệt (SCR-53).'
-          : `Đã duyệt ${formatVnd(amount)} — hệ thống đã tạo Payment DAMAGE_FEE (PENDING). Khách thanh toán VNPay tại Booking Detail; Manager xem tại Thanh toán.`,
-      );
+      setSuccessMsg(detail.requiresAdminEscalation ? 'Đã chuyển Admin duyệt.' : 'Đã duyệt bồi thường.');
       loadReports();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
@@ -199,7 +168,7 @@ export default function DamageReportsPage() {
     setDrawerSubmitting(true);
     setDrawerError(null);
     try {
-      await rejectDamageReportV1(detail.id, { note: rejectReason.trim() });
+      await rejectDamageReportV1(detail.id, { reason: rejectReason.trim() });
       setDetail(null);
       setSuccessMsg('Đã từ chối báo cáo hư hại.');
       loadReports();
@@ -211,26 +180,16 @@ export default function DamageReportsPage() {
     }
   }
 
-  const canAct = detail?.status === 'PENDING_APPROVAL' && !detail.approvedByName;
-  const canEscalateOnly = !!detail?.requiresAdminEscalation;
-  const alreadyEscalated = detail?.status === 'PENDING_APPROVAL'
-    && !!detail.requiresAdminEscalation
-    && !!detail.approvedByName;
+  const canAct = detail?.status === 'PENDING_APPROVAL';
   const isEmpty = !loading && reports.length === 0;
-  const photos = detail?.photos ?? [];
 
   return (
     <ManagerLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="heading-md m-0">Damage Reports</h1>
+          <h1 className="heading-md m-0">Báo cáo hư hại</h1>
           <p className="text-sm text-[#64748B] mt-1 m-0">
-            Duyệt báo cáo hư hại theo homestay. Phí &gt; 5.000.000 ₫ cần escalate lên Admin.
-            Sau duyệt (≤5M), hệ thống tự tạo thanh toán phí thiệt hại — không tạo tay trên màn này.
-            {' '}
-            <Link to="/manager/payments" className="text-[#0F766E] font-medium underline-offset-2 hover:underline">
-              Xem danh sách thanh toán
-            </Link>
+            Duyệt bồi thường hư hại phòng theo homestay.
           </p>
         </div>
 
@@ -241,11 +200,8 @@ export default function DamageReportsPage() {
 
         <div className="flex flex-wrap gap-3 items-end bg-white rounded-xl border border-[#E2E8F0] p-4">
           <div className="min-w-[180px] flex-1 sm:max-w-xs">
-            <label className="block text-sm font-medium text-[#334155] mb-1" htmlFor="damage-property">
-              Homestay
-            </label>
+            <label className="block text-sm font-medium text-[#334155] mb-1">Homestay</label>
             <select
-              id="damage-property"
               className="input-field w-full"
               value={selectedPropertyId}
               onChange={e => setSelectedPropertyId(e.target.value)}
@@ -257,11 +213,8 @@ export default function DamageReportsPage() {
             </select>
           </div>
           <div className="min-w-[180px] flex-1 sm:max-w-xs">
-            <label className="block text-sm font-medium text-[#334155] mb-1" htmlFor="damage-search">
-              Tìm theo số phòng
-            </label>
+            <label className="block text-sm font-medium text-[#334155] mb-1">Tìm theo số phòng</label>
             <input
-              id="damage-search"
               type="text"
               className="input-field w-full"
               value={search}
@@ -269,7 +222,7 @@ export default function DamageReportsPage() {
               placeholder="Nhập số phòng..."
             />
           </div>
-          <div className="flex gap-2 flex-wrap items-center" role="group" aria-label="Lọc trạng thái">
+          <div className="flex gap-2 flex-wrap items-center">
             {STATUS_FILTERS.map(f => (
               <button
                 key={f.value}
@@ -303,7 +256,7 @@ export default function DamageReportsPage() {
             Vui lòng chọn homestay để xem báo cáo hư hại.
           </div>
         ) : loading ? (
-          <div className="h-64 bg-[#F1F5F9] rounded-xl animate-pulse" aria-busy="true" />
+          <div className="h-64 bg-[#F1F5F9] rounded-xl animate-pulse" />
         ) : isEmpty ? (
           <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0] text-[#64748B]">
             Không có báo cáo hư hại phù hợp.
@@ -314,10 +267,11 @@ export default function DamageReportsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[#F8FAFC] text-[#64748B] text-left text-[12px] uppercase tracking-wide">
-                    <th className="px-4 py-3 font-medium">Room</th>
-                    <th className="px-4 py-3 font-medium">Items Damaged</th>
-                    <th className="px-4 py-3 font-medium">Est. Cost</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Phòng</th>
+                    <th className="px-4 py-3 font-medium">Booking</th>
+                    <th className="px-4 py-3 font-medium">Chi phí ước tính</th>
+                    <th className="px-4 py-3 font-medium">Người báo</th>
+                    <th className="px-4 py-3 font-medium">Trạng thái</th>
                     <th className="px-4 py-3 font-medium text-right">Thao tác</th>
                   </tr>
                 </thead>
@@ -331,17 +285,19 @@ export default function DamageReportsPage() {
                       <td className="px-4 py-3 font-medium text-[#1E293B] whitespace-nowrap">
                         {row.roomNumber}
                       </td>
-                      <td className="px-4 py-3 text-[#334155] max-w-[240px]">
-                        <span className="line-clamp-2">
-                          {row.itemsDamaged?.trim() || '—'}
-                        </span>
-                      </td>
+                      <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">{shortId(row.bookingId)}</td>
                       <td className="px-4 py-3 text-[#334155] whitespace-nowrap">
                         {formatVnd(row.totalEstimatedCost)}
+                        {row.requiresAdminEscalation && (
+                          <span className="ml-2 text-[11px] text-[#2563EB] bg-[#3B82F6]/10 rounded-full px-2 py-0.5">
+                            &gt; 5M
+                          </span>
+                        )}
                       </td>
-                      <td className="px-4 py-3">
-                        {badge(row.status, row.requiresAdminEscalation, row.approvedByName)}
+                      <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">
+                        {row.inspectorName || '—'}
                       </td>
+                      <td className="px-4 py-3">{badge(row.status)}</td>
                       <td className="px-4 py-3 text-right">
                         <button
                           type="button"
@@ -375,9 +331,7 @@ export default function DamageReportsPage() {
               >
                 {drawerSubmitting
                   ? 'Đang lưu...'
-                  : canEscalateOnly
-                    ? 'Escalate to Admin'
-                    : 'Duyệt bồi thường'}
+                  : detail.requiresAdminEscalation ? 'Chuyển Admin duyệt' : 'Duyệt bồi thường'}
               </button>
               <button
                 type="button"
@@ -392,74 +346,42 @@ export default function DamageReportsPage() {
         }
       >
         {detailLoading ? (
-          <div className="h-40 bg-[#F1F5F9] rounded-lg animate-pulse" aria-busy="true" />
+          <div className="h-40 bg-[#F1F5F9] rounded-lg animate-pulse" />
         ) : detail ? (
           <div className="space-y-4">
             {drawerError && <Alert variant="error" message={drawerError} />}
 
-            {alreadyEscalated && (
-              <Alert
-                variant="info"
-                message="Báo cáo đã chuyển Admin đồng phê duyệt. Manager không thể duyệt solo khi phí > 5.000.000 ₫."
-              />
-            )}
-
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between gap-2">
+              <div className="flex justify-between">
                 <span className="text-[#64748B]">Trạng thái</span>
-                {badge(detail.status, detail.requiresAdminEscalation, detail.approvedByName)}
+                {badge(detail.status)}
               </div>
-              <div className="flex justify-between gap-2">
+              <div className="flex justify-between">
                 <span className="text-[#64748B]">Booking</span>
                 <span className="font-medium">{shortId(detail.bookingId)}</span>
               </div>
-              <div className="flex justify-between gap-2">
+              <div className="flex justify-between">
                 <span className="text-[#64748B]">Người báo</span>
                 <span className="font-medium">{detail.inspectorName || '—'}</span>
               </div>
-              <div className="flex justify-between gap-2">
+              <div className="flex justify-between">
                 <span className="text-[#64748B]">Tạo lúc</span>
                 <span>{formatDateTime(detail.createdAt)}</span>
               </div>
-              <div className="flex justify-between gap-2">
+              <div className="flex justify-between">
                 <span className="text-[#64748B]">Tổng chi phí ước tính</span>
                 <span className="font-semibold">{formatVnd(detail.totalEstimatedCost)}</span>
               </div>
               {detail.approvedAmount != null && (
-                <div className="flex justify-between gap-2">
+                <div className="flex justify-between">
                   <span className="text-[#64748B]">Số tiền đã duyệt</span>
                   <span className="font-semibold">{formatVnd(detail.approvedAmount)}</span>
                 </div>
               )}
               {detail.requiresAdminEscalation && (
-                <div className="flex justify-between gap-2">
-                  <span className="text-[#64748B]">Ngưỡng escalate</span>
-                  <span className="text-[#2563EB] font-medium">&gt; 5.000.000 ₫</span>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <span className="text-[#64748B] text-sm">Ảnh minh chứng</span>
-              {photos.length === 0 ? (
-                <p className="text-sm text-[#94A3B8] m-0 mt-2">Chưa có ảnh đính kèm.</p>
-              ) : (
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {photos.map((p, idx) => (
-                    <a
-                      key={`${p.url}-${idx}`}
-                      href={photoSrc(p.url)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block rounded-lg overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC] aspect-square"
-                    >
-                      <img
-                        src={photoSrc(p.url)}
-                        alt={p.fileName || `Ảnh hư hại ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </a>
-                  ))}
+                <div className="flex justify-between">
+                  <span className="text-[#64748B]">Cần Admin duyệt</span>
+                  <span className="text-[#2563EB] font-medium">Có (&gt; 5M)</span>
                 </div>
               )}
             </div>
@@ -495,11 +417,10 @@ export default function DamageReportsPage() {
             {canAct && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-[#334155] mb-1" htmlFor="approved-amount">
+                  <label className="block text-sm font-medium text-[#334155] mb-1">
                     Số tiền duyệt (₫)
                   </label>
                   <input
-                    id="approved-amount"
                     type="number"
                     min="0"
                     className="input-field w-full"
@@ -509,23 +430,10 @@ export default function DamageReportsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#334155] mb-1" htmlFor="approve-note">
-                    Ghi chú duyệt (tuỳ chọn)
-                  </label>
-                  <textarea
-                    id="approve-note"
-                    className="input-field w-full min-h-[60px]"
-                    value={approveNote}
-                    onChange={e => setApproveNote(e.target.value)}
-                    placeholder="Ghi chú khi duyệt / escalate..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#334155] mb-1" htmlFor="reject-note">
+                  <label className="block text-sm font-medium text-[#334155] mb-1">
                     Lý do từ chối (nếu từ chối)
                   </label>
                   <textarea
-                    id="reject-note"
                     className="input-field w-full min-h-[80px]"
                     value={rejectReason}
                     onChange={e => setRejectReason(e.target.value)}

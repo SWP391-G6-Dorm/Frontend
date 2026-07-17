@@ -1,22 +1,14 @@
 import api from './axiosInstance';
 
-export interface InspectionEmployeeBrief {
-  id: string;
-  fullName: string;
-}
-
-export interface InspectionRoomBrief {
-  id: string;
-  roomNumber: string;
-}
-
-/** SCR-42 — Manager inspection summary (api-spec). */
 export interface InspectionSummary {
   id: string;
-  room: InspectionRoomBrief;
+  roomId: string;
+  roomNumber: string;
+  propertyId: string;
+  propertyName: string;
   bookingId: string;
-  assignedEmployee?: InspectionEmployeeBrief | null;
-  inspectedBy?: InspectionEmployeeBrief | null;
+  inspectorId?: string | null;
+  inspectorName?: string | null;
   status: string;
   note?: string | null;
   inspectedAt?: string | null;
@@ -35,7 +27,6 @@ export interface PageResponse<T> {
 export interface ManagerInspectionParams {
   propertyId: string;
   status?: string;
-  unassignedOnly?: boolean;
   search?: string;
   page?: number;
   size?: number;
@@ -44,14 +35,6 @@ export interface ManagerInspectionParams {
 export async function fetchManagerInspectionsV1(
   params: ManagerInspectionParams,
 ): Promise<PageResponse<InspectionSummary>> {
-  const res = await api.get('/api/v1/managers/inspections', { params });
+  const res = await api.get('/api/v1/manager/inspections', { params });
   return res.data.data;
-}
-
-/** SCR-42 — Assign / Reassign inspector. */
-export async function assignInspectionInspectorV1(
-  inspectionId: string,
-  employeeId: string,
-): Promise<void> {
-  await api.post(`/api/v1/managers/inspections/${inspectionId}/assign`, { employeeId });
 }

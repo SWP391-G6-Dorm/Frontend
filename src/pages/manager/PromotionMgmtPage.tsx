@@ -24,7 +24,6 @@ const EMPTY: PromotionPayload = {
   description: '',
   ctaText: 'Đặt ngay →',
   ctaUrl: '/search',
-  imageUrl: '',
   colorTheme: 'red',
   isActive: true,
   sortOrder: 0,
@@ -33,27 +32,20 @@ const EMPTY: PromotionPayload = {
 // ── Preview Card ─────────────────────────────────────────────────────────
 
 function BannerPreview({ form }: { form: PromotionPayload }) {
-  const previewImage = form.imageUrl?.trim();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {previewImage ? (
-        <div style={{ borderRadius: 14, overflow: 'hidden', height: 120 }}>
-          <img src={previewImage} alt="Preview banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-      ) : null}
-      <div
-        style={{
-          borderRadius: 14,
-          background: getGradient(form.colorTheme),
-          padding: '22px 22px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          position: 'relative',
-          overflow: 'hidden',
-          minHeight: previewImage ? 120 : 180,
-        }}
-      >
+    <div
+      style={{
+        borderRadius: 14,
+        background: getGradient(form.colorTheme),
+        padding: '22px 22px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: 180,
+      }}
+    >
       <div style={{ position: 'absolute', top: -16, right: -16, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
       <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase' }}>
         {form.subtitle || 'Subtitle'}
@@ -79,7 +71,6 @@ function BannerPreview({ form }: { form: PromotionPayload }) {
       >
         {form.ctaText || 'CTA'}
       </span>
-      </div>
     </div>
   );
 }
@@ -158,18 +149,6 @@ function BannerFormModal({
                 rows={2}
                 style={{ resize: 'vertical', fontFamily: 'inherit' }}
               />
-            </div>
-            <div>
-              <label className="form-label">URL ảnh banner</label>
-              <input
-                className="input"
-                value={form.imageUrl ?? ''}
-                onChange={(e) => set('imageUrl', e.target.value)}
-                placeholder="https://images.unsplash.com/..."
-              />
-              <p style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
-                Ảnh hiển thị trên carousel trang chủ. Để trống sẽ dùng ảnh mặc định.
-              </p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
@@ -408,7 +387,6 @@ export default function PromotionMgmtPage() {
             description: editing.description ?? '',
             ctaText: editing.ctaText,
             ctaUrl: editing.ctaUrl,
-            imageUrl: editing.imageUrl ?? '',
             colorTheme: editing.colorTheme,
             isActive: editing.isActive,
             sortOrder: editing.sortOrder,

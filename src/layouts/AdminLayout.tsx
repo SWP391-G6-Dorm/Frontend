@@ -18,14 +18,12 @@ const NAV_SECTIONS = [
       { label: 'Customers',        path: '/admin/customers',        icon: IconCustomers },
     ],
   },
-  // SCR-52 Payment Reconciliation deferred (demo mock VNPay — no real discrepancy).
-  // Re-enable: restore FINANCE section + App route + dashboard QuickLink.
-  // {
-  //   label: 'FINANCE',
-  //   items: [
-  //     { label: 'Payment Reconcil.', path: '/admin/payments/reconciliation', icon: IconPayment },
-  //   ],
-  // },
+  {
+    label: 'FINANCE',
+    items: [
+      { label: 'Payment Reconcil.', path: '/admin/payments/reconciliation', icon: IconPayment },
+    ],
+  },
   {
     label: 'OPERATIONS',
     items: [

@@ -1,7 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
-import { getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask } from '../../api/employeeApi';
-import { TOUCH, fmtDate, extractErr, Spinner, ErrBanner, StatusBadge } from './EmployeeShared';
+import {
+  getEmployeeKpis, type EmployeeKpis,
+  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
+  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
+  getEmployeeInspections, passInspection, failInspection,
+  type InspectionChecklist, type InspectionSummary,
+  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
+  getEmployeeRooms, type EmployeeRoom,
+} from '../../api/employeeApi';
+import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
 
 
 export default function HousekeepingWorkspacePage() {
@@ -176,3 +185,16 @@ export default function HousekeepingWorkspacePage() {
   );
 }
 
+// ── SCR-61: Maintenance Workspace ──────────────────────────────────────────────
+
+function mxNext(status: MaintenanceTicket['status']): 'IN_PROGRESS' | 'RESOLVED' | null {
+  if (status === 'ASSIGNED')    return 'IN_PROGRESS';
+  if (status === 'IN_PROGRESS') return 'RESOLVED';
+  return null;
+}
+
+const ISSUE_TYPE_ICONS: Record<string, string> = {
+  ELECTRICAL: '⚡', PLUMBING: '🔧', HVAC: '❄️', FURNITURE: '🪑',
+  APPLIANCE: '📺', STRUCTURAL: '🏗️', OTHER: '🛠️',
+};
+
