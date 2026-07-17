@@ -72,6 +72,7 @@ public class PropertyStructureResponse {
                     .collect(Collectors.toList());
 
         node.setRooms(rooms);
+        node.setRoomCount(rooms.size());
         return node;
     }
 
