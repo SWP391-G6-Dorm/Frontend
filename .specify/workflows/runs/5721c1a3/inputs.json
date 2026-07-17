@@ -1,7 +1,0 @@
-{
-  "inputs": {
-    "spec": "specs/001-google-auth/spec.md",
-    "integration": "antigravity",
-    "scope": "full"
-  }
-}

@@ -192,8 +192,9 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Secondary quick access — SCR-52 Payment Reconciliation deferred (mock VNPay). */}
+        {/* Secondary quick access */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+          <QuickLink to="/admin/payments/reconciliation" icon="💳" label="Payment Reconciliation" desc="Đối soát VNPay" />
           <QuickLink to="/admin/complaints"   icon="📣" label="Complaints"     desc="Khiếu nại hệ thống" />
           <QuickLink to="/admin/reports"      icon="📈" label="Global Reports" desc="Báo cáo toàn hệ thống" />
           <QuickLink to="/admin/settings"     icon="⚙️" label="System Admin"   desc="Settings & Logs" />

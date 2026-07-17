@@ -79,3 +79,40 @@ export async function reorderRoomImagesV1(
   const res = await api.put(`/api/v1/manager/rooms/${roomId}/images/reorder`, { imageIds });
   return mapImageList(res.data.data ?? []);
 }
+
+// ── Legacy API ────────────────────────────────────────────────────────────────
+
+/** @deprecated Use uploadRoomImagesV1 */
+export async function uploadRoomImages(
+  roomId: string,
+  files: File[],
+  setPrimary = false,
+): Promise<GalleryImage[]> {
+  const formData = new FormData();
+  files.forEach(f => formData.append('files', f));
+
+  const res = await api.post(`/api/rooms/${roomId}/images`, formData, {
+    params: { setPrimary },
+  });
+  return mapImageList(res.data.data ?? []);
+}
+
+/** @deprecated Use fetchGalleryImagesV1 */
+export async function fetchGalleryImages(roomId: string): Promise<{ roomName: string; images: GalleryImage[] }> {
+  const res = await api.get(`/api/rooms/${roomId}`);
+  const room: RoomDetail = res.data.data;
+  return {
+    roomName: room.roomNumber,
+    images: mapImages(room.images),
+  };
+}
+
+/** @deprecated Use setPrimaryImageV1 */
+export async function setPrimaryImage(imageId: string): Promise<void> {
+  await api.patch(`/api/room-images/${imageId}/set-primary`);
+}
+
+/** @deprecated Use deleteRoomImageV1 */
+export async function deleteRoomImage(imageId: string): Promise<void> {
+  await api.delete(`/api/room-images/${imageId}`);
+}

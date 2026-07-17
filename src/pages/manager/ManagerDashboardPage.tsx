@@ -147,13 +147,6 @@ export default function ManagerDashboardPage() {
   }, [propertyId, fetchDashboard]);
 
   const isLoading = loadingProps || loadingData;
-  const displayKpis = kpis || {
-    totalRooms: 0,
-    occupancyRate: 0,
-    pendingCheckIns: 0,
-    pendingApprovals: 0,
-    revenue: 0,
-  };
 
   return (
     <ManagerLayout>
@@ -163,113 +156,119 @@ export default function ManagerDashboardPage() {
           <h1 className="font-display text-[28px] font-bold text-[#1E293B]">
             Bảng điều khiển
           </h1>
-          <select
-            className="border border-[#E2E8F0] rounded-md px-4 py-2 text-sm bg-white text-[#1E293B] min-w-[220px]"
-            value={propertyId}
-            onChange={e => setPropertyId(e.target.value)}
-            disabled={loadingData || properties.length === 0}
-          >
-            {properties.length > 0 ? (
-              properties.map(p => (
+          {properties.length > 0 && (
+            <select
+              className="border border-[#E2E8F0] rounded-md px-4 py-2 text-sm bg-white text-[#1E293B] min-w-[220px]"
+              value={propertyId}
+              onChange={e => setPropertyId(e.target.value)}
+              disabled={loadingData}
+            >
+              {properties.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
-              ))
-            ) : (
-              <option value="">Chưa gán homestay</option>
-            )}
-          </select>
+              ))}
+            </select>
+          )}
         </div>
 
         {error && <Alert variant="error" message={error} closeable onClose={() => setError(null)} />}
 
-        {/* Empty warning banner */}
+        {/* Empty: no assigned properties */}
         {!loadingProps && properties.length === 0 && (
-          <Alert variant="warning" message="Bạn chưa được gán homestay nào. Vui lòng liên hệ Admin để được phân công quản lý." />
+          <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-12 text-center">
+            <p className="text-[#64748B]">Bạn chưa được gán homestay nào.</p>
+            <p className="text-sm text-[#94A3B8] mt-2">Liên hệ Admin để được phân công quản lý.</p>
+          </div>
         )}
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {isLoading && !kpis ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-[120px] bg-[#F1F5F9] rounded-[16px] animate-pulse" />
-            ))
-          ) : (
-            <>
-              <button type="button" onClick={() => navigate('/manager/rooms')} className="text-left" disabled={properties.length === 0}>
-                <KpiCard title="Tổng phòng" value={displayKpis.totalRooms} icon={faDoorOpen} />
-              </button>
-              <button type="button" onClick={() => navigate('/manager/rooms')} className="text-left" disabled={properties.length === 0}>
-                <KpiCard title="Tỷ lệ lấp đầy" value={`${displayKpis.occupancyRate}%`} icon={faChartLine} />
-              </button>
-              <button type="button" onClick={() => navigate('/manager/bookings')} className="text-left" disabled={properties.length === 0}>
-                <KpiCard title="Check-in hôm nay" value={displayKpis.pendingCheckIns} icon={faCalendarCheck} />
-              </button>
-              <button type="button" onClick={() => navigate('/manager/payments')} className="text-left" disabled={properties.length === 0}>
-                <KpiCard title="Chờ duyệt" value={displayKpis.pendingApprovals} icon={faClipboardCheck} />
-              </button>
-            </>
-          )}
-        </div>
+        {properties.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {isLoading && !kpis ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-[120px] bg-[#F1F5F9] rounded-[16px] animate-pulse" />
+                ))
+              ) : kpis ? (
+                <>
+                  <button type="button" onClick={() => navigate('/manager/rooms')} className="text-left">
+                    <KpiCard title="Tổng phòng" value={kpis.totalRooms} icon={faDoorOpen} />
+                  </button>
+                  <button type="button" onClick={() => navigate('/manager/rooms')} className="text-left">
+                    <KpiCard title="Tỷ lệ lấp đầy" value={`${kpis.occupancyRate}%`} icon={faChartLine} />
+                  </button>
+                  <button type="button" onClick={() => navigate('/manager/bookings')} className="text-left">
+                    <KpiCard title="Check-in hôm nay" value={kpis.pendingCheckIns} icon={faCalendarCheck} />
+                  </button>
+                  <button type="button" onClick={() => navigate('/manager/payments')} className="text-left">
+                    <KpiCard title="Chờ duyệt" value={kpis.pendingApprovals} icon={faClipboardCheck} />
+                  </button>
+                </>
+              ) : null}
+            </div>
 
-        {/* Revenue summary inline */}
-        <p className="text-sm text-[#64748B]">
-          Doanh thu tháng này:{' '}
-          <span className="font-semibold text-[#0F766E]">{formatVnd(displayKpis.revenue)}</span>
-        </p>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Line Chart */}
-          <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-            <h2 className="text-[16px] font-semibold text-[#1E293B] mb-4">Doanh thu 6 tháng gần nhất</h2>
-            {loadingData ? (
-              <ChartSkeleton />
-            ) : revenueData.length === 0 ? (
-              <EmptyChart message="Chưa có dữ liệu doanh thu" />
-            ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis dataKey="period" tick={{ fontSize: 12, fill: '#64748B' }} />
-                  <YAxis tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={v => `${(v / 1_000_000).toFixed(0)}M`} />
-                  <Tooltip formatter={(v) => formatVnd(Number(v ?? 0))} />
-                  <Line type="monotone" dataKey="revenue" stroke="#0F766E" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
+            {/* Revenue summary inline */}
+            {kpis && (
+              <p className="text-sm text-[#64748B]">
+                Doanh thu tháng này:{' '}
+                <span className="font-semibold text-[#0F766E]">{formatVnd(kpis.revenue)}</span>
+              </p>
             )}
-          </div>
 
-          {/* Booking Status Pie Chart */}
-          <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-            <h2 className="text-[16px] font-semibold text-[#1E293B] mb-4">Phân bổ đặt phòng tháng này</h2>
-            {loadingData ? (
-              <ChartSkeleton />
-            ) : pieData.length === 0 ? (
-              <EmptyChart message="Chưa có đặt phòng trong tháng" />
-            ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  >
-                    {pieData.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Revenue Line Chart */}
+              <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                <h2 className="text-[16px] font-semibold text-[#1E293B] mb-4">Doanh thu 6 tháng gần nhất</h2>
+                {loadingData ? (
+                  <ChartSkeleton />
+                ) : revenueData.length === 0 ? (
+                  <EmptyChart message="Chưa có dữ liệu doanh thu" />
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={revenueData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                      <XAxis dataKey="period" tick={{ fontSize: 12, fill: '#64748B' }} />
+                      <YAxis tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={v => `${(v / 1_000_000).toFixed(0)}M`} />
+                      <Tooltip formatter={(v) => formatVnd(Number(v ?? 0))} />
+                      <Line type="monotone" dataKey="revenue" stroke="#0F766E" strokeWidth={2} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Booking Status Pie Chart */}
+              <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                <h2 className="text-[16px] font-semibold text-[#1E293B] mb-4">Phân bổ đặt phòng tháng này</h2>
+                {loadingData ? (
+                  <ChartSkeleton />
+                ) : pieData.length === 0 ? (
+                  <EmptyChart message="Chưa có đặt phòng trong tháng" />
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                      >
+                        {pieData.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </ManagerLayout>
   );
 }
-

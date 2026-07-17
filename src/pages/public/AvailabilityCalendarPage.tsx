@@ -11,7 +11,7 @@ import {
   type RoomDetail,
 } from '../../api/roomsApi';
 import { useAuthStore } from '../../store/authStore';
-import { addMonths, canAttemptBooking, dateKey, isRangeAvailable, MONTH_NAMES_VI } from '../../utils/roomCalendar';
+import { addMonths, dateKey, isRangeAvailable, MONTH_NAMES_VI } from '../../utils/roomCalendar';
 
 function monthBounds(year: number, month: number) {
   const lastDay = new Date(year, month + 1, 0).getDate();
@@ -162,7 +162,7 @@ export default function AvailabilityCalendarPage() {
   const pricePerNight = room?.pricePerNight ?? 0;
   const totalAmount = nights * pricePerNight;
   const depositAmount = Math.round(totalAmount * 0.4);
-  const canBookRoom = canAttemptBooking(roomStatus);
+  const canBookRoom = roomStatus === 'AVAILABLE';
   const hasValidRange = nights > 0 && !rangeError;
 
   function buildQuery() {
@@ -391,7 +391,7 @@ export default function AvailabilityCalendarPage() {
 
               {!canBookRoom && (
                 <div style={{ marginTop: 16 }}>
-                  <Alert variant="warning" message="Phòng đang bảo trì / ngưng phục vụ / đang dọn — không thể đặt lúc này." />
+                  <Alert variant="warning" message="Phòng hiện không khả dụng để đặt." />
                 </div>
               )}
 

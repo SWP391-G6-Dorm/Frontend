@@ -109,7 +109,6 @@ function FloorModal({ mode, propertyId, initial, onClose, onSuccess }: FloorModa
             className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 text-sm"
             placeholder="VD: Khu view biển"
             value={description}
-            maxLength={500}
             onChange={e => setDescription(e.target.value)}
           />
         </div>
@@ -151,7 +150,7 @@ function TreeView({ structure, expandedFloors, onToggleFloor, onEditFloor, onDel
   if (structure.floors.length === 0) {
     return (
       <p className="text-sm text-[#64748B] py-6 text-center">
-        Chưa có tầng nào. Nhấn &quot;Add Floor&quot; để bắt đầu.
+        Chưa có tầng nào. Nhấn &quot;Thêm tầng&quot; để bắt đầu.
       </p>
     );
   }
@@ -359,7 +358,7 @@ export default function StructureTreePage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="font-display text-[28px] font-bold text-[#1E293B]">
-            Structure Tree
+            Cây cấu trúc
           </h1>
           {selectedPropId && properties.length > 0 && (
             <button
@@ -368,7 +367,7 @@ export default function StructureTreePage() {
               onClick={() => setFloorModal({ open: true, mode: 'add' })}
               disabled={treeLoading}
             >
-              Add Floor
+              Thêm tầng
             </button>
           )}
         </div>
