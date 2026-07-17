@@ -124,9 +124,9 @@ import PropertyRoomListPage from './pages/employee/PropertyRoomListPage';
 /** Catch-all: redirect theo role */
 function CatchAllRedirect() {
   const role = sessionStorage.getItem('userRole');
-  if (role === 'MANAGER')  return <Navigate to="/manager/dashboard"  replace />;
+  if (role === 'MANAGER') return <Navigate to="/manager/dashboard" replace />;
   if (role === 'CUSTOMER') return <Navigate to="/customer/dashboard" replace />;
-  if (role === 'ADMIN')    return <Navigate to="/admin/dashboard"    replace />;
+  if (role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
   if (role === 'EMPLOYEE') return <Navigate to="/employee/dashboard" replace />;
   return <Navigate to="/" replace />;
 }
