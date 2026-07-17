@@ -124,12 +124,16 @@ export default function AdminDashboardPage() {
     return () => { cancelled = true; };
   }, [currentYear]);
 
-  const kpiCards = [
-    { icon: '💰', label: 'Tổng doanh thu', value: kpis ? fmtVnd(kpis.totalRevenue) : '—', iconBg: 'rgba(15,118,110,0.10)', iconColor: 'var(--primary)', link: '/admin/reports' },
-    { icon: '📋', label: 'Tổng booking', value: kpis ? kpis.totalBookings.toLocaleString('vi-VN') : '—', iconBg: '#eff6ff', iconColor: '#2563EB' },
-    { icon: '🏢', label: 'Tổng properties', value: kpis?.totalProperties?.toLocaleString('vi-VN') ?? '—', iconBg: '#f0fdf4', iconColor: '#2b9a66', link: '/admin/properties' },
-    { icon: '👥', label: 'Khách hàng', value: kpis?.totalCustomers?.toLocaleString('vi-VN') ?? '—', iconBg: '#f5f3ff', iconColor: '#7c3aed', link: '/admin/customers' },
-  ];
+
+
+  // Section helpers
+  const sectionHead = (emoji: string, title: string) => (
+    <h2 style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+      {emoji} {title}
+    </h2>
+  );
+
+  const skeletonCard = <div className="kpi-card" style={{ background: 'var(--surface-bone)', height: 110 }} />;
 
   return (
     <AdminLayout>
@@ -152,28 +156,45 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* KPI Cards */}
-        {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
-            {[1,2,3,4].map(i => (
-              <div key={i} className="kpi-card" style={{ background: 'var(--surface-bone)', height: 110 }} />
-            ))}
+        {/* ── Section 1: Tổng quan ────────────────────────────────── */}
+        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+          {sectionHead('📊', 'Tổng quan')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+            {loading ? <>{skeletonCard}{skeletonCard}{skeletonCard}</> : (<>
+              <KpiCard icon="💰" label="Tổng doanh thu" value={kpis ? fmtVnd(kpis.totalRevenue) : '—'} iconBg="rgba(15,118,110,0.10)" iconColor="var(--primary)" link="/admin/reports" />
+              <KpiCard icon="📋" label="Tổng booking" value={kpis ? kpis.totalBookings.toLocaleString('vi-VN') : '—'} iconBg="#eff6ff" iconColor="#2563EB" />
+              <KpiCard icon="👥" label="Khách hàng" value={kpis?.totalCustomers?.toLocaleString('vi-VN') ?? '—'} iconBg="#f5f3ff" iconColor="#7c3aed" link="/admin/customers" />
+            </>)}
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
-            {kpiCards.map((k, i) => <KpiCard key={i} {...k} />)}
-          </div>
-        )}
+        </div>
 
-        {/* Revenue Chart + Quick Links */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginBottom: 28 }}>
-          {/* Chart */}
+        {/* ── Section 2: Cơ sở vật chất ──────────────────────────── */}
+        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+          {sectionHead('🏢', 'Cơ sở vật chất')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+            {loading ? <>{skeletonCard}{skeletonCard}{skeletonCard}</> : (<>
+              <KpiCard icon="🏢" label="Tổng properties" value={kpis?.totalProperties?.toLocaleString('vi-VN') ?? '—'} iconBg="#f0fdf4" iconColor="#2b9a66" link="/admin/properties" />
+              <KpiCard icon="🏗️" label="Tổng tầng" value={kpis?.totalFloors?.toLocaleString('vi-VN') ?? '—'} iconBg="#fef3c7" iconColor="#d97706" />
+              <KpiCard icon="🚪" label="Tổng phòng" value={kpis?.totalRooms?.toLocaleString('vi-VN') ?? '—'} iconBg="#fce7f3" iconColor="#db2777" />
+            </>)}
+          </div>
+        </div>
+
+        {/* ── Section 3: Tình trạng phòng ─────────────────────────── */}
+        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+          {sectionHead('🛏️', 'Tình trạng phòng')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+            {loading ? <>{skeletonCard}{skeletonCard}</> : (<>
+              <KpiCard icon="✅" label="Phòng trống" value={kpis?.availableRooms?.toLocaleString('vi-VN') ?? '—'} iconBg="#ecfdf5" iconColor="#059669" />
+              <KpiCard icon="🔑" label="Phòng có khách" value={kpis?.occupiedRooms?.toLocaleString('vi-VN') ?? '—'} iconBg="#fff7ed" iconColor="#ea580c" />
+            </>)}
+          </div>
+        </div>
+
+        {/* ── Section 4: Doanh thu theo tháng + Quick Links ────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginBottom: 20 }}>
           <div className="card" style={{ padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ fontFamily: 'Outfit', fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-                📊 Doanh thu theo tháng — {currentYear}
-              </h2>
-            </div>
+            {sectionHead('📈', `Doanh thu theo tháng — ${currentYear}`)}
             {revenue.length > 0 ? (
               <RevenueBarChart data={revenue} />
             ) : (
@@ -183,7 +204,6 @@ export default function AdminDashboardPage() {
             )}
           </div>
 
-          {/* Quick Links */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <QuickLink to="/admin/properties"   icon="🏢" label="Quản lý Properties"  desc="Danh sách & tạo property" />
             <QuickLink to="/admin/managers"      icon="👔" label="Manager Directory"   desc="Quản lý tài khoản manager" />
@@ -192,12 +212,15 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Secondary quick access — SCR-52 Payment Reconciliation deferred (mock VNPay). */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
-          <QuickLink to="/admin/complaints"   icon="📣" label="Complaints"     desc="Khiếu nại hệ thống" />
-          <QuickLink to="/admin/reports"      icon="📈" label="Global Reports" desc="Báo cáo toàn hệ thống" />
-          <QuickLink to="/admin/settings"     icon="⚙️" label="System Admin"   desc="Settings & Logs" />
-          <QuickLink to="/admin/promotions"   icon="🎁" label="Promotions"     desc="Mã khuyến mãi" />
+        {/* ── Section 5: Truy cập nhanh ──────────────────────────── */}
+        <div className="card" style={{ padding: 24 }}>
+          {sectionHead('⚡', 'Truy cập nhanh')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+            <QuickLink to="/admin/complaints"   icon="📣" label="Complaints"     desc="Khiếu nại hệ thống" />
+            <QuickLink to="/admin/reports"      icon="📈" label="Global Reports" desc="Báo cáo toàn hệ thống" />
+            <QuickLink to="/admin/settings"     icon="⚙️" label="System Admin"   desc="Settings & Logs" />
+            <QuickLink to="/admin/promotions"   icon="🎁" label="Promotions"     desc="Mã khuyến mãi" />
+          </div>
         </div>
       </div>
     </AdminLayout>
