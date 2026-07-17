@@ -56,6 +56,10 @@ export interface GlobalKpis {
   totalRevenue: number;
   totalBookings: number;
   totalProperties?: number;
+  totalFloors?: number;
+  totalRooms?: number;
+  availableRooms?: number;
+  occupiedRooms?: number;
   totalCustomers?: number;
 }
 
