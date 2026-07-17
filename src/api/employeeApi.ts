@@ -49,11 +49,9 @@ export async function updateHousekeepingTaskStatus(
 export interface MaintenanceTicket {
   id: string;
   roomName: string;
-  /** Ticket title (free text), not a category enum. */
   issueType: string;
   description: string;
   status: 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-  resolutionNote?: string | null;
   assignedAt?: string;
   resolvedAt?: string | null;
 }
@@ -70,13 +68,8 @@ export async function getEmployeeMaintenanceTickets(params?: {
 export async function updateMaintenanceTicketStatus(
   id: string,
   status: 'IN_PROGRESS' | 'RESOLVED',
-  resolutionNote?: string,
-): Promise<{ success: boolean; data: MaintenanceTicket }> {
-  const res = await api.put(`/api/v1/employees/maintenance/${id}/status`, {
-    status,
-    ...(resolutionNote != null && resolutionNote !== '' ? { resolutionNote } : {}),
-  });
-  return res.data;
+): Promise<void> {
+  await api.put(`/api/v1/employees/maintenance/${id}/status`, { status });
 }
 
 // ── SCR-62: Room Inspection Hub ──────────────────────────────────────────────
@@ -136,10 +129,7 @@ export interface DamageReport {
   roomName: string;
   status: string;
   items: DamageItem[];
-  itemCount?: number;
   totalCost: number;
-  requiresAdminEscalation?: boolean;
-  note?: string | null;
   createdAt: string;
 }
 
@@ -151,39 +141,12 @@ export async function getEmployeeDamageReports(params?: {
   return res.data;
 }
 
-/** SCR-64 — Rooms with FAILED inspection that still need a damage report. */
-export interface EligibleDamageRoom {
-  roomId: string;
-  roomNumber: string;
-  inspectionId: string;
-  inspectedAt?: string;
-}
-
-export async function getEligibleDamageRooms(): Promise<{
-  success: boolean;
-  data: EligibleDamageRoom[];
-}> {
-  const res = await api.get('/api/v1/employees/damage-reports/eligible-rooms');
-  return res.data;
-}
-
-/** SCR-64 — Upload evidence photos; returns /uploads/damage/... URLs. */
-export async function uploadDamagePhotos(files: File[]): Promise<string[]> {
-  const formData = new FormData();
-  files.forEach((f) => formData.append('files', f));
-  const res = await api.post('/api/v1/employees/damage-reports/photos', formData, {
-    timeout: 60_000,
-  });
-  return res.data.data ?? [];
-}
-
 export async function createDamageReport(payload: {
   roomId: string;
-  inspectionId?: string;
   items: DamageItem[];
-  attachments: { url: string; type: string }[];
+  attachments?: { url: string; type: string }[];
   notes?: string;
-}): Promise<{ success: boolean; data?: DamageReport }> {
+}): Promise<{ success: boolean }> {
   const res = await api.post('/api/v1/employees/damage-reports', payload);
   return res.data;
 }

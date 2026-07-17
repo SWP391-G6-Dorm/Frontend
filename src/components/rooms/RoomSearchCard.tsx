@@ -29,13 +29,6 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-function formatRoomTitle(roomNumber: string, roomType: string) {
-  const num = roomNumber.trim();
-  const type = roomType.trim();
-  if (!type || num.toLowerCase().includes(type.toLowerCase())) return num;
-  return `${num} — ${type}`;
-}
-
 interface RoomSearchCardProps {
   room: RoomListItem;
   querySuffix?: string;
@@ -80,8 +73,8 @@ export default function RoomSearchCard({ room, querySuffix = '' }: RoomSearchCar
           {room.propertyName}
           {room.floorNumber != null && ` · Tầng ${room.floorNumber}`}
         </p>
-        <h3 className="heading-sm font-display" style={{ marginBottom: 6, fontSize: 17, lineHeight: 1.35 }}>
-          {formatRoomTitle(room.roomNumber, room.roomType)}
+        <h3 className="heading-sm font-display" style={{ marginBottom: 6, fontSize: 17 }}>
+          {room.roomNumber} — {room.roomType}
         </h3>
         <div className="flex gap-3 body-sm text-charcoal" style={{ marginBottom: 8 }}>
           <span>👥 {room.capacity}</span>
@@ -93,12 +86,14 @@ export default function RoomSearchCard({ room, querySuffix = '' }: RoomSearchCar
             <span className="body-sm text-charcoal">({reviews})</span>
           </div>
         )}
-        <div className="room-search-card-footer">
-          <div className="room-search-card-price-row">
+        <div className="flex items-center justify-between" style={{ marginTop: 12 }}>
+          <div>
             <span className="heading-sm text-primary">₫{Number(room.pricePerNight).toLocaleString('vi-VN')}</span>
             <span className="body-sm text-charcoal">/đêm</span>
           </div>
-          <span className="room-search-card-cta">Xem chi tiết</span>
+          <span className="btn-outline btn-sm" style={{ borderRadius: 9999, pointerEvents: 'none' }}>
+            Xem chi tiết
+          </span>
         </div>
       </div>
     </Link>

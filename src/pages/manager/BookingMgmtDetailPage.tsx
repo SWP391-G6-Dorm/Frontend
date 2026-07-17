@@ -20,17 +20,6 @@ const STATUS_VI: Record<string, { label: string; variant: StatusVariant }> = {
   NO_SHOW:                { label: 'Không đến',                    variant: 'danger' },
 };
 
-/** Spec: status stays PENDING_DAMAGE_PAYMENT until check-out; label changes after fee is PAID. */
-function resolveStatusBadge(
-  status: string,
-  damageFeePaid?: boolean,
-): { label: string; variant: StatusVariant } {
-  if (status === 'PENDING_DAMAGE_PAYMENT' && damageFeePaid) {
-    return { label: 'Sẵn sàng trả phòng', variant: 'warning' };
-  }
-  return STATUS_VI[status] ?? { label: status, variant: 'neutral' };
-}
-
 const PAYMENT_TYPE_VI: Record<string, string> = {
   DEPOSIT: 'Đặt cọc',
   REMAINING_BALANCE: 'Phần còn lại',
@@ -193,12 +182,8 @@ export default function BookingMgmtDetailPage() {
     );
   }
 
-  const damageFeePaid = Boolean(
-    booking?.damageFeePaid
-    || (booking?.payments ?? []).some(p => p.type === 'DAMAGE_FEE' && p.status === 'PAID'),
-  );
   const statusCfg = booking
-    ? resolveStatusBadge(booking.status, damageFeePaid)
+    ? STATUS_VI[booking.status] ?? { label: booking.status, variant: 'neutral' as StatusVariant }
     : null;
 
   const nights = booking
@@ -210,12 +195,6 @@ export default function BookingMgmtDetailPage() {
     || (booking.status === 'PENDING_INSPECTION' && booking.checkOutBlockedReason)
     || booking.status === 'PENDING_DAMAGE_PAYMENT'
   );
-  const showCheckInButton = booking?.status === 'CONFIRMED';
-  const checkInBlockedReason = booking && showCheckInButton && !booking.canCheckIn
-    ? (booking.checkInDate > new Date().toISOString().slice(0, 10)
-      ? `Chỉ check-in từ ngày ${formatDate(booking.checkInDate)}`
-      : 'Booking chưa đủ điều kiện nhận phòng')
-    : null;
 
   return (
     <ManagerLayout>
@@ -340,27 +319,22 @@ export default function BookingMgmtDetailPage() {
               <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-sm">
                 <h2 className="font-semibold text-[#1E293B] mb-4">Thao tác</h2>
                 <div className="flex flex-col gap-3">
-                  {showCheckInButton && (
+                  {booking.canCheckIn && (
                     <button
                       type="button"
-                      className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn-primary w-full"
                       onClick={() => navigate(`/manager/bookings/${id}/check-in`)}
-                      disabled={!booking.canCheckIn}
-                      title={checkInBlockedReason ?? undefined}
                     >
                       Nhận phòng
                     </button>
                   )}
 
-                  {checkInBlockedReason && (
-                    <p className="text-xs text-[#B45309]">{checkInBlockedReason}</p>
-                  )}
-
                   {showCheckOutButton && (
                     <button
                       type="button"
-                      className="btn-primary w-full"
-                      onClick={() => navigate(`/manager/bookings/${id}/check-out`)}
+                      className="btn-primary w-full disabled:opacity-50"
+                      onClick={() => booking.canCheckOut && navigate(`/manager/bookings/${id}/check-out`)}
+                      disabled={!booking.canCheckOut}
                       title={booking.checkOutBlockedReason ?? undefined}
                     >
                       Trả phòng
