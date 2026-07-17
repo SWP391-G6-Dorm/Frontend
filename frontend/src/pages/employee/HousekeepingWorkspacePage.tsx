@@ -82,12 +82,12 @@ export default function HousekeepingWorkspacePage() {
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '16px', maxWidth: 640, margin: '0 auto' }} className="animate-fade-in">
+      <div className="animate-fade-in space-y-4">
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div>
-            <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>🧹 Housekeeping</h1>
-            <p className="body-sm text-charcoal">SCR-60 — {tasks.length} tác vụ</p>
+            <h1 className="font-display text-[28px] font-bold text-[#1E293B]">Housekeeping</h1>
+            <p className="body-sm text-charcoal mt-1">{tasks.length} tác vụ</p>
           </div>
           <button
             onClick={() => load(true)} disabled={refreshing}
@@ -124,7 +124,7 @@ export default function HousekeepingWorkspacePage() {
             <p className="body-sm text-charcoal">Tất cả phòng đã sạch.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {tasks.map(task => {
               const nextLabel = hkButtonLabel(task.status);
               const isUpdating = updating === task.id;
@@ -197,4 +197,4 @@ const ISSUE_TYPE_ICONS: Record<string, string> = {
   ELECTRICAL: '⚡', PLUMBING: '🔧', HVAC: '❄️', FURNITURE: '🪑',
   APPLIANCE: '📺', STRUCTURAL: '🏗️', OTHER: '🛠️',
 };
-
+

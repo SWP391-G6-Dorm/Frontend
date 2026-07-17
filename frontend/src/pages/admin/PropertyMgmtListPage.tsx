@@ -57,28 +57,28 @@ export function PropertyMgmtListPage() {
 
   const actions = [
     { label: 'Sửa', onClick: (p: AdminProperty) => navigate(`/admin/properties/${p.id}/edit`) },
-    { label: 'Gán Manager', onClick: (p: AdminProperty) => navigate(`/admin/properties/${p.id}/manager`) }
   ];
 
   return (
     <AdminLayout>
-      <div className="animate-fade-in">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <div>
-            <h1 style={{ fontFamily: 'Outfit', fontSize: 26, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Property Management</h1>
+      <div className="animate-fade-in w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl sm:text-[26px] font-bold text-[var(--ink)] mb-1">Property Management</h1>
             <p className="body-sm text-charcoal">SCR-46 — Danh sách toàn bộ Properties</p>
           </div>
-          <Link to="/admin/properties/create" className="btn-primary">+ Create Property</Link>
+          <Link to="/admin/properties/create" className="btn-primary w-full sm:w-auto text-center shrink-0">
+            + Create Property
+          </Link>
         </div>
         {error && <ErrorBanner msg={error} />}
-        <div className="card" style={{ padding: '16px 20px', marginBottom: 16 }}>
+        <div className="card p-4 sm:px-5 mb-4">
           <input
             id="property-search"
-            className="input"
+            className="input w-full sm:max-w-sm"
             placeholder="Tìm theo tên hoặc địa điểm..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ maxWidth: 340 }}
           />
         </div>
         {loading ? <Spinner /> : (

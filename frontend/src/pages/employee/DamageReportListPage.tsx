@@ -34,10 +34,10 @@ export default function DamageReportListPage() {
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '16px', maxWidth: 640, margin: '0 auto' }} className="animate-fade-in">
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>📋 Damage Reports</h1>
-          <p className="body-sm text-charcoal">SCR-63 — Báo cáo hư hại của bạn</p>
+      <div className="animate-fade-in space-y-4">
+        <div style={{ marginBottom: 8 }}>
+          <h1 className="font-display text-[28px] font-bold text-[#1E293B]">Damage Reports</h1>
+          <p className="body-sm text-charcoal mt-1">Báo cáo hư hại của bạn</p>
         </div>
         {error && <ErrBanner msg={error} />}
         {loading ? <Spinner /> : reports.length === 0 ? (
@@ -48,7 +48,7 @@ export default function DamageReportListPage() {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3" style={{ marginBottom: 16 }}>
               {reports.map(r => (
                 <div key={r.id} className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(220,38,38,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>⚠️</div>
@@ -85,4 +85,4 @@ export default function DamageReportListPage() {
 interface DamageItemRow extends DamageItem {
   _key: string;
 }
-
+

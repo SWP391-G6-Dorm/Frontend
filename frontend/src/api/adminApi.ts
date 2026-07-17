@@ -132,7 +132,7 @@ export async function getAdminProperties(params?: { page?: number; size?: number
 // ── SCR-47: Create Property ────────────────────────────────────────────────────
 
 /** POST /api/admin/properties */
-export async function createAdminProperty(payload: { name: string; location: string }): Promise<{ success: boolean; data: AdminProperty }> {
+export async function createAdminProperty(payload: { name: string; address: string; description?: string; status?: string }): Promise<{ success: boolean; data: AdminProperty }> {
   const res = await api.post('/api/admin/properties', payload);
   return res.data;
 }

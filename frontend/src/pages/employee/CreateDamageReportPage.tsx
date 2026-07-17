@@ -110,11 +110,11 @@ export default function CreateDamageReportPage() {
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '16px', maxWidth: 560, margin: '0 auto' }} className="animate-fade-in">
-        <div style={{ marginBottom: 20 }}>
+      <div className="animate-fade-in space-y-4" style={{ maxWidth: 720 }}>
+        <div style={{ marginBottom: 8 }}>
           <Link to="/employee/damage" className="body-sm text-primary" style={{ textDecoration: 'none' }}>← My Reports</Link>
-          <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginTop: 8, marginBottom: 2 }}>📝 Create Damage Report</h1>
-          <p className="body-sm text-charcoal">SCR-64 — Ghi nhận hư hại</p>
+          <h1 className="font-display text-[28px] font-bold text-[#1E293B]" style={{ marginTop: 8 }}>Create Damage Report</h1>
+          <p className="body-sm text-charcoal mt-1">Ghi nhận hư hại</p>
         </div>
         {error && <ErrBanner msg={error} />}
 
@@ -276,4 +276,4 @@ export default function CreateDamageReportPage() {
 }
 
 // ── SCR-65: Property Room List ─────────────────────────────────────────────────
-
+

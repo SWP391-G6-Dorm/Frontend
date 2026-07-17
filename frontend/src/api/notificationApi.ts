@@ -2,7 +2,7 @@ import api from './axiosInstance';
 
 export interface Notification {
   id: string;
-  type: 'BOOKING_CONFIRMED' | 'CONTRACT_GENERATED' | 'PAYMENT_CONFIRMED' | 'MAINTENANCE_UPDATED' | 'SYSTEM';
+  type: 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED' | 'CONTRACT_GENERATED' | 'PAYMENT_CONFIRMED' | 'MAINTENANCE_UPDATED' | 'HOUSEKEEPING_TASK_UPDATED' | 'SYSTEM';
   title: string;
   content: string;
   isRead: boolean;

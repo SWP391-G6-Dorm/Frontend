@@ -55,22 +55,24 @@ function OkBanner({ msg }: { msg: string }) {
 /** Status badge — colour by value */
 function StatusBadge({ status }: { status: string }) {
   const MAP: Record<string, { cls: string; label: string }> = {
-    PENDING:         { cls: 'badge-warning', label: 'Pending' },
-    IN_PROGRESS:     { cls: 'badge-info',    label: 'In Progress' },
-    COMPLETED:       { cls: 'badge-success', label: 'Completed' },
-    ASSIGNED:        { cls: 'badge-warning', label: 'Assigned' },
-    RESOLVED:        { cls: 'badge-success', label: 'Resolved' },
-    CLEAN:           { cls: 'badge-success', label: 'Clean' },
-    AVAILABLE:       { cls: 'badge-success', label: 'Available' },
-    OCCUPIED:        { cls: 'badge-info',    label: 'Occupied' },
-    MAINTENANCE:     { cls: 'badge-warning', label: 'Maintenance' },
-    PENDING_CLEANING:{ cls: 'badge-warning', label: 'Needs Cleaning' },
-    PENDING_REVIEW:  { cls: 'badge-warning', label: 'Pending Review' },
-    APPROVED:        { cls: 'badge-success', label: 'Approved' },
-    ESCALATED:       { cls: 'badge-error',   label: 'Escalated' },
-    REJECTED:        { cls: 'badge-error',   label: 'Rejected' },
-    PASS:            { cls: 'badge-success', label: '✓ Pass' },
-    FAIL:            { cls: 'badge-error',   label: '✗ Fail' },
+    PENDING:              { cls: 'badge-warning', label: 'Pending' },
+    IN_PROGRESS:          { cls: 'badge-info',    label: 'In Progress' },
+    PASSED:               { cls: 'badge-success', label: 'Passed' },
+    FAILED_WITH_DAMAGE:   { cls: 'badge-error',   label: 'Failed With Damage' },
+    COMPLETED:            { cls: 'badge-success', label: 'Completed' },
+    ASSIGNED:             { cls: 'badge-warning', label: 'Assigned' },
+    RESOLVED:             { cls: 'badge-success', label: 'Resolved' },
+    CLEAN:                { cls: 'badge-success', label: 'Clean' },
+    AVAILABLE:            { cls: 'badge-success', label: 'Available' },
+    OCCUPIED:             { cls: 'badge-info',    label: 'Occupied' },
+    MAINTENANCE:          { cls: 'badge-warning', label: 'Maintenance' },
+    PENDING_CLEANING:     { cls: 'badge-warning', label: 'Needs Cleaning' },
+    PENDING_REVIEW:       { cls: 'badge-warning', label: 'Pending Review' },
+    APPROVED:             { cls: 'badge-success', label: 'Approved' },
+    ESCALATED:            { cls: 'badge-error',   label: 'Escalated' },
+    REJECTED:             { cls: 'badge-error',   label: 'Rejected' },
+    PASS:                 { cls: 'badge-success', label: '✓ Pass' },
+    FAIL:                 { cls: 'badge-error',   label: '✗ Fail' },
   };
   const v = MAP[status] ?? { cls: 'badge-neutral', label: status };
   return <span className={`badge ${v.cls}`}>{v.label}</span>;
@@ -90,7 +92,8 @@ function Drawer({ open, onClose, title, children }: {
       )}
       <div style={{
         position: 'fixed', top: 0, right: 0, height: '100%',
-        width: 420, maxWidth: '95vw',
+        width: 'min(420px, 100vw)',
+        maxWidth: '100vw',
         background: 'var(--surface-card)',
         boxShadow: '-6px 0 28px rgba(0,0,0,0.14)',
         zIndex: 999,
@@ -116,7 +119,7 @@ function Drawer({ open, onClose, title, children }: {
 function FAB({ to, label }: { to: string; label: string }) {
   return (
     <Link to={to} style={{
-      position: 'fixed', bottom: 24, right: 20,
+      position: 'fixed', bottom: 28, right: 28,
       width: 56, height: 56, borderRadius: '50%',
       background: 'var(--primary)', color: '#fff',
       display: 'flex', alignItems: 'center', justifyContent: 'center',

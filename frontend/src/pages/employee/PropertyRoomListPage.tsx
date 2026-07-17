@@ -57,10 +57,10 @@ export default function PropertyRoomListPage() {
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '16px', maxWidth: 640, margin: '0 auto' }} className="animate-fade-in">
-        <div style={{ marginBottom: 16 }}>
-          <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>🚪 Room List</h1>
-          <p className="body-sm text-charcoal">SCR-65 — {rooms.length} phòng</p>
+      <div className="animate-fade-in space-y-4">
+        <div style={{ marginBottom: 8 }}>
+          <h1 className="font-display text-[28px] font-bold text-[#1E293B]">Room List</h1>
+          <p className="body-sm text-charcoal mt-1">{rooms.length} phòng</p>
         </div>
         {error && <ErrBanner msg={error} />}
 
@@ -91,7 +91,7 @@ export default function PropertyRoomListPage() {
             <p style={{ fontWeight: 600, color: 'var(--ink)' }}>Không tìm thấy phòng</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map(room => (
               <div key={room.id} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, background: ROOM_STATUS_BG[room.status] || 'var(--surface-card)' }}>
                 <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>

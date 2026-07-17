@@ -1,4 +1,10 @@
 import api from './axiosInstance';
+import {
+  fetchEmployeeHousekeepingTasks,
+  startEmployeeHousekeepingTask,
+  finishEmployeeHousekeepingTask,
+  type EmployeeHousekeepingTask,
+} from './housekeepingApi';
 
 // ── SCR-59: Employee Dashboard KPIs ─────────────────────────────────────────
 
@@ -15,22 +21,15 @@ export async function getEmployeeKpis(): Promise<{ success: boolean; data: Emplo
 
 // ── SCR-60: Housekeeping Workspace ───────────────────────────────────────────
 
-export interface HousekeepingTask {
-  id: string;
-  roomName?: string;
-  roomNumber?: string;
-  floorName?: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  assignedAt?: string;
-}
+export type HousekeepingTask = EmployeeHousekeepingTask;
 
 export async function getHousekeepingTasks(params?: {
   page?: number;
   size?: number;
   status?: string;
 }): Promise<{ success: boolean; data: { content: HousekeepingTask[]; totalPages: number } }> {
-  const res = await api.get('/api/v1/employees/housekeeping', { params });
-  return res.data;
+  const data = await fetchEmployeeHousekeepingTasks(params);
+  return { success: true, data: { content: data.content, totalPages: data.totalPages } };
 }
 
 export async function updateHousekeepingTaskStatus(
@@ -38,9 +37,9 @@ export async function updateHousekeepingTaskStatus(
   status: 'IN_PROGRESS' | 'COMPLETED',
 ): Promise<void> {
   if (status === 'IN_PROGRESS') {
-    await api.post(`/api/v1/employees/housekeeping/${id}/start`);
+    await startEmployeeHousekeepingTask(id);
   } else {
-    await api.post(`/api/v1/employees/housekeeping/${id}/finish`);
+    await finishEmployeeHousekeepingTask(id);
   }
 }
 
@@ -84,11 +83,13 @@ export interface InspectionChecklist {
 
 export interface InspectionSummary {
   id: string;
-  roomId: string;
+  room?: { id: string; roomNumber?: string };
+  roomId?: string;
   roomNumber?: string;
   roomName?: string;
   bookingId?: string;
   status: 'PENDING' | 'IN_PROGRESS' | 'PASSED' | 'FAILED_WITH_DAMAGE';
+  inspectedAt?: string | null;
   createdAt?: string;
   note?: string | null;
 }
@@ -96,6 +97,7 @@ export interface InspectionSummary {
 export async function getEmployeeInspections(params?: {
   page?: number;
   size?: number;
+  status?: 'PENDING' | 'IN_PROGRESS';
 }): Promise<{ success: boolean; data: { content: InspectionSummary[]; totalPages: number } }> {
   const res = await api.get('/api/v1/employees/inspections', { params });
   return res.data;
@@ -103,16 +105,16 @@ export async function getEmployeeInspections(params?: {
 
 export async function passInspection(
   id: string,
-  body?: { notes?: string; checklist?: InspectionChecklist },
-): Promise<{ success: boolean; data?: InspectionSummary }> {
+  body?: { note?: string; checklist?: InspectionChecklist },
+): Promise<{ success: boolean; data?: Record<string, never> }> {
   const res = await api.post(`/api/v1/employees/inspections/${id}/pass`, body ?? {});
   return res.data;
 }
 
 export async function failInspection(
   id: string,
-  body: { notes: string; checklist?: InspectionChecklist },
-): Promise<{ success: boolean; data?: InspectionSummary }> {
+  body: { note: string; checklist?: InspectionChecklist },
+): Promise<{ success: boolean; data?: Record<string, never> }> {
   const res = await api.post(`/api/v1/employees/inspections/${id}/fail`, body);
   return res.data;
 }

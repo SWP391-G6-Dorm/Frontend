@@ -1,23 +1,26 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import EmployeeLayout from '../../layouts/EmployeeLayout';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  getEmployeeKpis, type EmployeeKpis,
-  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
-  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
-  getEmployeeInspections, passInspection, failInspection,
-  type InspectionChecklist, type InspectionSummary,
-  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
-  getEmployeeRooms, type EmployeeRoom,
-} from '../../api/employeeApi';
-import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
-
+  faBroom,
+  faWrench,
+  faClipboardCheck,
+  faTriangleExclamation,
+  faDoorOpen,
+  faPlus,
+} from '@fortawesome/free-solid-svg-icons';
+import EmployeeLayout from '../../layouts/EmployeeLayout';
+import { getEmployeeKpis, type EmployeeKpis } from '../../api/employeeApi';
+import { KpiCard } from '../../components/ui/KpiCard';
+import Alert from '../../components/ui/Alert';
+import { useAuthStore } from '../../store/authStore';
 
 export default function EmployeeDashboardPage() {
+  const navigate = useNavigate();
+  const { fullName } = useAuthStore();
   const [kpis, setKpis] = useState<EmployeeKpis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const employeeName = sessionStorage.getItem('fullName') || 'Nhân viên';
 
   useEffect(() => {
     let cancelled = false;
@@ -26,133 +29,80 @@ export default function EmployeeDashboardPage() {
       try {
         const res = await getEmployeeKpis();
         if (!cancelled && res.success) setKpis(res.data);
-      } catch { if (!cancelled) setError('Không tải được KPI. Vui lòng thử lại.'); }
-      finally { if (!cancelled) setLoading(false); }
+      } catch {
+        if (!cancelled) setError('Không tải được KPI. Vui lòng thử lại.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     load();
     return () => { cancelled = true; };
   }, []);
 
-  const actionCards = [
-    {
-      to: '/employee/housekeeping', icon: '🧹', label: 'Housekeeping',
-      count: kpis?.pendingHousekeeping, desc: 'Dọn phòng đang chờ',
-      gradient: 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)',
-    },
-    {
-      to: '/employee/maintenance', icon: '🔧', label: 'Maintenance',
-      count: kpis?.pendingMaintenance, desc: 'Yêu cầu sửa chữa',
-      gradient: 'linear-gradient(135deg, #2563EB 0%, #0891B2 100%)',
-    },
-    {
-      to: '/employee/inspections', icon: '🔍', label: 'Inspections',
-      count: null, desc: 'Kiểm tra phòng',
-      gradient: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-    },
-  ];
+  const today = new Date().toLocaleDateString('vi-VN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }} className="animate-fade-in">
-        {/* Greeting */}
-        <div style={{ marginBottom: 24 }}>
-          <p className="body-sm text-charcoal" style={{ marginBottom: 2 }}>Xin chào 👋</p>
-          <h1 style={{ fontFamily: 'Outfit', fontSize: 24, fontWeight: 700, color: 'var(--ink)' }}>{employeeName}</h1>
-          <p className="body-sm text-charcoal" style={{ marginTop: 4 }}>
-            {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <h1 className="font-display text-[28px] font-bold text-[#1E293B]">
+            Xin chào, {fullName || 'Nhân viên'}
+          </h1>
+          <p className="body-sm text-charcoal mt-1 capitalize">{today}</p>
         </div>
 
-        {error && <ErrBanner msg={error} />}
+        {error && (
+          <Alert variant="error" message={error} closeable onClose={() => setError(null)} />
+        )}
 
-        {/* Action Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
-          {actionCards.map((card) => (
-            <Link key={card.to} to={card.to} style={{ textDecoration: 'none' }}>
-              <div style={{
-                background: card.gradient,
-                borderRadius: 16, padding: '20px 22px',
-                minHeight: 100,
-                display: 'flex', alignItems: 'center', gap: 18,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                transition: 'transform 0.15s, box-shadow 0.15s',
-                cursor: 'pointer',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 28px rgba(0,0,0,0.18)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'; }}
-              >
-                <div style={{ fontSize: 36, flexShrink: 0 }}>{card.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: '#fff', marginBottom: 4 }}>{card.label}</p>
-                  <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>{card.desc}</p>
-                </div>
-                {card.count !== null && card.count !== undefined && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.22)', borderRadius: 12,
-                    padding: '6px 14px', textAlign: 'center', flexShrink: 0,
-                  }}>
-                    {loading ? (
-                      <div style={{ width: 24, height: 22, background: 'rgba(255,255,255,0.3)', borderRadius: 4 }} />
-                    ) : (
-                      <>
-                        <p style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: '#fff', lineHeight: 1 }}>{card.count}</p>
-                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10, marginTop: 2 }}>đang chờ</p>
-                      </>
-                    )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {loading && !kpis ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-[120px] bg-[#F1F5F9] rounded-[16px] animate-pulse" />
+            ))
+          ) : (
+            <>
+              <button type="button" onClick={() => navigate('/employee/housekeeping')} className="text-left">
+                <KpiCard title="Dọn phòng chờ" value={kpis?.pendingHousekeeping ?? 0} icon={faBroom} />
+              </button>
+              <button type="button" onClick={() => navigate('/employee/maintenance')} className="text-left">
+                <KpiCard title="Bảo trì chờ" value={kpis?.pendingMaintenance ?? 0} icon={faWrench} />
+              </button>
+              <button type="button" onClick={() => navigate('/employee/inspections')} className="text-left">
+                <KpiCard title="Kiểm tra phòng" value={kpis?.pendingInspections ?? 0} icon={faClipboardCheck} />
+              </button>
+            </>
+          )}
+        </div>
+
+        <div>
+          <h2 className="font-display text-lg font-semibold text-[#1E293B] mb-3">Thao tác nhanh</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              { to: '/employee/housekeeping', icon: faBroom, label: 'Housekeeping', desc: 'Danh sách tác vụ dọn phòng' },
+              { to: '/employee/maintenance', icon: faWrench, label: 'Maintenance', desc: 'Yêu cầu sửa chữa được giao' },
+              { to: '/employee/inspections', icon: faClipboardCheck, label: 'Inspections', desc: 'Kiểm tra phòng trước check-out' },
+              { to: '/employee/damage', icon: faTriangleExclamation, label: 'Damage Reports', desc: 'Xem báo cáo hư hại của bạn' },
+              { to: '/employee/damage/create', icon: faPlus, label: 'Tạo báo cáo hư hại', desc: 'Ghi nhận hư hại mới' },
+              { to: '/employee/rooms', icon: faDoorOpen, label: 'Danh sách phòng', desc: 'Xem trạng thái phòng' },
+            ].map(link => (
+              <Link key={link.to} to={link.to} className="no-underline">
+                <div
+                  className="bg-white rounded-[16px] border border-[#E2E8F0] p-5 h-full transition-all duration-150 hover:border-[#0F766E] hover:shadow-sm"
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#CCFBF1] text-[#0F766E] flex items-center justify-center mb-3">
+                    <FontAwesomeIcon icon={link.icon} />
                   </div>
-                )}
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" style={{ flexShrink: 0 }}>
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* Quick Links */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {[
-            { to: '/employee/damage', icon: '📋', label: 'My Damage Reports' },
-            { to: '/employee/damage/create', icon: '📝', label: 'Báo cáo hư hại mới' },
-            { to: '/employee/rooms', icon: '🚪', label: 'Danh sách phòng' },
-          ].map(link => (
-            <Link key={link.to} to={link.to} style={{ textDecoration: 'none' }}>
-              <div style={{
-                background: 'var(--surface-card)', borderRadius: 12, padding: '14px 16px',
-                display: 'flex', alignItems: 'center', gap: 10, minHeight: 56,
-                border: '1px solid var(--hairline)', transition: 'border-color 0.15s',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--primary)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--hairline)'; }}
-              >
-                <span style={{ fontSize: 20 }}>{link.icon}</span>
-                <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{link.label}</p>
-              </div>
-            </Link>
-          ))}
+                  <p className="font-semibold text-[15px] text-[#1E293B] mb-1">{link.label}</p>
+                  <p className="body-sm text-charcoal">{link.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </EmployeeLayout>
   );
 }
-
-// ── SCR-60: Housekeeping Workspace ─────────────────────────────────────────────
-
-/** Next status in housekeeping flow */
-function hkNext(status: HousekeepingTask['status']): 'IN_PROGRESS' | 'COMPLETED' | null {
-  if (status === 'PENDING')     return 'IN_PROGRESS';
-  if (status === 'IN_PROGRESS') return 'COMPLETED';
-  return null;
-}
-
-function hkButtonLabel(status: HousekeepingTask['status']) {
-  if (status === 'PENDING')     return '▶ Bắt đầu';
-  if (status === 'IN_PROGRESS') return '✓ Hoàn thành';
-  return null;
-}
-
-function hkButtonClass(status: HousekeepingTask['status']) {
-  if (status === 'IN_PROGRESS') return 'btn-primary';
-  return 'btn-outline';
-}
-

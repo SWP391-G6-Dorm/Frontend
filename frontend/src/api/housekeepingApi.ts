@@ -171,20 +171,41 @@ export async function assignHousekeepingTaskV1(
 
 
 export async function cancelHousekeepingTaskV1(
-
   taskId: string,
-
   note?: string,
-
 ): Promise<HousekeepingTaskSummary> {
-
   const res = await api.patch(`/api/v1/manager/housekeeping-tasks/${taskId}/cancel`, {
-
     note: note || undefined,
-
   });
-
   return res.data.data;
+}
 
+// ── SCR-60: Employee Housekeeping Workspace ─────────────────────────────────
+
+export type EmployeeHousekeepingStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface EmployeeHousekeepingTask {
+  id: string;
+  room: { id: string; roomNumber: string };
+  status: EmployeeHousekeepingStatus;
+  note?: string | null;
+  createdAt: string;
+}
+
+export async function fetchEmployeeHousekeepingTasks(params?: {
+  page?: number;
+  size?: number;
+  status?: string;
+}): Promise<PageResponse<EmployeeHousekeepingTask>> {
+  const res = await api.get('/api/v1/employees/housekeeping', { params });
+  return res.data.data;
+}
+
+export async function startEmployeeHousekeepingTask(id: string): Promise<void> {
+  await api.post(`/api/v1/employees/housekeeping/${id}/start`, {});
+}
+
+export async function finishEmployeeHousekeepingTask(id: string): Promise<void> {
+  await api.post(`/api/v1/employees/housekeeping/${id}/finish`, {});
 }
 

@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 
 // ── Static asset type declarations ──────────────────────────────────────────
 declare module '*.png' {

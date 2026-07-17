@@ -67,11 +67,11 @@ export default function MaintenanceWorkspacePage() {
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '16px', maxWidth: 640, margin: '0 auto' }} className="animate-fade-in">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className="animate-fade-in space-y-4">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div>
-            <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>🔧 Maintenance</h1>
-            <p className="body-sm text-charcoal">SCR-61 — {tickets.length} yêu cầu</p>
+            <h1 className="font-display text-[28px] font-bold text-[#1E293B]">Maintenance</h1>
+            <p className="body-sm text-charcoal mt-1">{tickets.length} yêu cầu</p>
           </div>
           <button onClick={() => load()} style={{ ...TOUCH, background: 'var(--surface-bone)', border: '1px solid var(--hairline)', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 14px', gap: 6, fontSize: 13, color: 'var(--charcoal)', fontWeight: 600 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -102,7 +102,7 @@ export default function MaintenanceWorkspacePage() {
             <p style={{ fontWeight: 600, color: 'var(--ink)' }}>Không có yêu cầu bảo trì!</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {tickets.map(ticket => {
               const next = mxNext(ticket.status);
               const icon = ISSUE_TYPE_ICONS[ticket.issueType] || '🛠️';
