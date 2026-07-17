@@ -10,26 +10,7 @@ import {
 import { managerApi } from '../../api/managerApi';
 import { floorApi, FloorSummary } from '../../api/floorApi';
 import type { AssignedProperty } from '../../api/reportApi';
-
-const AMENITY_OPTIONS = [
-  'WiFi',
-  'Điều hòa',
-  'Hồ bơi riêng',
-  'Bếp',
-  'Bếp nhỏ',
-  'View biển',
-  'Bãi đỗ xe',
-  'Minibar',
-  'Ban công',
-  'Smart TV',
-  'TV',
-  'Room service',
-  'Tủ lạnh',
-  'Bàn làm việc',
-  'Máy giặt',
-  'Nước nóng',
-  'Tủ quần áo',
-] as const;
+import { AMENITY_OPTIONS } from '../../utils/amenities';
 
 function FieldError({ msg }: { msg: string }) {
   return <p className="text-xs text-red-600 mt-1 font-medium">{msg}</p>;
