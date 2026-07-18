@@ -95,7 +95,7 @@ export interface PropertyStructure {
 
 export const propertyApi = {
 
-  /** FR-06: Paginated list of assigned properties (Manager, read-only) */
+  /** SCR-33: Paginated list with optional search + status filter */
   getAll: async (params: {
     page?: number;
     size?: number;
@@ -106,31 +106,31 @@ export const propertyApi = {
     return res.data;
   },
 
-  /** Property summary by id */
+  /** SCR-34: Full property detail */
   getById: async (id: string): Promise<{ success: boolean; data: PropertySummary }> => {
     const res = await api.get(`/api/properties/${id}`);
     return res.data;
   },
 
-  /** FR-06: Rich property detail (stats + floors) — Manager assigned only */
+  /** SCR-34: Rich property detail (stats + floors) — MANAGER only */
   getDetail: async (id: string): Promise<{ success: boolean; data: PropertyDetail }> => {
     const res = await api.get(`/api/properties/${id}/detail`);
     return res.data;
   },
 
-  /** @deprecated Manager write removed (FR-06). Use Admin property APIs. */
+  /** SCR-35: Create new property */
   create: async (payload: CreatePropertyPayload): Promise<{ success: boolean; data: PropertySummary }> => {
     const res = await api.post('/api/properties', payload);
     return res.data;
   },
 
-  /** @deprecated Manager write removed (FR-06). Use Admin property APIs. */
+  /** SCR-36: Update property */
   update: async (id: string, payload: UpdatePropertyPayload): Promise<{ success: boolean; data: PropertySummary }> => {
     const res = await api.put(`/api/properties/${id}`, payload);
     return res.data;
   },
 
-  /** @deprecated Manager write removed (FR-06). Use Admin property APIs. */
+  /** Delete property (MANAGER only) */
   delete: async (id: string): Promise<{ success: boolean }> => {
     const res = await api.delete(`/api/properties/${id}`);
     return res.data;

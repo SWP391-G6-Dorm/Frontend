@@ -12,7 +12,7 @@ const NAV_SECTIONS = [
   {
     label: 'PROPERTY & ROOMS',
     items: [
-      { label: 'My Property',      path: '/manager/properties',  icon: IconProperty },
+      { label: 'Properties',       path: '/manager/properties',  icon: IconProperty },
       { label: 'Structure',        path: '/manager/structure',   icon: IconStructure },
       { label: 'Rooms',            path: '/manager/rooms',       icon: IconRoom },
     ],

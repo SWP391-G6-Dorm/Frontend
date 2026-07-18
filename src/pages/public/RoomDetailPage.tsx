@@ -13,7 +13,6 @@ import {
   type RoomReviewInfo,
 } from '../../api/roomsApi';
 import { useAuthStore } from '../../store/authStore';
-import { fixAmenityLabel } from '../../utils/amenities';
 
 const AMENITY_ICONS: Record<string, string> = {
   WiFi: '📶',
@@ -249,7 +248,7 @@ export default function RoomDetailPage() {
       : [{ id: 'fallback', imageUrl: '', sortOrder: 0, isPrimary: true }];
 
   const amenities = room.amenities?.length
-    ? room.amenities.map((a) => fixAmenityLabel(a))
+    ? room.amenities
     : ['WiFi', 'Điều hòa', 'Smart TV', 'Nước nóng'];
 
   const canBook = room.status === 'AVAILABLE';

@@ -1,0 +1,301 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/manager/_sharedAdminData.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/pages/manager</a> _sharedAdminData.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/12</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/4</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/3</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/12</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// ─── _sharedAdminData.tsx — Shared mock data &amp; UI atoms for Admin pages ────────
+&nbsp;
+// ─── Mock data ─────────────────────────────────────────────────────────────────
+export const CUSTOMERS = <span class="cstat-no" title="statement not covered" >[</span>
+  { id: 'U001', fullName: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phone: '0901 234 567', status: 'ACTIVE', bookingCount: 3, createdAt: '2025-01-15' },
+  { id: 'U002', fullName: 'Trần Thị Lan', email: 'lan.tran@email.com', phone: '0912 345 678', status: 'ACTIVE', bookingCount: 1, createdAt: '2025-06-01' },
+  { id: 'U003', fullName: 'Lê Minh Hoàng', email: 'hoang.le@email.com', phone: '0923 456 789', status: 'SUSPENDED', bookingCount: 2, createdAt: '2025-03-10' },
+];
+&nbsp;
+export const COMPLAINTS = <span class="cstat-no" title="statement not covered" >[</span>
+  { id: 'CP001', customerId: 'U001', customer: 'Nguyễn Văn An', bookingId: 'B001', title: 'Room not clean on arrival', description: 'The room was not properly cleaned when we arrived. Sheets were not changed.', status: 'OPEN', createdAt: '2026-06-13T09:00:00' },
+  { id: 'CP002', customerId: 'U002', customer: 'Trần Thị Lan', bookingId: 'B002', title: 'Noise disturbance at night', description: 'There was excessive noise from neighboring room every night.', status: 'RESOLVED', createdAt: '2026-06-10T14:00:00' },
+];
+&nbsp;
+export const MGMT_TICKETS = <span class="cstat-no" title="statement not covered" >[</span>
+  { id: 'M001', bookingId: 'B001', customer: 'Nguyễn Văn An', room: 'Villa 01', property: 'Sunset Resort', title: 'AC not working', status: 'IN_PROGRESS', createdAt: '2026-06-13T09:00:00' },
+  { id: 'M002', bookingId: 'B003', customer: 'Lê Minh Hoàng', room: 'Suite 03', property: 'Hội An Garden', title: 'Tap leaking', status: 'RESOLVED', createdAt: '2026-04-06T14:00:00' },
+];
+&nbsp;
+export const REVIEWS = <span class="cstat-no" title="statement not covered" >[</span>
+  { id: 'R001', bookingId: 'B003', customer: 'Lê Minh Hoàng', roomNumber: 'Suite 03', propertyName: 'Hội An Garden Villa', rating: 5, comment: 'Absolutely stunning villa! Perfect for our family getaway.', createdAt: '2026-04-10', visible: true },
+  { id: 'R002', bookingId: 'B001', customer: 'Nguyễn Văn An', roomNumber: 'Villa 01', propertyName: 'Sunset Resort', rating: 2, comment: 'Several issues with the AC and cleanliness. Very disappointed.', createdAt: '2026-07-14', visible: true },
+];
+&nbsp;
+export const ACTIVITY_LOGS = <span class="cstat-no" title="statement not covered" >[</span>
+  { id: 'AL001', action: 'LOGIN', userId: 'U001', userEmail: 'an.nguyen@email.com', description: 'User logged in', createdAt: '2026-06-14T10:00:00' },
+  { id: 'AL002', action: 'BOOKING_CREATE', userId: 'U002', userEmail: 'lan.tran@email.com', description: 'Booking B002 created', createdAt: '2026-06-14T10:10:00' },
+  { id: 'AL003', action: 'PAYMENT_VERIFY', userId: 'MGR001', userEmail: 'manager@system.com', description: 'Payment P001 approved', createdAt: '2026-06-14T10:30:00' },
+  { id: 'AL004', action: 'CONTRACT_RESEND', userId: 'MGR001', userEmail: 'manager@system.com', description: 'Contract C001 resent to an.nguyen@email.com', createdAt: '2026-06-14T11:00:00' },
+  { id: 'AL005', action: 'ROOM_STATUS_CHANGE', userId: 'MGR001', userEmail: 'manager@system.com', description: 'Room Villa 01 status → MAINTENANCE', createdAt: '2026-06-13T09:00:00' },
+];
+&nbsp;
+export const REVENUE_DATA = <span class="cstat-no" title="statement not covered" >[</span>
+  { month: 'Jan', amount: 85000000 }, { month: 'Feb', amount: 92000000 },
+  { month: 'Mar', amount: 78000000 }, { month: 'Apr', amount: 110000000 },
+  { month: 'May', amount: 95000000 }, { month: 'Jun', amount: 128000000 },
+  { month: 'Jul', amount: 0 },        { month: 'Aug', amount: 0 },
+];
+&nbsp;
+export const ACTION_ICON: Record&lt;string, { bg: string; icon: string }&gt; = <span class="cstat-no" title="statement not covered" >{</span>
+  LOGIN:              { bg: '#dbeafe', icon: '🔐' },
+  BOOKING_CREATE:     { bg: '#dcfce7', icon: '📋' },
+  PAYMENT_VERIFY:     { bg: '#ede9fe', icon: '✓' },
+  CONTRACT_RESEND:    { bg: '#fef3c7', icon: '📄' },
+  ROOM_STATUS_CHANGE: { bg: '#fee2e2', icon: '🏠' },
+};
+&nbsp;
+// ─── Shared UI atoms ───────────────────────────────────────────────────────────
+export function <span class="fstat-no" title="function not covered" >Badge({</span> s }: { s: string }) {
+  const m: Record&lt;string, { cls: string; l: string }&gt; = <span class="cstat-no" title="statement not covered" >{</span>
+    ACTIVE:      { cls: 'badge-success', l: 'Active' },
+    SUSPENDED:   { cls: 'badge-error',   l: 'Suspended' },
+    OPEN:        { cls: 'badge-warning', l: 'Open' },
+    IN_PROGRESS: { cls: 'badge-info',    l: 'In Progress' },
+    RESOLVED:    { cls: 'badge-success', l: 'Resolved' },
+    CLOSED:      { cls: 'badge-neutral', l: 'Closed' },
+  };
+  const v = <span class="cstat-no" title="statement not covered" >m[s] || { cls: 'badge-neutral', l: s };</span>
+<span class="cstat-no" title="statement not covered" >  return &lt;span className={`badge ${v.cls}`}&gt;{v.l}&lt;/span&gt;;</span>
+}
+&nbsp;
+export function <span class="fstat-no" title="function not covered" >StarDisplay({</span> rating }: { rating: number }) {
+<span class="cstat-no" title="statement not covered" >  return (</span>
+    &lt;div style={{ display: 'flex', gap: 1 }}&gt;
+      {[1,2,3,4,5].<span class="fstat-no" title="function not covered" >map(i</span> =&gt; (
+<span class="cstat-no" title="statement not covered" >        &lt;svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i &lt;= rating ? 'var(--primary)' : '#e5e7eb'}&gt;</span>
+          &lt;polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/&gt;
+        &lt;/svg&gt;
+      ))}
+    &lt;/div&gt;
+  );
+}
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-07-17T07:20:15.002Z
+            </div>
+        <script src="../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
+    </body>
+</html>
+    
