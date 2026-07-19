@@ -24,6 +24,7 @@ const EMPTY: PromotionPayload = {
   description: '',
   ctaText: 'Đặt ngay →',
   ctaUrl: '/search',
+  imageUrl: '',
   colorTheme: 'red',
   isActive: true,
   sortOrder: 0,
@@ -32,6 +33,7 @@ const EMPTY: PromotionPayload = {
 // ── Preview Card ─────────────────────────────────────────────────────────
 
 function BannerPreview({ form }: { form: PromotionPayload }) {
+  const hasImage = !!form.imageUrl?.trim();
   return (
     <div
       style={{
@@ -46,18 +48,31 @@ function BannerPreview({ form }: { form: PromotionPayload }) {
         minHeight: 180,
       }}
     >
+      {hasImage && (
+        <>
+          <img
+            src={form.imageUrl}
+            alt=""
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.25), rgba(15,23,42,0.55))' }} />
+        </>
+      )}
       <div style={{ position: 'absolute', top: -16, right: -16, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase' }}>
+      <span style={{ position: 'relative', zIndex: 2, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase' }}>
         {form.subtitle || 'Subtitle'}
       </span>
-      <h3 style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: 0, whiteSpace: 'pre-line' }}>
+      <h3 style={{ position: 'relative', zIndex: 2, fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: 0, whiteSpace: 'pre-line' }}>
         {form.title || 'Tiêu đề banner'}
       </h3>
       {form.description && (
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0 }}>{form.description}</p>
+        <p style={{ position: 'relative', zIndex: 2, fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0 }}>{form.description}</p>
       )}
       <span
         style={{
+          position: 'relative',
+          zIndex: 2,
           marginTop: 4,
           display: 'inline-block',
           background: '#fff',
@@ -159,6 +174,18 @@ function BannerFormModal({
                 <label className="form-label">URL nút CTA *</label>
                 <input className="input" value={form.ctaUrl} onChange={(e) => set('ctaUrl', e.target.value)} placeholder="/search" />
               </div>
+            </div>
+            <div>
+              <label className="form-label">
+                URL ảnh nền banner
+                <span style={{ fontWeight: 400, fontSize: 11, color: '#888' }}> (hiện trên slideshow trang chủ)</span>
+              </label>
+              <input
+                className="input"
+                value={form.imageUrl ?? ''}
+                onChange={(e) => set('imageUrl', e.target.value)}
+                placeholder="https://... hoặc /uploads/ten-file.jpg"
+              />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
@@ -286,7 +313,7 @@ export default function PromotionMgmtPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Quản lý Banner khuyến mãi</h1>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Quản lý Banner</h1>
             <p style={{ margin: '4px 0 0', color: '#666', fontSize: 14 }}>
               Tạo, chỉnh sửa hoặc ẩn/hiện các banner trên trang chủ
             </p>
@@ -327,11 +354,22 @@ export default function PromotionMgmtPage() {
                 >
                   {/* Preview */}
                   <div style={{ height: 160, background: getGradient(b.colorTheme), padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', overflow: 'hidden' }}>
+                    {b.imageUrl?.trim() && (
+                      <>
+                        <img
+                          src={b.imageUrl}
+                          alt=""
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.25), rgba(15,23,42,0.55))' }} />
+                      </>
+                    )}
                     <div style={{ position: 'absolute', top: -12, right: -12, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>{b.subtitle}</span>
-                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3, whiteSpace: 'pre-line' }}>{b.title}</h3>
-                    {b.description && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{b.description}</p>}
-                    <span style={{ display: 'inline-block', background: '#fff', fontWeight: 700, fontSize: 11, padding: '4px 12px', borderRadius: 9999, width: 'fit-content', color: '#333' }}>
+                    <span style={{ position: 'relative', zIndex: 2, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>{b.subtitle}</span>
+                    <h3 style={{ position: 'relative', zIndex: 2, margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3, whiteSpace: 'pre-line' }}>{b.title}</h3>
+                    {b.description && <p style={{ position: 'relative', zIndex: 2, margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{b.description}</p>}
+                    <span style={{ position: 'relative', zIndex: 2, display: 'inline-block', background: '#fff', fontWeight: 700, fontSize: 11, padding: '4px 12px', borderRadius: 9999, width: 'fit-content', color: '#333' }}>
                       {b.ctaText}
                     </span>
                   </div>
@@ -387,6 +425,7 @@ export default function PromotionMgmtPage() {
             description: editing.description ?? '',
             ctaText: editing.ctaText,
             ctaUrl: editing.ctaUrl,
+            imageUrl: editing.imageUrl ?? '',
             colorTheme: editing.colorTheme,
             isActive: editing.isActive,
             sortOrder: editing.sortOrder,
