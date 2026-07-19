@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import SafeImage from './SafeImage';
 
 export interface Room {
   id: string;
@@ -62,8 +63,8 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
         {/* Left Image */}
         <div className="relative w-full sm:w-64 flex-shrink-0" style={{ height: 200 }}>
           <Link to={`/rooms/${room.id}`}>
-            <img
-              src={room.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
+            <SafeImage
+              src={room.imageUrl}
               alt={room.roomNumber}
               className="w-full h-full object-cover transition-transform duration-500"
               style={{ transform: hovered ? 'scale(1.05)' : 'scale(1)' }}
@@ -138,8 +139,8 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
       {/* Image */}
       <div className="relative w-full" style={{ height: 220 }}>
         <Link to={`/rooms/${room.id}`}>
-          <img
-            src={room.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
+          <SafeImage
+            src={room.imageUrl}
             alt={room.roomNumber}
             className="w-full h-full object-cover transition-transform duration-500"
             style={{ transform: hovered ? 'scale(1.06)' : 'scale(1)' }}
