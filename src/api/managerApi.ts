@@ -116,4 +116,18 @@ export const promotionApi = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/api/manager/promotions/${id}`);
   },
+  /** Upload ảnh banner từ máy → trả URL /uploads/banners/... */
+  uploadImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    // Không set Content-Type thủ công — axios tự thêm boundary cho multipart
+    const res = await api.post('/api/manager/promotions/upload-image', formData, {
+      timeout: 180000,
+    });
+    const imageUrl = res.data?.data?.imageUrl;
+    if (!imageUrl) {
+      throw new Error(res.data?.message || 'Upload không trả về imageUrl');
+    }
+    return imageUrl;
+  },
 };

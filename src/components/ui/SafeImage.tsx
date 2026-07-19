@@ -8,21 +8,22 @@ type SafeImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
 /** Room/property image with fallback when URL is missing or fails to load. */
 export default function SafeImage({ src, alt, onError, ...props }: SafeImageProps) {
   const resolved = resolveMediaUrl(src);
-  const [failed, setFailed] = useState(false);
+  const [url, setUrl] = useState(resolved);
 
-  // Reset the error state whenever the source changes so slider/gallery
-  // updates actually swap the displayed image instead of getting stuck.
+  // Sync when parent changes src (e.g. gallery next/prev) — useState alone keeps the first value.
   useEffect(() => {
-    setFailed(false);
+    setUrl(resolved);
   }, [resolved]);
 
   return (
     <img
       {...props}
-      src={failed ? FALLBACK_IMAGE : resolved}
+      src={url}
       alt={alt ?? ''}
       onError={(e) => {
-        if (!failed) setFailed(true);
+        if (url !== FALLBACK_IMAGE) {
+          setUrl(FALLBACK_IMAGE);
+        }
         onError?.(e);
       }}
     />

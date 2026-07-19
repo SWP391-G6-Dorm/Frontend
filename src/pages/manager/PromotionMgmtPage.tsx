@@ -104,8 +104,47 @@ function BannerFormModal({
   saving: boolean;
 }) {
   const [form, setForm] = useState<PromotionPayload>(initial);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const set = (k: keyof PromotionPayload, v: string | number | boolean) =>
     setForm((p) => ({ ...p, [k]: v }));
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Chỉ chọn file ảnh (JPEG, PNG, WebP, GIF).');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setUploadError('Ảnh tối đa 50MB.');
+      return;
+    }
+
+    setUploadError('');
+    setUploading(true);
+    try {
+      const imageUrl = await promotionApi.uploadImage(file);
+      set('imageUrl', imageUrl);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      const status = axiosErr.response?.status;
+      const serverMsg = axiosErr.response?.data?.message;
+      if (status === 401 || status === 403) {
+        setUploadError('Không đủ quyền. Đăng nhập lại bằng tài khoản Manager.');
+      } else if (status === 404) {
+        setUploadError('API upload chưa có trên server. Hãy restart backend rồi thử lại.');
+      } else if (serverMsg) {
+        setUploadError(serverMsg);
+      } else {
+        setUploadError(axiosErr.message || 'Upload thất bại. Thử lại.');
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <div
@@ -115,7 +154,7 @@ function BannerFormModal({
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
       }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && !uploading && onClose()}
     >
       <div
         style={{
@@ -133,7 +172,14 @@ function BannerFormModal({
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
             {initial.subtitle ? 'Chỉnh sửa banner' : 'Tạo banner mới'}
           </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#666' }}>×</button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={uploading}
+            style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#666' }}
+          >
+            ×
+          </button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -175,18 +221,61 @@ function BannerFormModal({
                 <input className="input" value={form.ctaUrl} onChange={(e) => set('ctaUrl', e.target.value)} placeholder="/search" />
               </div>
             </div>
+
             <div>
               <label className="form-label">
-                URL ảnh nền banner
-                <span style={{ fontWeight: 400, fontSize: 11, color: '#888' }}> (hiện trên slideshow trang chủ)</span>
+                Ảnh nền banner
+                <span style={{ fontWeight: 400, fontSize: 11, color: '#888' }}> (slideshow trang chủ)</span>
               </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                <label
+                  className="btn-outline"
+                  style={{
+                    height: 40,
+                    padding: '0 14px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    cursor: uploading || saving ? 'not-allowed' : 'pointer',
+                    opacity: uploading || saving ? 0.6 : 1,
+                    margin: 0,
+                  }}
+                >
+                  {uploading ? 'Đang upload…' : 'Chọn ảnh từ máy'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    style={{ display: 'none' }}
+                    disabled={uploading || saving}
+                    onChange={handleFileChange}
+                  />
+                </label>
+                {form.imageUrl?.trim() && (
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    style={{ height: 40, padding: '0 14px', color: 'var(--error)' }}
+                    disabled={uploading || saving}
+                    onClick={() => set('imageUrl', '')}
+                  >
+                    Xóa ảnh
+                  </button>
+                )}
+              </div>
               <input
                 className="input"
                 value={form.imageUrl ?? ''}
                 onChange={(e) => set('imageUrl', e.target.value)}
-                placeholder="https://... hoặc /uploads/ten-file.jpg"
+                placeholder="Hoặc dán URL: https://... /uploads/..."
+                disabled={uploading}
               />
+              {uploadError && (
+                <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--error)' }}>{uploadError}</p>
+              )}
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#888' }}>
+                JPEG/PNG/WebP/GIF · tối đa 50MB
+              </p>
             </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
                 <label className="form-label">Thứ tự hiển thị</label>
@@ -233,10 +322,10 @@ function BannerFormModal({
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
-          <button className="btn-outline" onClick={onClose} disabled={saving}>Hủy</button>
+          <button className="btn-outline" onClick={onClose} disabled={saving || uploading}>Hủy</button>
           <button
             className="btn-primary"
-            disabled={saving || !form.subtitle || !form.title || !form.ctaText || !form.ctaUrl}
+            disabled={saving || uploading || !form.subtitle || !form.title || !form.ctaText || !form.ctaUrl}
             onClick={() => onSave(form)}
           >
             {saving ? 'Đang lưu...' : 'Lưu banner'}

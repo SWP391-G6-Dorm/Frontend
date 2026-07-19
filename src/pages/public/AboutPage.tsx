@@ -1,9 +1,44 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import PublicLayout from '../../layouts/PublicLayout';
 
-// SCR-10 — About / Contact
-// Entity created: Complaint
-// Fields: User.name · User.email · Complaint.subject · Complaint.description
+const STORY_IMAGE =
+  'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=1400&q=80';
+const HERO_IMAGE =
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80';
+
+const STATS = [
+  { value: '2023', label: 'Thành lập' },
+  { value: '5+', label: 'Thành phố' },
+  { value: '5.000+', label: 'Khách đã lưu trú' },
+  { value: '98%', label: 'Hài lòng' },
+];
+
+const VALUES = [
+  {
+    title: 'Tin cậy',
+    desc: 'Mỗi property được xác minh. Thông tin phòng và giá luôn khớp thực tế.',
+  },
+  {
+    title: 'Minh bạch',
+    desc: 'Không phí ẩn. Cọc 40%, còn lại 60% — hiển thị rõ trước khi đặt.',
+  },
+  {
+    title: 'An toàn',
+    desc: 'Hợp đồng PDF sau khi xác nhận cọc. Thanh toán VNPay hoặc chuyển khoản.',
+  },
+  {
+    title: 'Hỗ trợ',
+    desc: 'Khiếu nại và tranh chấp được xử lý theo quy trình, trong khung thời gian rõ ràng.',
+  },
+];
+
+const CONTACT_ROWS = [
+  { label: 'Địa chỉ', value: '125 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh' },
+  { label: 'Email', value: 'support@homestay-resort.vn' },
+  { label: 'Điện thoại', value: '+84 28 1234 5678' },
+  { label: 'Giờ làm việc', value: 'Thứ 2 – Thứ 6: 8:00 – 17:30 (ICT)' },
+];
 
 export default function AboutPage() {
   const [name, setName] = useState('');
@@ -16,11 +51,11 @@ export default function AboutPage() {
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Name is required.';
-    if (!email.trim()) e.email = 'Email is required.';
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email.';
-    if (!subject.trim()) e.subject = 'Subject is required.';
-    if (!message.trim()) e.message = 'Message is required.';
+    if (!name.trim()) e.name = 'Vui lòng nhập họ tên.';
+    if (!email.trim()) e.email = 'Vui lòng nhập email.';
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Email không hợp lệ.';
+    if (!subject.trim()) e.subject = 'Vui lòng nhập tiêu đề.';
+    if (!message.trim()) e.message = 'Vui lòng nhập nội dung.';
     return e;
   }
 
@@ -31,7 +66,6 @@ export default function AboutPage() {
     if (Object.keys(errs).length > 0) return;
 
     setLoading(true);
-    // Simulate API → Complaint.status = OPEN
     setTimeout(() => {
       setLoading(false);
       setSubmitted(true);
@@ -39,173 +73,217 @@ export default function AboutPage() {
   }
 
   function FieldError({ field }: { field: string }) {
-    return errors[field] ? <p className="caption mt-1" style={{ color: 'var(--error)' }}>{errors[field]}</p> : null;
+    return errors[field] ? (
+      <p className="caption mt-1" style={{ color: 'var(--error)' }}>
+        {errors[field]}
+      </p>
+    ) : null;
   }
 
   return (
     <PublicLayout>
-      {/* ── HERO ── */}
-      <section style={{ background: 'var(--primary)', padding: '80px 32px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-30%', right: '-5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,106,61,0.45) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div className="container-wide" style={{ textAlign: 'center' }}>
-          <p className="label-sm mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>ABOUT US</p>
-          <h1 className="display-xl mb-4" style={{ color: 'var(--on-dark)', lineHeight: 1, margin: '0 auto 16px', maxWidth: 700 }}>
-            We connect guests<br />with great stays
-          </h1>
-          <p className="body-lg" style={{ color: 'rgba(255,255,255,0.85)', maxWidth: 540, margin: '0 auto' }}>
-            Homestay&amp;Resort is Vietnam's trusted platform for discovering and booking
-            premium homestay and resort rooms — simple, transparent, and secure.
+      {/* Hero — brand + one message + atmosphere */}
+      <section className="about-hero" aria-label="Giới thiệu">
+        <div className="about-hero__media" aria-hidden="true">
+          <img src={HERO_IMAGE} alt="" className="about-hero__img" />
+          <div className="about-hero__shade" />
+        </div>
+        <div className="about-hero__content">
+          <p className="about-hero__brand">
+            Homestay<span>&</span>Resort
           </p>
+          <h1 className="about-hero__title">Kết nối bạn với chỗ nghỉ đúng ý</h1>
+          <p className="about-hero__sub">
+            Nền tảng đặt homestay &amp; resort tại Việt Nam — giá rõ ràng, hợp đồng số, thanh toán an toàn.
+          </p>
+          <div className="about-hero__actions">
+            <Link to="/rooms" className="btn-primary" style={{ height: 44, padding: '0 22px' }}>
+              Xem phòng
+            </Link>
+            <a href="#contact" className="btn-outline" style={{ height: 44, padding: '0 22px', background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.35)', color: '#fff' }}>
+              Liên hệ
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* ── ABOUT SECTION ── */}
+      {/* Stats strip — one row, no cards */}
+      <section style={{ background: 'var(--surface-card)', borderBottom: '1px solid var(--hairline)' }}>
+        <div className="container-wide about-stats">
+          {STATS.map((s) => (
+            <div key={s.label} className="about-stat">
+              <div className="about-stat__value">{s.value}</div>
+              <div className="about-stat__label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Story */}
       <section className="section-pad" style={{ background: 'var(--canvas)' }}>
         <div className="container-wide">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="about-story-grid">
             <div>
-              <p className="label-sm mb-3" style={{ color: 'var(--ash)' }}>OUR STORY</p>
-              <h2 className="display-md mb-5" style={{ color: 'var(--ink)' }}>
-                Born from a traveler's frustration
+              <p className="label-sm" style={{ color: 'var(--primary)', marginBottom: 10, letterSpacing: '0.08em' }}>
+                CÂU CHUYỆN
+              </p>
+              <h2 className="display-md font-display" style={{ color: 'var(--ink)', marginBottom: 20, lineHeight: 1.2 }}>
+                Sinh ra từ trải nghiệm đặt phòng khó khăn
               </h2>
-              <p className="body-lg mb-4" style={{ color: 'var(--body)' }}>
-                Founded in 2023, Homestay&amp;Resort was built after our founders struggled to find
-                reliable, transparent homestay bookings in Vietnam — scattered listings, no digital
-                contracts, and unclear pricing.
+              <p className="body-lg" style={{ color: 'var(--body)', marginBottom: 16, lineHeight: 1.7 }}>
+                Homestay&amp;Resort ra mắt năm 2023 sau khi chúng tôi gặp phải listing phân tán,
+                giá không rõ ràng và không có hợp đồng số khi đặt chỗ nghỉ tại Việt Nam.
               </p>
-              <p className="body-lg mb-6" style={{ color: 'var(--body)' }}>
-                Today we serve thousands of guests and verified property owners across Đà Nẵng,
-                Đà Lạt, Hội An, Phú Quốc and Nha Trang — from room discovery to payment and
-                contract generation, all in one place.
+              <p className="body-lg" style={{ color: 'var(--body)', marginBottom: 0, lineHeight: 1.7 }}>
+                Nay nền tảng phục vụ khách và chủ property đã xác minh tại Đà Nẵng, Đà Lạt, Hội An,
+                Phú Quốc và Nha Trang — từ tìm phòng, đặt cọc đến hợp đồng PDF trong một luồng.
               </p>
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { val: '2023',    label: 'Founded' },
-                  { val: '5 cities', label: 'Coverage' },
-                  { val: '98%',     label: 'Satisfaction' },
-                ].map((s) => (
-                  <div key={s.label} className="card p-4 text-center">
-                    <div className="heading-md" style={{ color: 'var(--primary)' }}>{s.val}</div>
-                    <div className="caption mt-1" style={{ color: 'var(--charcoal)' }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
             </div>
-
-            <div className="relative">
+            <div>
               <img
-                src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=700&q=80"
-                alt="About Homestay&Resort"
-                className="w-full object-cover"
-                style={{ borderRadius: 16, height: 440 }}
+                src={STORY_IMAGE}
+                alt="Homestay ven biển Việt Nam"
+                style={{
+                  width: '100%',
+                  height: 'min(440px, 55vw)',
+                  objectFit: 'cover',
+                  borderRadius: 16,
+                  display: 'block',
+                }}
               />
-              <div
-                className="absolute -bottom-4 -left-4 card p-5"
-                style={{ background: 'var(--surface-card)', maxWidth: 200, boxShadow: '0 8px 32px rgba(32,32,32,0.12)' }}
-              >
-                <div className="heading-md mb-1" style={{ color: 'var(--primary)' }}>5,000+</div>
-                <div className="body-sm" style={{ color: 'var(--charcoal)' }}>Happy guests across Vietnam 🇻🇳</div>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── VALUES ── */}
+      {/* Values */}
       <section className="section-pad-sm" style={{ background: 'var(--surface-bone)' }}>
         <div className="container-wide">
-          <div className="text-center mb-10">
-            <p className="label-sm mb-2" style={{ color: 'var(--ash)' }}>WHAT WE STAND FOR</p>
-            <h2 className="heading-lg" style={{ color: 'var(--ink)' }}>Our Values</h2>
+          <div style={{ maxWidth: 560, marginBottom: 40 }}>
+            <p className="label-sm" style={{ color: 'var(--primary)', marginBottom: 10, letterSpacing: '0.08em' }}>
+              GIÁ TRỊ
+            </p>
+            <h2 className="heading-lg font-display" style={{ color: 'var(--ink)', marginBottom: 8 }}>
+              Cách chúng tôi vận hành
+            </h2>
+            <p className="body-md" style={{ color: 'var(--charcoal)' }}>
+              Mỗi quyết định sản phẩm bám theo bốn nguyên tắc dưới đây.
+            </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { icon: '🛡️', title: 'Trust',        desc: 'Every property is verified. Every listing is accurate.' },
-              { icon: '💡', title: 'Transparency', desc: 'No hidden fees. All pricing is clear from day one.' },
-              { icon: '⚡', title: 'Efficiency',   desc: 'From search to check-in in as little as 24 hours.' },
-              { icon: '🤝', title: 'Fairness',     desc: 'Disputes and complaints are handled professionally.' },
-            ].map((v) => (
-              <div key={v.title} className="card p-6">
-                <div className="text-3xl mb-3">{v.icon}</div>
-                <h3 className="heading-sm mb-2" style={{ color: 'var(--ink)' }}>{v.title}</h3>
-                <p className="body-sm" style={{ color: 'var(--charcoal)' }}>{v.desc}</p>
+          <div className="about-values-grid">
+            {VALUES.map((v, i) => (
+              <div key={v.title} className="about-value-item">
+                <span className="about-value-num">{String(i + 1).padStart(2, '0')}</span>
+                <h3 className="heading-sm" style={{ color: 'var(--ink)', marginBottom: 8 }}>
+                  {v.title}
+                </h3>
+                <p className="body-sm" style={{ color: 'var(--charcoal)', lineHeight: 1.65, margin: 0 }}>
+                  {v.desc}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── CONTACT SECTION ── */}
-      <section className="section-pad" style={{ background: 'var(--canvas)' }}>
+      {/* Contact */}
+      <section id="contact" className="section-pad" style={{ background: 'var(--canvas)', scrollMarginTop: 80 }}>
         <div className="container-wide">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-
-            {/* Left: Contact info */}
+          <div className="about-contact-grid">
             <div>
-              <p className="label-sm mb-3" style={{ color: 'var(--ash)' }}>GET IN TOUCH</p>
-              <h2 className="display-md mb-4" style={{ color: 'var(--ink)' }}>We'd love to hear from you</h2>
-              <p className="body-lg mb-8" style={{ color: 'var(--body)' }}>
-                Have a question, complaint, or partnership idea? Our team typically responds within 24 hours on business days.
+              <p className="label-sm" style={{ color: 'var(--primary)', marginBottom: 10, letterSpacing: '0.08em' }}>
+                LIÊN HỆ
               </p>
-
-              <div className="flex flex-col gap-5">
-                {[
-                  { icon: '📍', label: 'Address', val: '125 Nguyễn Huệ, Quận 1, Hồ Chí Minh' },
-                  { icon: '📧', label: 'Email',   val: 'support@homestay-resort.vn' },
-                  { icon: '📞', label: 'Phone',   val: '+84 28 1234 5678' },
-                  { icon: '🕐', label: 'Hours',   val: 'T2–T6: 8:00 – 17:30 ICT' },
-                ].map((c) => (
-                  <div key={c.label} className="flex items-start gap-4">
-                    <div
-                      className="flex-shrink-0 flex items-center justify-center rounded-full text-xl"
-                      style={{ width: 44, height: 44, background: '#fde8e3' }}
-                    >
-                      {c.icon}
-                    </div>
-                    <div>
-                      <p className="label-sm" style={{ color: 'var(--ink)' }}>{c.label}</p>
-                      <p className="body-md" style={{ color: 'var(--charcoal)' }}>{c.val}</p>
-                    </div>
+              <h2 className="display-md font-display" style={{ color: 'var(--ink)', marginBottom: 14 }}>
+                Chúng tôi sẵn sàng hỗ trợ
+              </h2>
+              <p className="body-lg" style={{ color: 'var(--body)', marginBottom: 32, lineHeight: 1.7 }}>
+                Câu hỏi, khiếu nại hoặc hợp tác — đội ngũ phản hồi trong giờ làm việc, thường trong 24 giờ.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {CONTACT_ROWS.map((c) => (
+                  <div key={c.label}>
+                    <p className="label-sm" style={{ color: 'var(--ash)', marginBottom: 4 }}>
+                      {c.label}
+                    </p>
+                    <p className="body-md" style={{ color: 'var(--ink)', margin: 0, fontWeight: 500 }}>
+                      {c.value}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right: Contact form → Complaint entity */}
             <div>
               {submitted ? (
                 <div
-                  className="card-lg p-8 text-center flex flex-col items-center justify-center animate-fade-in"
-                  style={{ minHeight: 420 }}
+                  style={{
+                    background: 'var(--surface-card)',
+                    border: '1px solid var(--hairline)',
+                    borderRadius: 16,
+                    padding: 40,
+                    textAlign: 'center',
+                    minHeight: 380,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
                 >
-                  <div className="text-5xl mb-4">✅</div>
-                  <h3 className="heading-md mb-2" style={{ color: 'var(--ink)' }}>Message sent!</h3>
-                  <p className="body-md mb-6" style={{ color: 'var(--charcoal)' }}>
-                    Thank you for reaching out. We'll get back to you within 24 hours.
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'var(--primary-light)',
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 22,
+                      fontWeight: 700,
+                      marginBottom: 16,
+                    }}
+                  >
+                    ✓
+                  </div>
+                  <h3 className="heading-md" style={{ color: 'var(--ink)', marginBottom: 8 }}>
+                    Đã gửi thành công
+                  </h3>
+                  <p className="body-md" style={{ color: 'var(--charcoal)', marginBottom: 24, maxWidth: 320 }}>
+                    Cảm ơn bạn đã liên hệ. Chúng tôi sẽ phản hồi trong 24 giờ làm việc.
                   </p>
                   <button
-                    onClick={() => { setSubmitted(false); setName(''); setEmail(''); setSubject(''); setMessage(''); }}
+                    type="button"
                     className="btn-outline"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setName('');
+                      setEmail('');
+                      setSubject('');
+                      setMessage('');
+                    }}
                   >
-                    Send another message
+                    Gửi tin nhắn khác
                   </button>
                 </div>
               ) : (
-                <div className="card-lg p-8">
-                  <h3 className="heading-md mb-6" style={{ color: 'var(--ink)' }}>Send us a message</h3>
-
-                  <div className="alert alert-info mb-6">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    We typically respond within 24 hours on business days.
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div
+                  style={{
+                    background: 'var(--surface-card)',
+                    border: '1px solid var(--hairline)',
+                    borderRadius: 16,
+                    padding: '28px 28px 32px',
+                  }}
+                >
+                  <h3 className="heading-sm" style={{ color: 'var(--ink)', marginBottom: 20 }}>
+                    Gửi tin nhắn
+                  </h3>
+                  <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
-                      <label className="form-label" htmlFor="contact-name">Full Name</label>
+                      <label className="form-label" htmlFor="contact-name">
+                        Họ và tên
+                      </label>
                       <input
                         id="contact-name"
                         type="text"
@@ -213,12 +291,14 @@ export default function AboutPage() {
                         placeholder="Nguyễn Văn A"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        style={{ borderRadius: 10 }}
                       />
                       <FieldError field="name" />
                     </div>
-
                     <div>
-                      <label className="form-label" htmlFor="contact-email">Email Address</label>
+                      <label className="form-label" htmlFor="contact-email">
+                        Email
+                      </label>
                       <input
                         id="contact-email"
                         type="email"
@@ -226,52 +306,49 @@ export default function AboutPage() {
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        style={{ borderRadius: 10 }}
                       />
                       <FieldError field="email" />
                     </div>
-
                     <div>
-                      <label className="form-label" htmlFor="contact-subject">Subject</label>
+                      <label className="form-label" htmlFor="contact-subject">
+                        Tiêu đề
+                      </label>
                       <input
                         id="contact-subject"
                         type="text"
                         className="input"
-                        placeholder="What is your inquiry about?"
+                        placeholder="Nội dung cần hỗ trợ"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
                         maxLength={200}
+                        style={{ borderRadius: 10 }}
                       />
                       <FieldError field="subject" />
                     </div>
-
                     <div>
-                      <label className="form-label" htmlFor="contact-message">Message</label>
+                      <label className="form-label" htmlFor="contact-message">
+                        Nội dung
+                      </label>
                       <textarea
                         id="contact-message"
                         className="textarea"
                         rows={5}
-                        placeholder="Tell us how we can help you…"
+                        placeholder="Mô tả ngắn gọn vấn đề của bạn…"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
+                        style={{ borderRadius: 10 }}
                       />
                       <FieldError field="message" />
                     </div>
-
                     <button
                       id="contact-submit"
                       type="submit"
-                      className="btn-primary w-full"
-                      style={{ height: 48, fontSize: 15, justifyContent: 'center' }}
+                      className="btn-primary"
+                      style={{ height: 48, fontSize: 15, width: '100%' }}
                       disabled={loading}
                     >
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 12a9 9 0 11-6.219-8.56" />
-                          </svg>
-                          Sending…
-                        </span>
-                      ) : '📬 Send Message'}
+                      {loading ? 'Đang gửi…' : 'Gửi tin nhắn'}
                     </button>
                   </form>
                 </div>
