@@ -12,6 +12,13 @@ import {
 } from '../../api/employeeApi';
 import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
 
+const CHECKLIST_ITEMS: { key: keyof InspectionChecklist; label: string; icon: string }[] = [
+  { key: 'tv', label: 'Tivi & Điều khiển', icon: '📺' },
+  { key: 'ac', label: 'Điều hòa & Remote', icon: '❄️' },
+  { key: 'minibar', label: 'Tủ lạnh & Mini bar', icon: '🍹' },
+  { key: 'bathroom', label: 'Thiết bị vệ sinh', icon: '🚿' },
+  { key: 'beds', label: 'Giường & Chăn ga gối', icon: '🛏️' },
+];
 
 export default function RoomInspectionHubPage() {
   const navigate = useNavigate();
