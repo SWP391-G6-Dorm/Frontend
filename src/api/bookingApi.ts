@@ -119,8 +119,9 @@ export const bookingApi = {
     const res = await api.patch(`/api/bookings/${id}/check-out`);
     return res.data;
   },
-  cancelBooking: async (id: string): Promise<{ success: boolean }> => {
-    const res = await api.patch(`/api/bookings/${id}/cancel`);
+  /** Prefer cancelMyBooking — customer cancel must use v1 path. */
+  cancelBooking: async (id: string, reason?: string): Promise<{ success: boolean; message?: string }> => {
+    const res = await api.patch(`/api/v1/bookings/me/${id}/cancel`, reason ? { reason } : {});
     return res.data;
   },
   getCancellationPreview: async (id: string): Promise<{ success: boolean; data: CancellationPreview }> => {

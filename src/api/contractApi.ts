@@ -36,8 +36,10 @@ export interface ContractDetailResponse {
 
 export interface PageResponse<T> {
   content: T[];
-  pageNumber: number;
-  pageSize: number;
+  page?: number;
+  size?: number;
+  pageNumber?: number;
+  pageSize?: number;
   totalElements: number;
   totalPages: number;
 }
@@ -48,9 +50,9 @@ export const contractApi = {
     return res.data;
   },
 
-  // Dành cho CUSTOMER: lấy hợp đồng của chính mình (filter theo JWT)
+  /** SCR-21 — Customer my contracts (api-spec: GET /api/v1/customers/me/contracts) */
   getMyContracts: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
-    const res = await api.get('/api/v1/contracts/me', { params });
+    const res = await api.get('/api/v1/customers/me/contracts', { params });
     return res.data;
   },
 
@@ -71,7 +73,7 @@ export const contractApi = {
 
   downloadContractPdf: async (id: string, filename: string = 'contract.pdf') => {
     const res = await api.get(`/api/v1/contracts/${id}/pdf`, { responseType: 'blob' });
-    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', filename);
