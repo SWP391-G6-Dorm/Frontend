@@ -1,31 +1,22 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
 import {
-  getEmployeeKpis, type EmployeeKpis,
-  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
-  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
-  getEmployeeInspections, passInspection, failInspection,
-  type InspectionChecklist, type InspectionSummary,
-  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
-  getEmployeeRooms, type EmployeeRoom,
+  getEmployeeInspections, getChecklistItems, passInspection, failInspection,
+  type ChecklistItemDefinition, type InspectionSummary,
 } from '../../api/employeeApi';
-import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
-
-const CHECKLIST_ITEMS: { key: keyof InspectionChecklist; label: string; icon: string }[] = [
-  { key: 'tv', label: 'Tivi & Điều khiển', icon: '📺' },
-  { key: 'ac', label: 'Điều hòa & Remote', icon: '❄️' },
-  { key: 'minibar', label: 'Tủ lạnh & Mini bar', icon: '🍹' },
-  { key: 'bathroom', label: 'Thiết bị vệ sinh', icon: '🚿' },
-  { key: 'beds', label: 'Giường & Chăn ga gối', icon: '🛏️' },
-];
+import { useAuthStore } from '../../store/authStore';
+import { TOUCH, extractErr, Spinner, ErrBanner, StatusBadge, Drawer } from './EmployeeShared';
 
 export default function RoomInspectionHubPage() {
   const navigate = useNavigate();
+  const userId = useAuthStore(s => s.userId);
+
   const [inspections, setInspections] = useState<InspectionSummary[]>([]);
-  const [selectedId, setSelectedId] = useState('');
-  const [checklist, setChecklist] = useState<InspectionChecklist>({ tv: true, minibar: true, ac: true, bathroom: true, beds: true });
-  const [result, setResult] = useState<'PASS' | 'FAIL'>('PASS');
+  const [catalog, setCatalog] = useState<ChecklistItemDefinition[]>([]);
+  const [active, setActive] = useState<InspectionSummary | null>(null);
+  /** itemId -> passed */
+  const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [notes, setNotes] = useState('');
   const [loadingList, setLoadingList] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -33,170 +24,325 @@ export default function RoomInspectionHubPage() {
   const [formErr, setFormErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setLoadingList(true); setError(null);
+    setLoadingList(true);
+    setError(null);
     try {
-      const res = await getEmployeeInspections({ size: 50 });
-      if (res.success) {
-        setInspections(res.data.content);
-        setSelectedId(prev => {
-          if (prev && res.data.content.some(i => i.id === prev)) return prev;
-          return res.data.content[0]?.id ?? '';
-        });
-      } else setError('Không tải được danh sách kiểm tra.');
-    } catch (err) { setError(extractErr(err, 'Không tải được danh sách kiểm tra.')); }
-    finally { setLoadingList(false); }
+      const [inspRes, items] = await Promise.all([
+        getEmployeeInspections({ size: 50 }),
+        getChecklistItems().catch(() => [] as ChecklistItemDefinition[]),
+      ]);
+      if (inspRes.success) {
+        setInspections(inspRes.data.content);
+      } else {
+        setError('Không tải được danh sách kiểm tra.');
+      }
+      setCatalog(items);
+    } catch (err) {
+      setError(extractErr(err, 'Không tải được danh sách kiểm tra.'));
+    } finally {
+      setLoadingList(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  function toggleItem(key: keyof InspectionChecklist) {
-    setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
+  const assignedToMe = useMemo(
+    () => inspections.filter(i => i.inspectorId && i.inspectorId === userId),
+    [inspections, userId],
+  );
+  const unassigned = useMemo(
+    () => inspections.filter(i => !i.inspectorId),
+    [inspections],
+  );
+
+  function openChecklist(item: InspectionSummary) {
+    setActive(item);
+    const initial: Record<string, boolean> = {};
+    catalog.forEach(c => { initial[c.id] = true; });
+    setChecks(initial);
+    setNotes('');
+    setFormErr(null);
+    setError(null);
   }
 
-  useEffect(() => {
-    const anyFail = Object.values(checklist).some(v => !v);
-    if (anyFail && result === 'PASS') setResult('FAIL');
-  }, [checklist, result]);
+  function closeChecklist() {
+    if (submitting) return;
+    setActive(null);
+    setFormErr(null);
+  }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedId) { setFormErr('Vui lòng chọn phòng cần kiểm tra.'); return; }
+  function toggleItem(itemId: string) {
+    setChecks(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+  }
+
+  function buildAnswers() {
+    return catalog.map(c => ({
+      itemId: c.id,
+      passed: checks[c.id] !== false,
+    }));
+  }
+
+  async function submitResult(result: 'PASS' | 'FAIL') {
+    if (!active) return;
     if (result === 'FAIL' && !notes.trim()) {
-      setFormErr('Ghi chú bắt buộc khi FAIL.');
+      setFormErr('Please describe the damage found');
       return;
     }
-    setFormErr(null); setError(null); setSubmitting(true);
-    const selected = inspections.find(i => i.id === selectedId);
+    if (catalog.length === 0) {
+      setFormErr('Chưa có danh mục checklist. Vui lòng restart backend để seed dữ liệu.');
+      return;
+    }
+    setFormErr(null);
+    setError(null);
+    setSubmitting(true);
+    const body = { note: notes.trim() || undefined, answers: buildAnswers() };
     try {
-      const body = { notes: notes.trim() || undefined, checklist };
       const res = result === 'PASS'
-        ? await passInspection(selectedId, body)
-        : await failInspection(selectedId, { notes: notes.trim(), checklist });
+        ? await passInspection(active.id, body)
+        : await failInspection(active.id, { note: notes.trim(), answers: buildAnswers() });
       if (res.success) {
+        setActive(null);
         if (result === 'FAIL') {
           navigate('/employee/damage/create', {
-            state: { roomId: selected?.roomId, fromInspection: true },
+            state: {
+              roomId: active.roomId,
+              inspectionId: active.id,
+              fromInspection: true,
+            },
           });
         } else {
-          navigate('/employee/dashboard');
+          await load();
         }
-      } else setError('Nộp kiểm tra thất bại.');
-    } catch (err) { setError(extractErr(err, 'Nộp kiểm tra thất bại.')); }
-    finally { setSubmitting(false); }
+      } else {
+        setError(result === 'PASS' ? 'Nộp PASS thất bại.' : 'Nộp FAIL thất bại.');
+      }
+    } catch (err) {
+      setError(extractErr(err, result === 'PASS' ? 'Nộp PASS thất bại.' : 'Nộp FAIL thất bại.'));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  const passCount = Object.values(checklist).filter(Boolean).length;
-  const totalCount = CHECKLIST_ITEMS.length;
+  const passCount = catalog.filter(c => checks[c.id] !== false).length;
+  const totalCount = catalog.length || 1;
+  const roomLabel = (i: InspectionSummary) => i.roomName || i.roomNumber || 'Phòng';
+
+  function InspectionCard({ item, claim }: { item: InspectionSummary; claim?: boolean }) {
+    return (
+      <button
+        type="button"
+        onClick={() => openChecklist(item)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          width: '100%',
+          textAlign: 'left',
+          padding: '14px 16px',
+          borderRadius: 12,
+          border: '1px solid var(--hairline)',
+          background: 'var(--surface-card)',
+          cursor: 'pointer',
+          ...TOUCH,
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 4 }}>
+            {roomLabel(item)}
+          </p>
+          <p className="body-sm text-charcoal" style={{ margin: 0 }}>
+            {claim ? 'Unassigned — Claim & inspect' : (item.inspectorName || 'Assigned to you')}
+            {item.status ? ` · ${item.status}` : ''}
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <StatusBadge status={item.status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'PENDING'} />
+          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--primary)' }}>
+            {claim ? 'Claim →' : 'Inspect →'}
+          </span>
+        </div>
+      </button>
+    );
+  }
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '16px', maxWidth: 520, margin: '0 auto' }} className="animate-fade-in">
+      <div style={{ maxWidth: 640, margin: '0 auto' }} className="animate-fade-in">
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>🔍 Room Inspection</h1>
-          <p className="body-sm text-charcoal">SCR-62 — Kiểm tra phòng trước Check-out</p>
+          <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>
+            🔍 Room Inspection
+          </h1>
         </div>
+
         {error && <ErrBanner msg={error} />}
 
-        {loadingList ? <Spinner /> : inspections.length === 0 ? (
+        {loadingList ? (
+          <Spinner />
+        ) : inspections.length === 0 ? (
           <div className="card" style={{ padding: 40, textAlign: 'center' }}>
             <p style={{ fontSize: 32, marginBottom: 8 }}>🎉</p>
             <p style={{ fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Không có phòng cần kiểm tra</p>
             <p className="body-sm text-charcoal">No rooms ready for inspection.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
-              <label className="form-label form-label-required" htmlFor="inspection-pick">Chọn phòng cần kiểm tra</label>
-              <select id="inspection-pick" className="input" style={{ ...TOUCH }}
-                value={selectedId} onChange={e => setSelectedId(e.target.value)}>
-                {inspections.map(i => (
-                  <option key={i.id} value={i.id}>
-                    {i.roomName || i.roomNumber || 'Phòng'} — {i.status}
-                  </option>
-                ))}
-              </select>
-              {formErr && <p className="form-error">{formErr}</p>}
-            </div>
-
-            <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>📋 Checklist ({passCount}/{totalCount})</p>
-                <div style={{ width: 80, height: 6, background: 'var(--hairline)', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ width: `${(passCount / totalCount) * 100}%`, height: '100%', background: passCount === totalCount ? '#2b9a66' : 'var(--primary)', borderRadius: 3, transition: 'width 0.3s' }} />
-                </div>
-              </div>
-              {CHECKLIST_ITEMS.map(item => (
-                <label key={item.key} style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '12px 0', borderBottom: '1px solid var(--hairline)',
-                  cursor: 'pointer', ...TOUCH,
-                }}>
-                  <input type="checkbox" checked={checklist[item.key]} onChange={() => toggleItem(item.key)}
-                    style={{ width: 20, height: 20, accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }} />
-                  <span style={{ fontSize: 20 }}>{item.icon}</span>
-                  <span style={{ fontWeight: checklist[item.key] ? 500 : 400, fontSize: 15, color: checklist[item.key] ? 'var(--ink)' : 'var(--charcoal)', textDecoration: checklist[item.key] ? 'none' : 'line-through', flex: 1 }}>
-                    {item.label}
-                  </span>
-                  {checklist[item.key]
-                    ? <span style={{ color: '#2b9a66', fontSize: 16, fontWeight: 700 }}>✓</span>
-                    : <span style={{ color: '#dc2626', fontSize: 16 }}>✗</span>
-                  }
-                </label>
-              ))}
-            </div>
-
-            <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
-              <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 14 }}>Kết quả kiểm tra</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <label style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px',
-                  borderRadius: 12, cursor: 'pointer',
-                  border: `2px solid ${result === 'PASS' ? '#2b9a66' : 'var(--hairline)'}`,
-                  background: result === 'PASS' ? 'rgba(43,154,102,0.08)' : 'var(--surface-card)',
-                  transition: 'all 0.15s', ...TOUCH,
-                }}>
-                  <input type="radio" name="result" value="PASS" checked={result === 'PASS'} onChange={() => setResult('PASS')} style={{ width: 18, height: 18, accentColor: '#2b9a66' }} />
-                  <span style={{ fontSize: 20 }}>✅</span>
-                  <span style={{ fontWeight: 700, color: result === 'PASS' ? '#2b9a66' : 'var(--charcoal)', fontSize: 15 }}>PASS</span>
-                </label>
-                <label style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px',
-                  borderRadius: 12, cursor: 'pointer',
-                  border: `2px solid ${result === 'FAIL' ? '#dc2626' : 'var(--hairline)'}`,
-                  background: result === 'FAIL' ? 'rgba(220,38,38,0.06)' : 'var(--surface-card)',
-                  transition: 'all 0.15s', ...TOUCH,
-                }}>
-                  <input type="radio" name="result" value="FAIL" checked={result === 'FAIL'} onChange={() => setResult('FAIL')} style={{ width: 18, height: 18, accentColor: '#dc2626' }} />
-                  <span style={{ fontSize: 20 }}>❌</span>
-                  <span style={{ fontWeight: 700, color: result === 'FAIL' ? '#dc2626' : 'var(--charcoal)', fontSize: 15 }}>FAIL</span>
-                </label>
-              </div>
-              {result === 'FAIL' && (
-                <div className="alert alert-error" style={{ marginTop: 12, fontSize: 13 }}>
-                  ⚠️ FAIL sẽ chuyển bạn đến tạo Damage Report.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <section>
+              <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', marginBottom: 10 }}>
+                Assigned to me ({assignedToMe.length})
+              </p>
+              {assignedToMe.length === 0 ? (
+                <p className="body-sm text-charcoal" style={{ margin: 0 }}>Không có inspection được gán cho bạn.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {assignedToMe.map(i => <InspectionCard key={i.id} item={i} />)}
                 </div>
               )}
-            </div>
+            </section>
 
-            <div className="card" style={{ padding: '16px 18px', marginBottom: 16 }}>
-              <label className={`form-label${result === 'FAIL' ? ' form-label-required' : ''}`} htmlFor="inspection-notes">
-                Ghi chú {result === 'FAIL' ? '(bắt buộc)' : 'thêm'}
-              </label>
-              <textarea id="inspection-notes" className="textarea" rows={3}
-                placeholder="Mô tả vấn đề nếu có..."
-                value={notes} onChange={e => setNotes(e.target.value)} />
-            </div>
-
-            <button type="submit" className="btn-primary" disabled={submitting}
-              style={{ width: '100%', ...TOUCH, borderRadius: 12, fontWeight: 700, fontSize: 16, marginBottom: 24 }}>
-              {submitting ? 'Đang nộp...' : result === 'PASS' ? '✅ Nộp — PASS' : '❌ Nộp — FAIL & Báo cáo'}
-            </button>
-          </form>
+            <section>
+              <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', marginBottom: 10 }}>
+                Unassigned — Claim ({unassigned.length})
+              </p>
+              {unassigned.length === 0 ? (
+                <p className="body-sm text-charcoal" style={{ margin: 0 }}>Không có inspection trống để claim.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {unassigned.map(i => <InspectionCard key={i.id} item={i} claim />)}
+                </div>
+              )}
+            </section>
+          </div>
         )}
+
+        <Drawer
+          open={!!active}
+          onClose={closeChecklist}
+          title={active ? `Checklist — ${roomLabel(active)}` : 'Checklist'}
+        >
+          {active && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
+              <p className="body-sm text-charcoal" style={{ margin: 0 }}>
+                Status: <strong>{active.status}</strong>
+                {active.inspectorId ? ' · Claimed by you' : ' · Claiming on Pass/Fail'}
+              </p>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', margin: 0 }}>
+                    Checklist ({passCount}/{catalog.length})
+                  </p>
+                  <div style={{ width: 80, height: 6, background: 'var(--hairline)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${(passCount / totalCount) * 100}%`,
+                      height: '100%',
+                      background: passCount === catalog.length ? '#2b9a66' : 'var(--primary)',
+                      borderRadius: 3,
+                      transition: 'width 0.3s',
+                    }} />
+                  </div>
+                </div>
+                {catalog.length === 0 ? (
+                  <p className="body-sm text-charcoal">
+                    Chưa có danh mục checklist. Restart backend để seed dữ liệu mặc định.
+                  </p>
+                ) : catalog.map(item => {
+                  const ok = checks[item.id] !== false;
+                  return (
+                    <label
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        padding: '12px 0',
+                        borderBottom: '1px solid var(--hairline)',
+                        cursor: 'pointer',
+                        ...TOUCH,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={ok}
+                        onChange={() => toggleItem(item.id)}
+                        style={{ width: 20, height: 20, accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 20 }}>{item.icon || '•'}</span>
+                      <span style={{
+                        fontWeight: ok ? 500 : 400,
+                        fontSize: 15,
+                        color: ok ? 'var(--ink)' : 'var(--charcoal)',
+                        textDecoration: ok ? 'none' : 'line-through',
+                        flex: 1,
+                      }}>
+                        {item.label}
+                      </span>
+                      {ok
+                        ? <span style={{ color: '#2b9a66', fontSize: 16, fontWeight: 700 }}>✓</span>
+                        : <span style={{ color: '#dc2626', fontSize: 16 }}>✗</span>}
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div>
+                <label className="form-label" htmlFor="inspection-notes">
+                  Note {Object.values(checks).some(v => !v) ? '(required for Fail)' : '(optional)'}
+                </label>
+                <textarea
+                  id="inspection-notes"
+                  className="textarea"
+                  rows={3}
+                  placeholder="Please describe the damage found"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                />
+                {formErr && <p className="form-error">{formErr}</p>}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={submitting}
+                  onClick={() => submitResult('PASS')}
+                  style={{
+                    ...TOUCH,
+                    borderRadius: 12,
+                    fontWeight: 700,
+                    fontSize: 16,
+                    background: '#10B981',
+                    borderColor: '#10B981',
+                  }}
+                >
+                  {submitting ? '…' : 'Pass'}
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => submitResult('FAIL')}
+                  style={{
+                    ...TOUCH,
+                    borderRadius: 12,
+                    fontWeight: 700,
+                    fontSize: 16,
+                    background: '#EF4444',
+                    border: 'none',
+                    color: '#fff',
+                    cursor: submitting ? 'not-allowed' : 'pointer',
+                    opacity: submitting ? 0.5 : 1,
+                  }}
+                >
+                  {submitting ? '…' : 'Fail'}
+                </button>
+              </div>
+              <p className="body-sm text-charcoal" style={{ margin: 0 }}>
+                Fail sẽ chuyển sang tạo Damage Report (SCR-64).
+              </p>
+            </div>
+          )}
+        </Drawer>
       </div>
     </EmployeeLayout>
   );
 }
-
-// ── SCR-63: Damage Report List ─────────────────────────────────────────────────
-

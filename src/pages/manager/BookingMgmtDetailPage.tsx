@@ -319,14 +319,21 @@ export default function BookingMgmtDetailPage() {
               <div className="bg-white rounded-[16px] border border-[#E2E8F0] p-6 shadow-sm">
                 <h2 className="font-semibold text-[#1E293B] mb-4">Thao tác</h2>
                 <div className="flex flex-col gap-3">
-                  {booking.canCheckIn && (
-                    <button
-                      type="button"
-                      className="btn-primary w-full"
-                      onClick={() => navigate(`/manager/bookings/${id}/check-in`)}
-                    >
-                      Nhận phòng
-                    </button>
+                  {(booking.status === 'CONFIRMED' || booking.status === 'PENDING_DEPOSIT') && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-primary w-full disabled:opacity-50"
+                        disabled={!booking.canCheckIn}
+                        title={booking.checkInBlockedReason ?? undefined}
+                        onClick={() => booking.canCheckIn && navigate(`/manager/bookings/${id}/check-in`)}
+                      >
+                        Nhận phòng
+                      </button>
+                      {booking.checkInBlockedReason && (
+                        <p className="text-xs text-[#B45309] -mt-1">{booking.checkInBlockedReason}</p>
+                      )}
+                    </>
                   )}
 
                   {showCheckOutButton && (
@@ -343,6 +350,16 @@ export default function BookingMgmtDetailPage() {
 
                   {booking.checkOutBlockedReason && !booking.canCheckOut && (
                     <p className="text-xs text-[#B45309]">{booking.checkOutBlockedReason}</p>
+                  )}
+
+                  {booking.canCancel && (
+                    <button
+                      type="button"
+                      className="btn-danger w-full"
+                      onClick={() => navigate(`/manager/bookings/${id}/cancel`)}
+                    >
+                      Hủy đặt phòng
+                    </button>
                   )}
 
                   <button

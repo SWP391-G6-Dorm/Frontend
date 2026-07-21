@@ -156,11 +156,29 @@ export interface ManagerBookingDetail extends BookingDetailResponse {
   damageFeeAmount?: number;
   canCheckIn?: boolean;
   canCheckOut?: boolean;
+  canCancel?: boolean;
+  checkInBlockedReason?: string | null;
   checkOutBlockedReason?: string | null;
 }
 
 export async function fetchManagerBookingV1(id: string): Promise<ManagerBookingDetail> {
   const res = await api.get(`/api/v1/manager/bookings/${id}`);
+  return res.data.data;
+}
+
+export async function getManagerCancellationPreview(
+  id: string,
+): Promise<{ success: boolean; data: CancellationPreview }> {
+  const res = await api.get(`/api/v1/manager/bookings/${id}/cancel/preview`);
+  return res.data;
+}
+
+/** SCR-69 — Manager cancel with required cancelReason (100% refund). */
+export async function cancelManagerBookingV1(
+  id: string,
+  cancelReason: string,
+): Promise<ManagerBookingDetail> {
+  const res = await api.post(`/api/v1/manager/bookings/${id}/cancel`, { cancelReason });
   return res.data.data;
 }
 

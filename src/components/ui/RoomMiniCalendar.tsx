@@ -6,6 +6,7 @@ export type { BookedRange, DayStatus } from '../../utils/roomCalendar';
 export {
   DAY_STYLES,
   isRangeAvailable,
+  isRoomBookingBlocked,
   parseLocalDate,
   statusForDay,
 } from '../../utils/roomCalendar';

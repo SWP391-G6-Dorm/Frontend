@@ -32,18 +32,30 @@ function RoleLayout({ children }: { children: React.ReactNode }) {
   return <CustomerLayout>{children}</CustomerLayout>;
 }
 
-function NotifIcon({ type }: { type: string }) {
-  const m: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {
-    BOOKING_CONFIRMED:   { bg: '#dcfce7', color: '#2b9a66', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg> },
-    CONTRACT_GENERATED:  { bg: '#dbeafe', color: '#2563eb', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> },
-    PAYMENT_CONFIRMED:   { bg: '#ede9fe', color: '#7c3aed', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
-    MAINTENANCE_UPDATED: { bg: '#fef3c7', color: '#d97706', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> },
-    SYSTEM:              { bg: '#f3f4f6', color: '#4b5563', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
+const NOTIF_TYPE_META: Record<string, { bg: string; color: string; label: string; badge: string }> = {
+  BOOKING_CONFIRMED:   { bg: '#dcfce7', color: '#2b9a66', label: 'Đặt phòng',    badge: 'badge-success' },
+  CONTRACT_GENERATED:  { bg: '#dbeafe', color: '#2563eb', label: 'Hợp đồng',     badge: 'badge-info' },
+  PAYMENT_CONFIRMED:   { bg: '#ede9fe', color: '#7c3aed', label: 'Thanh toán',   badge: 'badge-purple' },
+  MAINTENANCE_UPDATED: { bg: '#fef3c7', color: '#d97706', label: 'Bảo trì',      badge: 'badge-warning' },
+  SYSTEM:              { bg: '#f3f4f6', color: '#4b5563', label: 'Hệ thống',     badge: 'badge-neutral' },
+};
+
+function NotifIcon({ type, size = 42 }: { type: string; size?: number }) {
+  const iconSize = Math.round(size * 0.4);
+  const m: Record<string, React.ReactNode> = {
+    BOOKING_CONFIRMED:   <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>,
+    CONTRACT_GENERATED:  <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>,
+    PAYMENT_CONFIRMED:   <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+    MAINTENANCE_UPDATED: <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
+    SYSTEM:              <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
   };
-  const s = m[type] || { bg: 'var(--surface-bone)', color: 'var(--charcoal)', icon: '🔔' };
+  const meta = NOTIF_TYPE_META[type] || { bg: 'var(--surface-bone)', color: 'var(--charcoal)' };
   return (
-    <div style={{ width: 42, height: 42, borderRadius: '50%', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: s.color }}>
-      {s.icon}
+    <div style={{
+      width: size, height: size, borderRadius: '50%', background: meta.bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: meta.color,
+    }}>
+      {m[type] || '🔔'}
     </div>
   );
 }
@@ -328,57 +340,145 @@ export function NotificationDetailPage() {
   const relatedAction = notif?.relatedEntityId
     ? getRelatedAction(role, notif.type, notif.relatedEntityId)
     : null;
+  const typeMeta = notif
+    ? (NOTIF_TYPE_META[notif.type] || { label: notif.type, badge: 'badge-neutral' })
+    : null;
 
   return (
     <RoleLayout>
-      <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
-          <Link to={notifBase} className="text-primary" style={{ textDecoration: 'none' }}>Thông báo</Link>
+      <div style={{ maxWidth: 680, margin: '0 auto', width: '100%', minWidth: 0 }}>
+        <div
+          className="flex items-center gap-2 body-sm text-charcoal"
+          style={{ marginBottom: 20, flexWrap: 'wrap' }}
+        >
+          <Link to={notifBase} className="text-primary" style={{ textDecoration: 'none' }}>
+            Thông báo
+          </Link>
           <span>›</span>
-          <span className="text-ink" style={{ fontWeight: 600 }}>{breadcrumbTitle}</span>
+          <span className="text-ink" style={{ fontWeight: 600, wordBreak: 'break-word' }}>
+            {breadcrumbTitle}
+          </span>
         </div>
 
         {loading ? (
-          <div className="card-lg" style={{ padding: 40, textAlign: 'center' }}>
-            <p className="body-md text-charcoal">Đang tải chi tiết thông báo...</p>
+          <div className="card-lg" style={{ padding: '48px 32px', textAlign: 'center' }}>
+            <p className="body-md text-charcoal" style={{ margin: 0 }}>Đang tải chi tiết thông báo...</p>
           </div>
         ) : error || !notif ? (
-          <div>
+          <div className="card-lg" style={{ padding: 32 }}>
             <Alert variant="error" message={error || 'Không tìm thấy thông báo'} />
-            <Link to={notifBase} className="btn-outline btn-sm" style={{ marginTop: 16, display: 'inline-block' }}>
+            <Link
+              to={notifBase}
+              className="btn-outline btn-sm"
+              style={{ marginTop: 20, display: 'inline-flex', textDecoration: 'none' }}
+            >
               ← Quay lại danh sách
             </Link>
           </div>
         ) : (
-          <div className="card-lg" style={{ padding: 32, boxShadow: '0 4px 16px rgba(32,32,32,0.06)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
-              <NotifIcon type={notif.type} />
-              <div style={{ flex: 1 }}>
-                <h1 className="heading-md" style={{ marginBottom: 4 }}>{notif.title}</h1>
-                <p className="body-sm text-charcoal">
-                  {notif.createdAt ? formatNotifDate(notif.createdAt) : ''}
-                  {!notif.isRead && (
-                    <span style={{ marginLeft: 8, color: 'var(--primary)', fontWeight: 600 }}>· Mới</span>
-                  )}
+          <div className="card-lg" style={{ padding: 0, overflow: 'hidden', minWidth: 0 }}>
+            {/* Header */}
+            <div
+              style={{
+                padding: '28px 28px 24px',
+                background: 'linear-gradient(180deg, var(--surface-bone) 0%, var(--surface-card) 100%)',
+                borderBottom: '1px solid var(--hairline)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, minWidth: 0 }}>
+                <NotifIcon type={notif.type} size={56} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                    {typeMeta && (
+                      <span className={`badge ${typeMeta.badge}`}>{typeMeta.label}</span>
+                    )}
+                    <span className={`badge ${notif.isRead ? 'badge-neutral' : 'badge-primary'}`}>
+                      {notif.isRead ? 'Đã đọc' : 'Mới'}
+                    </span>
+                  </div>
+                  <h1
+                    className="heading-md"
+                    style={{ marginBottom: 8, wordBreak: 'break-word', lineHeight: 1.35 }}
+                  >
+                    {notif.title}
+                  </h1>
+                  <p className="body-sm text-charcoal" style={{ margin: 0, display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
+                    <span>{relTime(notif.createdAt)}</span>
+                    <span style={{ color: 'var(--ash)' }}>·</span>
+                    <span>{formatNotifDate(notif.createdAt)}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '28px' }}>
+              <p
+                className="form-label"
+                style={{ marginBottom: 10, color: 'var(--mute)', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}
+              >
+                Nội dung
+              </p>
+              <div
+                style={{
+                  padding: '18px 20px',
+                  background: 'var(--surface-bone)',
+                  borderRadius: 12,
+                  border: '1px solid var(--hairline)',
+                }}
+              >
+                <p
+                  className="body-lg text-body"
+                  style={{
+                    lineHeight: 1.8,
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {notif.content}
                 </p>
               </div>
             </div>
 
-            <div className="divider" style={{ marginBottom: 20 }} />
-
-            <p className="body-lg text-body" style={{ lineHeight: 1.75, marginBottom: 28, whiteSpace: 'pre-wrap' }}>
-              {notif.content}
-            </p>
-
-            {relatedAction && (
-              <div style={{ marginBottom: 28 }}>
-                <Link to={relatedAction.to} className="btn-primary btn-sm" style={{ textDecoration: 'none' }}>
+            {/* Actions */}
+            <div
+              style={{
+                padding: '16px 28px 24px',
+                borderTop: '1px solid var(--hairline)',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 10,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Link
+                to={notifBase}
+                className="btn-ghost btn-sm"
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12,19 5,12 12,5" />
+                </svg>
+                Quay lại danh sách
+              </Link>
+              {relatedAction && (
+                <Link
+                  to={relatedAction.to}
+                  className="btn-primary btn-sm"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
                   {relatedAction.label}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12,5 19,12 12,19" />
+                  </svg>
                 </Link>
-              </div>
-            )}
-
-            <Link to={notifBase} className="btn-outline btn-sm">← Quay lại danh sách</Link>
+              )}
+            </div>
           </div>
         )}
       </div>

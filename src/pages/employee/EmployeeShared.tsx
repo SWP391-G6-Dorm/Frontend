@@ -58,6 +58,7 @@ function StatusBadge({ status }: { status: string }) {
     PENDING:         { cls: 'badge-warning', label: 'Pending' },
     IN_PROGRESS:     { cls: 'badge-info',    label: 'In Progress' },
     COMPLETED:       { cls: 'badge-success', label: 'Completed' },
+    CANCELLED:       { cls: 'badge-neutral', label: 'Cancelled' },
     ASSIGNED:        { cls: 'badge-warning', label: 'Assigned' },
     RESOLVED:        { cls: 'badge-success', label: 'Resolved' },
     CLEAN:           { cls: 'badge-success', label: 'Clean' },
@@ -66,11 +67,16 @@ function StatusBadge({ status }: { status: string }) {
     MAINTENANCE:     { cls: 'badge-warning', label: 'Maintenance' },
     PENDING_CLEANING:{ cls: 'badge-warning', label: 'Needs Cleaning' },
     PENDING_REVIEW:  { cls: 'badge-warning', label: 'Pending Review' },
-    APPROVED:        { cls: 'badge-success', label: 'Approved' },
-    ESCALATED:       { cls: 'badge-error',   label: 'Escalated' },
-    REJECTED:        { cls: 'badge-error',   label: 'Rejected' },
-    PASS:            { cls: 'badge-success', label: '✓ Pass' },
-    FAIL:            { cls: 'badge-error',   label: '✗ Fail' },
+    // SCR-63 DamageReport statuses
+    DRAFT:              { cls: 'badge-neutral', label: 'Draft' },
+    PENDING_APPROVAL:   { cls: 'badge-warning', label: 'Pending Approval' },
+    APPROVED:           { cls: 'badge-success', label: 'Approved' },
+    DISPUTED:           { cls: 'badge-warning', label: 'Disputed' },
+    PAID:               { cls: 'badge-success', label: 'Paid' },
+    ESCALATED:          { cls: 'badge-error',   label: 'Escalated' },
+    REJECTED:           { cls: 'badge-error',   label: 'Rejected' },
+    PASS:               { cls: 'badge-success', label: '✓ Pass' },
+    FAIL:               { cls: 'badge-error',   label: '✗ Fail' },
   };
   const v = MAP[status] ?? { cls: 'badge-neutral', label: status };
   return <span className={`badge ${v.cls}`}>{v.label}</span>;

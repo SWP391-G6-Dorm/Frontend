@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout';
 import Alert from '../../components/ui/Alert';
 import { fetchRoomById, checkRoomAvailability, type RoomDetail } from '../../api/roomsApi';
+import { isRoomBookingBlocked } from '../../utils/roomCalendar';
 import { bookingApi, type BookingSummaryResponse } from '../../api/bookingApi';
 import SafeImage from '../../components/ui/SafeImage';
 import Pagination from '../../components/ui/Pagination';
@@ -194,7 +195,7 @@ export function BookingFormPage() {
     ?? room?.images?.[0]?.imageUrl
     ?? null;
 
-  const canSubmit = !loading && nights > 0 && room?.status === 'AVAILABLE' && datesAvailable !== false;
+  const canSubmit = !loading && nights > 0 && !!room && !isRoomBookingBlocked(room.status) && datesAvailable !== false;
 
   return (
     <CustomerLayout>
@@ -963,13 +964,7 @@ export function BookingCancellationPage() {
               style={{ width: 16, height: 16, accentColor: 'var(--error)', cursor: 'pointer', marginTop: 2, flexShrink: 0 }}
             />
             <span className="body-sm">
-              Tôi hiểu hành động này không thể hoàn tác
-              {preview && preview.refundPercent < 100
-                ? preview.refundPercent === 0
-                  ? ' và tiền cọc sẽ không được hoàn trả'
-                  : ` và chỉ được hoàn ${preview.refundPercent}% tiền cọc`
-                : ''}
-              .
+              Tôi hiểu hành động này không thể hoàn tác và chỉ được hoàn 50% số tiền đã thanh toán.
             </span>
           </label>
 

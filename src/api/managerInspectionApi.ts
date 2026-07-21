@@ -38,3 +38,30 @@ export async function fetchManagerInspectionsV1(
   const res = await api.get('/api/v1/manager/inspections', { params });
   return res.data.data;
 }
+
+/** SCR-42 — Gán / đổi Employee kiểm tra phòng. */
+export async function assignInspectorV1(
+  inspectionId: string,
+  employeeId: string,
+): Promise<InspectionSummary> {
+  const res = await api.patch(`/api/v1/manager/inspections/${inspectionId}/assign`, {
+    employeeId,
+  });
+  return res.data.data;
+}
+
+export interface InspectionChecklistAnswer {
+  id: string;
+  itemId: string;
+  code: string;
+  label: string;
+  icon?: string | null;
+  passed: boolean;
+}
+
+export async function fetchInspectionChecklistAnswersV1(
+  inspectionId: string,
+): Promise<InspectionChecklistAnswer[]> {
+  const res = await api.get(`/api/v1/manager/inspections/${inspectionId}/checklist-answers`);
+  return res.data.data ?? [];
+}

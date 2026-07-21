@@ -24,6 +24,67 @@ const STATUS_VI: Record<string, { label: string; variant: StatusVariant }> = {
 
 const PAGE_SIZE = 10;
 const UNASSIGNED_PAGE_SIZE = 20;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_PATTERN = /^\d+$/;
+
+type CreateEmployeeField = 'fullName' | 'email' | 'phone' | 'propertyId';
+type CreateEmployeeFieldErrors = Partial<Record<CreateEmployeeField, string>>;
+
+interface ApiErrorPayload {
+  message?: string;
+  data?: Record<string, string>;
+  errors?: Record<string, string> | Array<{ field?: string; message?: string }>;
+}
+
+function extractFieldErrors(payload?: ApiErrorPayload): CreateEmployeeFieldErrors {
+  const result: CreateEmployeeFieldErrors = {};
+  const addError = (field: string, message: string) => {
+    if (field === 'fullName' || field === 'email' || field === 'phone' || field === 'propertyId') {
+      result[field] = message;
+    }
+  };
+
+  if (payload?.data && typeof payload.data === 'object') {
+    Object.entries(payload.data).forEach(([field, message]) => {
+      if (typeof message === 'string') addError(field, message);
+    });
+  }
+
+  if (Array.isArray(payload?.errors)) {
+    payload.errors.forEach(error => {
+      if (error.field && error.message) addError(error.field, error.message);
+    });
+  } else if (payload?.errors && typeof payload.errors === 'object') {
+    Object.entries(payload.errors).forEach(([field, message]) => {
+      if (typeof message === 'string') addError(field, message);
+    });
+  }
+
+  return result;
+}
+
+function validateCreateEmployee(
+  form: { fullName: string; email: string; phone: string },
+  propertyId: string,
+): CreateEmployeeFieldErrors {
+  const errors: CreateEmployeeFieldErrors = {};
+  const fullName = form.fullName.trim();
+  const email = form.email.trim();
+  const phone = form.phone.trim();
+
+  if (!fullName) errors.fullName = 'Họ tên không được để trống.';
+  else if (fullName.length < 2) errors.fullName = 'Họ tên phải có ít nhất 2 ký tự.';
+  else if (fullName.length > 200) errors.fullName = 'Họ tên không được vượt quá 200 ký tự.';
+
+  if (!email) errors.email = 'Email không được để trống.';
+  else if (!EMAIL_PATTERN.test(email)) errors.email = 'Email không hợp lệ.';
+
+  if (phone && !PHONE_PATTERN.test(phone)) errors.phone = 'Số điện thoại chỉ được chứa chữ số.';
+  else if (phone.length > 20) errors.phone = 'Số điện thoại không được vượt quá 20 chữ số.';
+
+  if (!propertyId) errors.propertyId = 'Vui lòng chọn homestay.';
+  return errors;
+}
 
 function formatDate(iso: string): string {
   if (!iso) return '—';
@@ -106,7 +167,9 @@ export default function EmployeeMgmtPage() {
   // Create modal
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ fullName: '', email: '', phone: '' });
+  const [createPropertyId, setCreatePropertyId] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createFieldErrors, setCreateFieldErrors] = useState<CreateEmployeeFieldErrors>({});
   const [createSubmitting, setCreateSubmitting] = useState(false);
 
   // Edit modal
@@ -240,18 +303,24 @@ export default function EmployeeMgmtPage() {
   }
 
   function openCreateModal() {
-    if (!selectedPropertyId) {
-      setError('Vui lòng chọn homestay trước.');
+    if (properties.length === 0) {
+      setError('Bạn chưa được gán homestay nào.');
       return;
     }
     setCreateForm({ fullName: '', email: '', phone: '' });
+    setCreatePropertyId(selectedPropertyId || properties[0].id);
     setCreateError(null);
+    setCreateFieldErrors({});
     setCreateOpen(true);
   }
 
   async function handleCreate() {
-    if (!createForm.fullName.trim() || !createForm.email.trim()) {
-      setCreateError('Họ tên và email là bắt buộc.');
+    if (createSubmitting) return;
+
+    const validationErrors = validateCreateEmployee(createForm, createPropertyId);
+    setCreateFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      setCreateError('Vui lòng kiểm tra lại các trường được đánh dấu.');
       return;
     }
     setCreateSubmitting(true);
@@ -261,14 +330,26 @@ export default function EmployeeMgmtPage() {
         fullName: createForm.fullName.trim(),
         email: createForm.email.trim(),
         phone: createForm.phone.trim() || undefined,
-        propertyId: selectedPropertyId,
+        propertyId: createPropertyId,
       });
       setCreateOpen(false);
       setSuccessMsg('Tạo nhân viên thành công.');
-      loadEmployees(page, search, selectedPropertyId);
+      // Nhân viên mới được gán vào homestay đã chọn trong form — chuyển bảng sang homestay đó
+      if (createPropertyId !== selectedPropertyId) {
+        setSelectedPropertyId(createPropertyId);
+      } else {
+        loadEmployees(page, search, selectedPropertyId);
+      }
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } } };
-      setCreateError(ax?.response?.data?.message ?? 'Không thể tạo nhân viên.');
+      const ax = err as { response?: { data?: ApiErrorPayload } };
+      const payload = ax?.response?.data;
+      const serverFieldErrors = extractFieldErrors(payload);
+      setCreateFieldErrors(serverFieldErrors);
+      setCreateError(
+        Object.keys(serverFieldErrors).length > 0
+          ? 'Vui lòng kiểm tra lại các trường được đánh dấu.'
+          : (payload?.message ?? 'Không thể tạo nhân viên.'),
+      );
     } finally {
       setCreateSubmitting(false);
     }
@@ -286,10 +367,15 @@ export default function EmployeeMgmtPage() {
       setEditError('Họ tên là bắt buộc.');
       return;
     }
+    if (!selectedPropertyId) {
+      setEditError('Vui lòng chọn homestay trước.');
+      return;
+    }
+    if (editSubmitting) return;
     setEditSubmitting(true);
     setEditError(null);
     try {
-      await updateEmployeeV1(editTarget.id, {
+      await updateEmployeeV1(editTarget.id, selectedPropertyId, {
         fullName: editForm.fullName.trim(),
         phone: editForm.phone.trim() || undefined,
       });
@@ -306,10 +392,16 @@ export default function EmployeeMgmtPage() {
 
   async function handleStatusConfirm() {
     if (!statusTarget) return;
+    if (!selectedPropertyId) {
+      setError('Vui lòng chọn homestay trước.');
+      setStatusTarget(null);
+      return;
+    }
+    if (statusSubmitting) return;
     const newStatus = statusTarget.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     setStatusSubmitting(true);
     try {
-      await updateEmployeeStatusV1(statusTarget.id, newStatus);
+      await updateEmployeeStatusV1(statusTarget.id, selectedPropertyId, newStatus);
       setStatusTarget(null);
       setSuccessMsg(newStatus === 'SUSPENDED' ? 'Đã tạm khóa nhân viên.' : 'Đã kích hoạt nhân viên.');
       loadEmployees(page, search, selectedPropertyId);
@@ -505,37 +597,95 @@ export default function EmployeeMgmtPage() {
         {createError && <Alert variant="error" message={createError} />}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#334155] mb-1">Họ tên *</label>
+            <label htmlFor="create-employee-full-name" className="block text-sm font-medium text-[#334155] mb-1">
+              Họ tên *
+            </label>
             <input
-              className="input-field w-full"
+              id="create-employee-full-name"
+              className={`input-field w-full ${createFieldErrors.fullName ? 'border-[#EF4444]' : ''}`}
               value={createForm.fullName}
-              onChange={e => setCreateForm(f => ({ ...f, fullName: e.target.value }))}
+              aria-invalid={!!createFieldErrors.fullName}
+              aria-describedby={createFieldErrors.fullName ? 'create-employee-full-name-error' : undefined}
+              onChange={e => {
+                setCreateForm(f => ({ ...f, fullName: e.target.value }));
+                setCreateFieldErrors(errors => ({ ...errors, fullName: undefined }));
+              }}
             />
+            {createFieldErrors.fullName && (
+              <p id="create-employee-full-name-error" className="mt-1 text-xs text-[#EF4444]">
+                {createFieldErrors.fullName}
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#334155] mb-1">Email *</label>
+            <label htmlFor="create-employee-email" className="block text-sm font-medium text-[#334155] mb-1">
+              Email *
+            </label>
             <input
+              id="create-employee-email"
               type="email"
-              className="input-field w-full"
+              className={`input-field w-full ${createFieldErrors.email ? 'border-[#EF4444]' : ''}`}
               value={createForm.email}
-              onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
+              aria-invalid={!!createFieldErrors.email}
+              aria-describedby={createFieldErrors.email ? 'create-employee-email-error' : undefined}
+              onChange={e => {
+                setCreateForm(f => ({ ...f, email: e.target.value }));
+                setCreateFieldErrors(errors => ({ ...errors, email: undefined }));
+              }}
             />
+            {createFieldErrors.email && (
+              <p id="create-employee-email-error" className="mt-1 text-xs text-[#EF4444]">
+                {createFieldErrors.email}
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#334155] mb-1">Điện thoại</label>
+            <label htmlFor="create-employee-phone" className="block text-sm font-medium text-[#334155] mb-1">
+              Điện thoại
+            </label>
             <input
-              className="input-field w-full"
+              id="create-employee-phone"
+              inputMode="numeric"
+              className={`input-field w-full ${createFieldErrors.phone ? 'border-[#EF4444]' : ''}`}
               value={createForm.phone}
-              onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))}
+              aria-invalid={!!createFieldErrors.phone}
+              aria-describedby={createFieldErrors.phone ? 'create-employee-phone-error' : undefined}
+              onChange={e => {
+                setCreateForm(f => ({ ...f, phone: e.target.value }));
+                setCreateFieldErrors(errors => ({ ...errors, phone: undefined }));
+              }}
             />
+            {createFieldErrors.phone && (
+              <p id="create-employee-phone-error" className="mt-1 text-xs text-[#EF4444]">
+                {createFieldErrors.phone}
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#334155] mb-1">Homestay</label>
-            <input
-              className="input-field w-full bg-[#F8FAFC]"
-              value={selectedProperty?.name ?? ''}
-              readOnly
-            />
+            <label htmlFor="create-employee-property" className="block text-sm font-medium text-[#334155] mb-1">
+              Homestay *
+            </label>
+            <select
+              id="create-employee-property"
+              className={`input-field w-full ${createFieldErrors.propertyId ? 'border-[#EF4444]' : ''}`}
+              value={createPropertyId}
+              aria-invalid={!!createFieldErrors.propertyId}
+              aria-describedby={createFieldErrors.propertyId ? 'create-employee-property-error' : undefined}
+              onChange={e => {
+                setCreatePropertyId(e.target.value);
+                setCreateFieldErrors(errors => ({ ...errors, propertyId: undefined }));
+              }}
+            >
+              <option value="">— Chọn homestay —</option>
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            {createFieldErrors.propertyId && (
+              <p id="create-employee-property-error" className="mt-1 text-xs text-[#EF4444]">
+                {createFieldErrors.propertyId}
+              </p>
+            )}
           </div>
         </div>
       </Modal>

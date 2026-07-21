@@ -4,9 +4,16 @@ import Alert from '../../components/ui/Alert';
 import { Drawer, StatusBadge } from '../../components/ui';
 import type { StatusVariant } from '../../components/ui/StatusBadge';
 import {
+  assignInspectorV1,
+  fetchInspectionChecklistAnswersV1,
   fetchManagerInspectionsV1,
+  type InspectionChecklistAnswer,
   type InspectionSummary,
 } from '../../api/managerInspectionApi';
+import {
+  fetchManagerEmployeesV1,
+  type EmployeeSummary,
+} from '../../api/managerEmployeeApi';
 import { managerApi } from '../../api/managerApi';
 import type { AssignedProperty } from '../../api/reportApi';
 
@@ -24,6 +31,8 @@ const STATUS_FILTERS = [
   { value: 'PASSED', label: 'Đạt' },
   { value: 'FAILED_WITH_DAMAGE', label: 'Không đạt' },
 ];
+
+const ASSIGNABLE = new Set(['PENDING', 'IN_PROGRESS']);
 
 function formatDateTime(iso?: string | null): string {
   if (!iso) return '—';
@@ -55,8 +64,14 @@ export default function InspectionsPage() {
   const [inspections, setInspections] = useState<InspectionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [drawerItem, setDrawerItem] = useState<InspectionSummary | null>(null);
+  const [employees, setEmployees] = useState<EmployeeSummary[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [drawerError, setDrawerError] = useState<string | null>(null);
+  const [drawerSubmitting, setDrawerSubmitting] = useState(false);
+  const [checklistAnswers, setChecklistAnswers] = useState<InspectionChecklistAnswer[]>([]);
 
   useEffect(() => {
     managerApi.getMyAssignedProperties()
@@ -107,7 +122,43 @@ export default function InspectionsPage() {
     loadInspections();
   }, [loadInspections]);
 
+  function openDrawer(item: InspectionSummary) {
+    setDrawerItem(item);
+    setSelectedEmployeeId(item.inspectorId ?? '');
+    setDrawerError(null);
+    setChecklistAnswers([]);
+    fetchInspectionChecklistAnswersV1(item.id)
+      .then(setChecklistAnswers)
+      .catch(() => setChecklistAnswers([]));
+    if (selectedPropertyId) {
+      fetchManagerEmployeesV1({ propertyId: selectedPropertyId, page: 0, size: 100 })
+        .then(data => setEmployees(data.content.filter(e => e.status === 'ACTIVE' || !e.status)))
+        .catch(() => setEmployees([]));
+    }
+  }
+
+  async function handleAssign() {
+    if (!drawerItem || !selectedEmployeeId) {
+      setDrawerError('Vui lòng chọn nhân viên kiểm tra.');
+      return;
+    }
+    setDrawerSubmitting(true);
+    setDrawerError(null);
+    try {
+      const updated = await assignInspectorV1(drawerItem.id, selectedEmployeeId);
+      setDrawerItem(updated);
+      setSuccessMsg('Gán nhân viên kiểm tra thành công.');
+      loadInspections();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      setDrawerError(ax?.response?.data?.message ?? 'Không thể gán nhân viên.');
+    } finally {
+      setDrawerSubmitting(false);
+    }
+  }
+
   const isEmpty = !loading && inspections.length === 0;
+  const canAssign = drawerItem && ASSIGNABLE.has(drawerItem.status);
 
   return (
     <ManagerLayout>
@@ -115,11 +166,14 @@ export default function InspectionsPage() {
         <div>
           <h1 className="heading-md m-0">Kiểm tra phòng</h1>
           <p className="text-sm text-[#64748B] mt-1 m-0">
-            Theo dõi kết quả kiểm tra phòng trước khi Check-out theo homestay.
+            Gán nhân viên kiểm tra và theo dõi kết quả trước Check-out.
           </p>
         </div>
 
         {error && <Alert variant="error" message={error} closeable onClose={() => setError(null)} />}
+        {successMsg && (
+          <Alert variant="success" message={successMsg} closeable onClose={() => setSuccessMsg(null)} />
+        )}
 
         <div className="flex flex-wrap gap-3 items-end bg-white rounded-xl border border-[#E2E8F0] p-4">
           <div className="min-w-[180px] flex-1 sm:max-w-xs">
@@ -192,14 +246,16 @@ export default function InspectionsPage() {
                     <tr
                       key={item.id}
                       className="border-t border-[#F1F5F9] hover:bg-[#F8FAFC] cursor-pointer"
-                      onClick={() => setDrawerItem(item)}
+                      onClick={() => openDrawer(item)}
                     >
                       <td className="px-4 py-3 font-medium text-[#1E293B] whitespace-nowrap">
                         {item.roomNumber}
                       </td>
                       <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">{shortId(item.bookingId)}</td>
                       <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">
-                        {item.inspectorName || 'Chưa gán'}
+                        {item.inspectorName || (
+                          <span className="text-[#B45309] font-medium">Chưa gán</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">{badge(item.status)}</td>
                       <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">
@@ -209,9 +265,9 @@ export default function InspectionsPage() {
                         <button
                           type="button"
                           className="text-[#0F766E] hover:underline text-sm font-medium"
-                          onClick={e => { e.stopPropagation(); setDrawerItem(item); }}
+                          onClick={e => { e.stopPropagation(); openDrawer(item); }}
                         >
-                          Xem
+                          {ASSIGNABLE.has(item.status) ? 'Gán / Xem' : 'Xem'}
                         </button>
                       </td>
                     </tr>
@@ -265,6 +321,61 @@ export default function InspectionsPage() {
                 {drawerItem.note || 'Không có ghi chú.'}
               </p>
             </div>
+
+            {checklistAnswers.length > 0 && (
+              <div>
+                <span className="text-[#64748B] text-sm">Checklist đã nộp</span>
+                <ul className="m-0 mt-2 p-0 list-none space-y-1.5">
+                  {checklistAnswers.map(a => (
+                    <li key={a.id} className="flex justify-between text-sm border-b border-[#F1F5F9] py-1.5">
+                      <span>{a.icon ? `${a.icon} ` : ''}{a.label}</span>
+                      <span className={a.passed ? 'text-[#059669] font-semibold' : 'text-[#DC2626] font-semibold'}>
+                        {a.passed ? 'OK' : 'FAIL'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {canAssign ? (
+              <div className="border-t border-[#E2E8F0] pt-4 space-y-3">
+                <label className="block text-sm font-medium text-[#334155]" htmlFor="inspector-select">
+                  Gán / đổi nhân viên kiểm tra
+                </label>
+                <select
+                  id="inspector-select"
+                  className="input-field w-full"
+                  value={selectedEmployeeId}
+                  onChange={e => setSelectedEmployeeId(e.target.value)}
+                >
+                  <option value="">— Chọn nhân viên —</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.fullName}{emp.email ? ` (${emp.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {employees.length === 0 && (
+                  <p className="text-xs text-[#B45309] m-0">
+                    Homestay chưa có nhân viên ACTIVE. Hãy gán Employee tại mục Quản lý nhân viên.
+                  </p>
+                )}
+                {drawerError && <p className="text-sm text-red-600 m-0">{drawerError}</p>}
+                <button
+                  type="button"
+                  className="btn-primary w-full"
+                  disabled={drawerSubmitting || !selectedEmployeeId}
+                  onClick={handleAssign}
+                >
+                  {drawerSubmitting ? 'Đang lưu...' : 'Gán nhân viên'}
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-[#64748B] border-t border-[#E2E8F0] pt-4 m-0">
+                Kiểm tra đã hoàn tất — không thể đổi người kiểm tra.
+              </p>
+            )}
           </div>
         )}
       </Drawer>
