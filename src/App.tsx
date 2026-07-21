@@ -87,7 +87,6 @@ import { RevenueReportPage } from './pages/manager/RevenueReportPage';
 import { OccupancyReportPage } from './pages/manager/OccupancyReportPage';
 import { ActivityLogPage } from './pages/manager/ActivityLogPage';
 import { ReviewMgmtPage } from './pages/manager/ReviewMgmtPage';
-import PromotionMgmtPage from './pages/manager/PromotionMgmtPage';
 
 // ── Admin Portal (SCR-45 → SCR-58) ──────────────────────────────────────────
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -102,8 +101,8 @@ import { DamageEscalationPage } from './pages/admin/DamageEscalationPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { GlobalReportsPage } from './pages/admin/GlobalReportsPage';
 import { SystemAdminPage } from './pages/admin/SystemAdminPage';
-import { PromotionAdminListPage } from './pages/admin/PromotionAdminListPage';
-import { AddEditPromotionPage } from './pages/admin/AddEditPromotionPage';
+import PromotionMgmtPage from './pages/admin/PromotionMgmtPage';
+import AboutMgmtPage from './pages/admin/AboutMgmtPage';
 
 // ── Employee Portal (SCR-59 → SCR-65) ────────────────────────────────────────
 import EmployeeDashboardPage from './pages/employee/EmployeeDashboardPage';
@@ -351,10 +350,6 @@ function App() {
         <Route path="/manager/reviews"
           element={<ProtectedRoute role="MANAGER"><ReviewMgmtPage /></ProtectedRoute>} />
 
-        {/* Promotion / Banner Management */}
-        <Route path="/manager/promotions"
-          element={<ProtectedRoute role="MANAGER"><PromotionMgmtPage /></ProtectedRoute>} />
-
         {/* ─────────────── ADMIN (SCR-45 to SCR-58) ─────────────── */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
@@ -405,13 +400,11 @@ function App() {
         <Route path="/admin/reports"
           element={<ProtectedRoute role="ADMIN"><GlobalReportsPage /></ProtectedRoute>} />
 
-        {/* Marketing */}
+        {/* Marketing — Banner Management (moved from Manager) */}
         <Route path="/admin/promotions"
-          element={<ProtectedRoute role="ADMIN"><PromotionAdminListPage /></ProtectedRoute>} />
-        <Route path="/admin/promotions/create"
-          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
-        <Route path="/admin/promotions/:id/edit"
-          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="ADMIN"><PromotionMgmtPage /></ProtectedRoute>} />
+        <Route path="/admin/about"
+          element={<ProtectedRoute role="ADMIN"><AboutMgmtPage /></ProtectedRoute>} />
 
         {/* System */}
         <Route path="/admin/settings"

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PublicLayout from '../../layouts/PublicLayout';
 import Alert from '../../components/ui/Alert';
 import ImageGallerySlider from '../../components/ui/ImageGallerySlider';
-import RoomMiniCalendar, { isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
+import RoomMiniCalendar, { isRangeAvailable, isRoomBookingBlocked } from '../../components/ui/RoomMiniCalendar';
 import {
   fetchRoomById,
   fetchRoomCalendar,
@@ -252,7 +252,7 @@ export default function RoomDetailPage() {
     ? room.amenities.map((a) => fixAmenityLabel(a))
     : ['WiFi', 'Điều hòa', 'Smart TV', 'Nước nóng'];
 
-  const canBook = room.status === 'AVAILABLE';
+  const canBook = !isRoomBookingBlocked(room.status);
   const displayReviews = reviews.length > 0 ? reviews : room.reviews ?? [];
 
   return (
@@ -395,7 +395,13 @@ export default function RoomDetailPage() {
                     className="input room-booking-date-input"
                     value={checkIn}
                     min={new Date().toISOString().slice(0, 10)}
-                    onChange={(e) => { setCheckIn(e.target.value); setBookError(''); }}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCheckIn(value);
+                      // check-out cũ ≤ check-in mới → xóa (check-out phải sau ít nhất 1 đêm)
+                      if (checkOut && value && checkOut <= value) setCheckOut('');
+                      setBookError('');
+                    }}
                   />
                 </div>
                 <div className="room-booking-date-field">
@@ -404,7 +410,9 @@ export default function RoomDetailPage() {
                     type="date"
                     className="input room-booking-date-input"
                     value={checkOut}
-                    min={checkIn || new Date().toISOString().slice(0, 10)}
+                    min={checkIn
+                      ? new Date(new Date(checkIn + 'T00:00:00').getTime() + 86400000).toISOString().slice(0, 10)
+                      : new Date().toISOString().slice(0, 10)}
                     onChange={(e) => { setCheckOut(e.target.value); setBookError(''); }}
                   />
                 </div>

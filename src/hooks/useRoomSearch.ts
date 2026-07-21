@@ -114,6 +114,13 @@ export function useRoomSearch() {
     setError('');
     try {
       const propertyId = selectedPropertyIds.length === 1 ? selectedPropertyIds[0] : undefined;
+      const hasDates = Boolean(urlCheckIn && urlCheckOut);
+      const hasTargetFilter = Boolean(urlSearch || urlLocation || selectedPropertyIds.length);
+      // - Có ngày: backend lọc theo lịch đặt (date-range), không ép status.
+      // - Tìm theo địa điểm/homestay (không ngày): hiện cả phòng đang giữ chỗ/đã đặt
+      //   kèm badge trạng thái ('ALL' → backend bỏ lọc status) thay vì trả 0 kết quả.
+      // - Duyệt thường: chỉ phòng đang trống.
+      const statusFilter = hasDates ? undefined : hasTargetFilter ? 'ALL' : 'AVAILABLE';
       const data = await fetchRooms({
         page: urlPage,
         size: PAGE_SIZE,
@@ -133,7 +140,7 @@ export function useRoomSearch() {
           : undefined,
         checkIn: urlCheckIn || undefined,
         checkOut: urlCheckOut || undefined,
-        status: 'AVAILABLE',
+        status: statusFilter,
       });
 
       let content = data.content;
@@ -185,6 +192,13 @@ export function useRoomSearch() {
     const { minP, maxP } = sanitizeDraftPrices(draft.minPrice, draft.maxPrice);
     const guests = draft.guests ? clampPositiveIntString(draft.guests, MAX_FILTER_GUESTS) : '';
 
+    // Chặn ngày quá khứ (min trên input chỉ chặn picker, không chặn gõ tay/URL cũ)
+    const todayIso = new Date().toISOString().slice(0, 10);
+    let checkIn = draft.checkIn && draft.checkIn >= todayIso ? draft.checkIn : '';
+    let checkOut = draft.checkOut && draft.checkOut >= todayIso ? draft.checkOut : '';
+    if (checkIn && checkOut && checkOut <= checkIn) checkOut = '';
+    if (!checkIn) checkOut = '';
+
     const next = new URLSearchParams();
     if (draft.search.trim()) {
       next.set('location', draft.search.trim());
@@ -195,8 +209,8 @@ export function useRoomSearch() {
     if (minP) next.set('minPrice', minP);
     if (maxP) next.set('maxPrice', maxP);
     if (guests) next.set('guests', guests);
-    if (draft.checkIn) next.set('checkIn', draft.checkIn);
-    if (draft.checkOut) next.set('checkOut', draft.checkOut);
+    if (checkIn) next.set('checkIn', checkIn);
+    if (checkOut) next.set('checkOut', checkOut);
     if (draft.sort && draft.sort !== 'newest') next.set('sort', draft.sort);
     if (!resetPage && urlPage > 0) next.set('page', String(urlPage));
     setSearchParams(next);
