@@ -39,15 +39,8 @@ export interface AdminProperty {
 export interface GlobalKpis {
   totalRevenue: number;
   totalBookings: number;
-  totalProperties: number;
-  totalCustomers: number;
-  totalFloors: number;
-  totalRooms: number;
-  availableRooms: number;
-  occupiedRooms: number;
-  upcomingCheckIns: number;
-  upcomingCheckOuts: number;
-  monthlyRevenue: number;
+  totalProperties?: number;
+  totalCustomers?: number;
 }
 
 export interface PaymentReconciliationItem {

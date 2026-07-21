@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 
 const NAV_LINKS = [
   { label: 'Rooms', path: '/rooms' },
-  { label: 'Home', path: '/' },
+  { label: 'Properties', path: '/#properties' },
   { label: 'About', path: '/about' },
 ];
 

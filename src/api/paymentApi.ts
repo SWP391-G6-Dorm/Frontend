@@ -29,9 +29,6 @@ export interface PaymentDetailResponse {
   method: string;
   amount: number;
   status: string;
-  orderRef?: string | null;
-  gatewayTransactionId?: string | null;
-  gatewayResponseCode?: string | null;
   verifiedByName: string | null;
   verifiedAt: string | null;
   paidAt: string | null;
