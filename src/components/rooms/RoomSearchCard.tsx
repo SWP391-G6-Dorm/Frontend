@@ -86,12 +86,15 @@ export default function RoomSearchCard({ room, querySuffix = '' }: RoomSearchCar
             <span className="body-sm text-charcoal">({reviews})</span>
           </div>
         )}
-        <div className="flex items-center justify-between" style={{ marginTop: 12 }}>
-          <div>
+        <div className="flex items-center justify-between" style={{ marginTop: 12, gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
             <span className="heading-sm text-primary">₫{Number(room.pricePerNight).toLocaleString('vi-VN')}</span>
             <span className="body-sm text-charcoal">/đêm</span>
           </div>
-          <span className="btn-outline btn-sm" style={{ borderRadius: 9999, pointerEvents: 'none' }}>
+          <span
+            className="btn-outline btn-sm"
+            style={{ borderRadius: 9999, pointerEvents: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
+          >
             Xem chi tiết
           </span>
         </div>

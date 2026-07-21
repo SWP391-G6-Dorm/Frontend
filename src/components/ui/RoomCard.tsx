@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import SafeImage from './SafeImage';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 export interface Room {
   id: string;
@@ -29,6 +31,7 @@ function formatPrice(price: number) {
 export default function RoomCard({ room, onSave, saved = false, layout = 'grid' }: RoomCardProps) {
   const [hovered, setHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(saved);
+  const imageSrc = resolveMediaUrl(room.imageUrl);
 
   function handleSave(e: React.MouseEvent) {
     e.preventDefault();
@@ -37,15 +40,15 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
     onSave?.(room.id);
   }
 
-  const statusLabel = room.status === 'AVAILABLE' ? 'Trống' 
-                    : room.status === 'OCCUPIED' ? 'Đã ở' 
-                    : room.status === 'RESERVED' ? 'Đã cọc' 
+  const statusLabel = room.status === 'AVAILABLE' ? 'Trống'
+                    : room.status === 'OCCUPIED' ? 'Đã ở'
+                    : room.status === 'RESERVED' ? 'Đã cọc'
                     : room.status === 'PENDING_DEPOSIT' ? 'Chờ cọc'
                     : 'Bảo trì';
 
-  const statusClass = room.status === 'AVAILABLE' ? 'badge-success' 
-                    : room.status === 'OCCUPIED' ? 'badge-error' 
-                    : room.status === 'RESERVED' ? 'badge-warning' 
+  const statusClass = room.status === 'AVAILABLE' ? 'badge-success'
+                    : room.status === 'OCCUPIED' ? 'badge-error'
+                    : room.status === 'RESERVED' ? 'badge-warning'
                     : 'badge-neutral';
 
   if (layout === 'list') {
@@ -59,11 +62,10 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        {/* Left Image */}
         <div className="relative w-full sm:w-64 flex-shrink-0" style={{ height: 200 }}>
           <Link to={`/rooms/${room.id}`}>
-            <img
-              src={room.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
+            <SafeImage
+              src={imageSrc}
               alt={room.roomNumber}
               className="w-full h-full object-cover transition-transform duration-500"
               style={{ transform: hovered ? 'scale(1.05)' : 'scale(1)' }}
@@ -77,13 +79,12 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
             style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer', color: isSaved ? 'var(--error)' : 'var(--ash)' }}
             onClick={handleSave}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
         </div>
 
-        {/* Right Content */}
         <div className="p-5 flex flex-col flex-1">
           <div className="flex justify-between items-start gap-4">
             <div>
@@ -124,7 +125,6 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
     );
   }
 
-  // Grid layout (default)
   return (
     <div
       className="card overflow-hidden flex flex-col transition-all duration-300 h-full group"
@@ -135,11 +135,10 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Image */}
       <div className="relative w-full" style={{ height: 220 }}>
         <Link to={`/rooms/${room.id}`}>
-          <img
-            src={room.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
+          <SafeImage
+            src={imageSrc}
             alt={room.roomNumber}
             className="w-full h-full object-cover transition-transform duration-500"
             style={{ transform: hovered ? 'scale(1.06)' : 'scale(1)' }}
@@ -153,13 +152,12 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
           style={{ width: 34, height: 34, background: 'rgba(255,255,255,0.95)', border: 'none', cursor: 'pointer', color: isSaved ? 'var(--error)' : 'var(--charcoal)' }}
           onClick={handleSave}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
         </button>
       </div>
 
-      {/* Content */}
       <div className="p-5 flex flex-col flex-1">
         <p className="label-xs mb-1.5" style={{ color: 'var(--primary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {room.propertyName}
@@ -176,13 +174,13 @@ export default function RoomCard({ room, onSave, saved = false, layout = 'grid' 
           <span className="flex items-center gap-1"><span className="text-ash">📐</span> {room.area}m²</span>
         </div>
 
-        <div className="mt-auto pt-4 border-t border-hairline border-dashed flex items-end justify-between">
-          <div>
+        <div className="mt-auto pt-4 border-t border-hairline border-dashed flex items-end justify-between gap-2 flex-wrap">
+          <div style={{ minWidth: 0 }}>
             <span className="caption block text-ash mb-0.5">Chỉ từ</span>
             <span className="font-bold text-primary" style={{ fontSize: 20 }}>{formatPrice(room.pricePerNight)}</span>
             <span className="caption text-ash">/đêm</span>
           </div>
-          <Link to={`/rooms/${room.id}`} className="btn-outline" style={{ height: 36, padding: '0 16px', fontSize: 13, borderRadius: 10 }}>
+          <Link to={`/rooms/${room.id}`} className="btn-outline" style={{ height: 36, padding: '0 16px', fontSize: 13, borderRadius: 10, flexShrink: 0 }}>
             Xem
           </Link>
         </div>

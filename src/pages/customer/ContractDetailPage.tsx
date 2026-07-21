@@ -203,7 +203,7 @@ function PdfPreviewPanel({
     setError(false);
     setBlobUrl(null);
 
-    api.get(`/api/contracts/${contractId}/pdf`, { responseType: 'blob' })
+    api.get(`/api/v1/contracts/${contractId}/pdf`, { responseType: 'blob' })
       .then(res => {
         const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
         blobRef.current = url;

@@ -11,53 +11,27 @@ import {
   type PlatformStats,
   type Promotion,
 } from '../../api/publicApi';
-import { formatStatValue } from '../../utils/mediaUrl';
+import { formatStatValue, resolveMediaUrl } from '../../utils/mediaUrl';
 import SafeImage from '../../components/ui/SafeImage';
 import RoomCard from '../../components/ui/RoomCard';
-import { useAuthStore } from '../../store/authStore';
 
-/** Banner mặc định SCR-01 khi DB chưa có promotion (fallback hiển thị ngay) */
-const DEFAULT_PROMOTIONS: Promotion[] = [
-  {
-    id: 'default-1',
-    subtitle: 'Ưu đãi cuối tuần',
-    title: 'Giảm 20%\nthứ 6 – chủ nhật',
-    description: 'Áp dụng cho phòng trống cuối tuần tại tất cả homestay.',
-    ctaText: 'Đặt ngay →',
-    ctaUrl: '/search?sort=price-asc',
-    colorTheme: 'red',
-    isActive: true,
-    sortOrder: 0,
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: 'default-2',
-    subtitle: 'Đặt sớm hè 2026',
-    title: 'Combo 3 đêm\n+ bữa sáng miễn phí',
-    description: 'Ưu đãi có hạn — đặt trước 31/08/2026.',
-    ctaText: 'Khám phá →',
-    ctaUrl: '/search',
-    colorTheme: 'blue',
-    isActive: true,
-    sortOrder: 1,
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: 'default-3',
-    subtitle: 'Lưu trú dài hạn',
-    title: 'Giảm thêm 15%\ncho booking từ 5 đêm',
-    description: 'Lý tưởng cho kỳ nghỉ dài ngày hoặc công tác.',
-    ctaText: 'Xem phòng →',
-    ctaUrl: '/rooms',
-    colorTheme: 'green',
-    isActive: true,
-    sortOrder: 2,
-    createdAt: '',
-    updatedAt: '',
-  },
+/**
+ * Ảnh hero mặc định (fallback) khi Manager chưa cấu hình banner có ảnh.
+ * Banner thật được quản lý ở trang Quản lý Banner (PromotionMgmtPage) → API /promotions/active.
+ */
+const DEFAULT_HERO_IMAGES = [
+  'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=2000&q=80',
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=80',
+  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2000&q=80',
 ];
+
+interface HeroSlide {
+  image: string;
+  subtitle?: string;
+  title?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+}
 
 const HOW_IT_WORKS = [
   { step: '01', title: 'Search & Browse', desc: 'Find your perfect room by location, dates, type and capacity with real-time availability.' },
@@ -135,7 +109,6 @@ function SectionSkeleton({ count, cols = 4 }: { count: number; cols?: number }) 
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
   const [search, setSearch] = useState({ location: '', checkIn: '', checkOut: '', guests: '2' });
 
   const [featuredProperties, setFeaturedProperties] = useState<FeaturedProperty[]>([]);
@@ -145,10 +118,31 @@ export default function LandingPage() {
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
-  const [promotions, setPromotions] = useState<Promotion[]>(DEFAULT_PROMOTIONS);
-  const [activePromoIndex, setActivePromoIndex] = useState(0);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [heroIndex, setHeroIndex] = useState(0);
 
-  const isGuest = !isAuthenticated;
+  const promoSlides: HeroSlide[] = promotions
+    .filter((p) => p.imageUrl && p.imageUrl.trim())
+    .map((p) => ({
+      image: resolveMediaUrl(p.imageUrl),
+      subtitle: p.subtitle,
+      title: p.title,
+      ctaText: p.ctaText,
+      ctaUrl: p.ctaUrl,
+    }));
+
+  const heroSlides: HeroSlide[] =
+    promoSlides.length > 0 ? promoSlides : DEFAULT_HERO_IMAGES.map((image) => ({ image }));
+
+  const activeSlide = heroSlides[heroIndex] ?? heroSlides[0];
+
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    const timer = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -170,15 +164,10 @@ export default function LandingPage() {
       const [propertiesResult, roomsResult, statsResult, promoResult] = results;
 
       if (promoResult.status === 'fulfilled') {
-        let promos = promoResult.value;
-        if (promos.length > 0) {
-          promos.sort((a, b) => a.sortOrder - b.sortOrder);
-          setPromotions(promos);
-        } else {
-          setPromotions(DEFAULT_PROMOTIONS);
-        }
+        const promos = [...promoResult.value].sort((a, b) => a.sortOrder - b.sortOrder);
+        setPromotions(promos);
       } else {
-        setPromotions(DEFAULT_PROMOTIONS);
+        setPromotions([]);
       }
 
       if (propertiesResult.status === 'fulfilled') {
@@ -215,13 +204,6 @@ export default function LandingPage() {
   }, [reloadKey]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActivePromoIndex((prev) => (prev + 1) % promotions.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [promotions.length]);
-
-  useEffect(() => {
     if (window.location.hash === '#properties') {
       document.getElementById('properties')?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -239,6 +221,8 @@ export default function LandingPage() {
     navigate('/search?' + params.toString());
   }
 
+  const today = new Date().toISOString().slice(0, 10);
+
   const statItems = stats
     ? [
         { value: formatStatValue(stats.totalProperties), label: 'Properties' },
@@ -253,216 +237,131 @@ export default function LandingPage() {
         { value: '—', label: 'Average Rating' },
       ];
 
-  const activePromo = promotions[activePromoIndex] || DEFAULT_PROMOTIONS[0];
-  const gradients: Record<string, string> = {
-    red:    'linear-gradient(135deg, #0F766E 0%, #0D9488 100%)',
-    teal:   'linear-gradient(135deg, #0F766E 0%, #0D9488 100%)',
-    blue:   'linear-gradient(135deg, #1a3c5e 0%, #2d6a9f 100%)',
-    green:  'linear-gradient(135deg, #1a5c3a 0%, #2e9c5e 100%)',
-    purple: 'linear-gradient(135deg, #4c1d8f 0%, #7c3aed 100%)',
-    orange: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)',
-  };
-  const ctaColors: Record<string, string> = {
-    red: '#0F766E', teal: '#0F766E', blue: '#1a3c5e',
-    green: '#1a5c3a', purple: '#4c1d8f', orange: '#b45309',
-  };
-  const bg = gradients[activePromo.colorTheme] ?? gradients.red;
-  const ctaColor = ctaColors[activePromo.colorTheme] ?? ctaColors.red;
-
-  let finalCtaText = activePromo.ctaText;
-  let finalCtaUrl = activePromo.ctaUrl;
-  if (isGuest && (finalCtaText.toLowerCase().includes('book') || finalCtaText.toLowerCase().includes('đặt'))) {
-    finalCtaText = 'Login to Book';
-    finalCtaUrl = '/login';
-  }
-
   return (
     <PublicLayout>
-      {/* Hero — Carousel with Search Form embedded */}
-      <section
-        style={{
-          padding: '40px 32px 36px',
-          background: 'var(--primary-base)',
-          position: 'relative',
-          overflow: 'hidden',
-          minHeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: bg,
-            transition: 'background 0.5s ease',
-            zIndex: 0,
-          }}
-        />
+      {/* Hero — full-bleed lifestyle banner (Klook-style) */}
+      <section className="landing-klook-hero" aria-label="Hero">
+        <div className="landing-klook-hero__media" aria-hidden="true">
+          {heroSlides.map((slide, i) => (
+            <img
+              key={slide.image + i}
+              src={slide.image}
+              alt=""
+              className={
+                'landing-klook-hero__img' + (i === heroIndex ? ' landing-klook-hero__img--active' : '')
+              }
+            />
+          ))}
+          <div className="landing-klook-hero__shade" />
+        </div>
 
-        <div
-          className="container-wide"
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: 32,
-            alignItems: 'center',
-          }}
-        >
-          {/* Left — copy + search */}
-          <div>
-            <h1
-              className="text-display-lg text-inverted"
-              style={{
-                lineHeight: 1.15,
-                letterSpacing: '-0.03em',
-                marginBottom: 10,
-                maxWidth: 480,
-                color: '#fff',
-              }}
-            >
-              Find Your Zen
-            </h1>
-            <p className="body-md text-inverted" style={{ marginBottom: 20, maxWidth: 440, lineHeight: 1.6, color: 'rgba(255,255,255,0.85)' }}>
-              Khám phá homestay &amp; resort cao cấp — đặt phòng nhanh, an toàn, minh bạch giá.
+        <svg className="landing-klook-hero__blob landing-klook-hero__blob--tl" viewBox="0 0 200 160" aria-hidden="true">
+          <path fill="#F5C518" d="M40 20c40-30 110-10 140 40 20 35-10 90-55 100-50 12-100-20-110-60C5 70 10 40 40 20z" />
+        </svg>
+        <svg className="landing-klook-hero__blob landing-klook-hero__blob--br" viewBox="0 0 220 180" aria-hidden="true">
+          <path fill="#FF5B00" d="M10 100c20-60 90-90 150-60 45 22 60 80 30 120-28 38-95 40-140 10C15 150-5 130 10 100z" />
+        </svg>
+        <svg className="landing-klook-hero__squiggle" viewBox="0 0 120 40" aria-hidden="true">
+          <path
+            d="M4 28c18-22 36 10 54-12 18-22 36 10 54-12"
+            fill="none"
+            stroke="#2DD4BF"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+        </svg>
+
+        <div className="landing-klook-hero__content">
+          {activeSlide?.subtitle ? (
+            <p className="landing-klook-hero__brand">{activeSlide.subtitle}</p>
+          ) : (
+            <p className="landing-klook-hero__brand">
+              Homestay<span>&</span>Resort
             </p>
+          )}
+          <h1 className="landing-klook-hero__title">
+            {activeSlide?.title ? activeSlide.title : 'Find Your Zen'}
+          </h1>
+          <p className="landing-klook-hero__sub">
+            Homestay &amp; resort giữa thiên nhiên — đặt phòng nhẹ nhàng, minh bạch giá.
+          </p>
 
-            <form
-              onSubmit={handleSearch}
-              className="hero-search-pill"
-              style={{
-                background: '#fff',
-                padding: 8,
-                borderRadius: 16,
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 8,
-                alignItems: 'center',
-              }}
-            >
-              <div
-                className="hero-search-field hero-search-field--location"
-                style={{ flex: '1 1 140px', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px' }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ash)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <input
-                  placeholder="Bạn muốn đi đâu?"
-                  value={search.location}
-                  autoComplete="off"
-                  onChange={(e) => setSearch((p) => ({ ...p, location: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14 }}
-                />
-              </div>
+          {activeSlide?.ctaText && activeSlide.ctaUrl && (
+            <Link to={activeSlide.ctaUrl} className="landing-klook-hero__cta">
+              {activeSlide.ctaText}
+            </Link>
+          )}
 
-              <div style={{ flex: '1 1 120px', padding: '8px 12px' }}>
-                <input
-                  type="date"
-                  aria-label="Check-in"
-                  value={search.checkIn}
-                  min={new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setSearch((p) => ({ ...p, checkIn: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
-                />
-              </div>
+          <form onSubmit={handleSearch} className="landing-klook-search" role="search">
+            <div className="landing-klook-search__field landing-klook-search__field--location">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="#94A3B8" strokeWidth="2" />
+                <circle cx="12" cy="10" r="3" stroke="#94A3B8" strokeWidth="2" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Bạn muốn đi đâu?"
+                value={search.location}
+                autoComplete="off"
+                onChange={(e) => setSearch((p) => ({ ...p, location: e.target.value }))}
+                aria-label="Địa điểm"
+              />
+            </div>
 
-              <div style={{ flex: '1 1 120px', padding: '8px 12px' }}>
-                <input
-                  type="date"
-                  aria-label="Check-out"
-                  value={search.checkOut}
-                  min={search.checkIn || new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setSearch((p) => ({ ...p, checkOut: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
-                />
-              </div>
+            <div className="landing-klook-search__sep" aria-hidden="true" />
 
-              <div style={{ flex: '0 1 80px', padding: '8px 12px' }}>
-                <input
-                  type="number"
-                  aria-label="Guests"
-                  min={1}
-                  max={20}
-                  value={search.guests}
-                  onChange={(e) => setSearch((p) => ({ ...p, guests: e.target.value }))}
-                  style={{ border: 'none', outline: 'none', width: '100%', background: 'transparent', fontSize: 14 }}
-                />
-              </div>
+            <div className="landing-klook-search__field">
+              <input
+                type="date"
+                aria-label="Ngày nhận phòng"
+                value={search.checkIn}
+                min={today}
+                onChange={(e) => setSearch((p) => ({ ...p, checkIn: e.target.value }))}
+              />
+            </div>
 
+            <div className="landing-klook-search__sep" aria-hidden="true" />
+
+            <div className="landing-klook-search__field">
+              <input
+                type="date"
+                aria-label="Ngày trả phòng"
+                value={search.checkOut}
+                min={search.checkIn || today}
+                onChange={(e) => setSearch((p) => ({ ...p, checkOut: e.target.value }))}
+              />
+            </div>
+
+            <div className="landing-klook-search__sep" aria-hidden="true" />
+
+            <div className="landing-klook-search__field landing-klook-search__field--guests">
+              <input
+                type="number"
+                aria-label="Số khách"
+                min={1}
+                max={20}
+                value={search.guests}
+                onChange={(e) => setSearch((p) => ({ ...p, guests: e.target.value }))}
+              />
+              <span>khách</span>
+            </div>
+
+            <button type="submit">Tìm phòng</button>
+          </form>
+
+          <div className="landing-klook-hero__dots" role="tablist" aria-label="Ảnh homestay">
+            {heroSlides.map((_, i) => (
               <button
-                type="submit"
-                className="button-primary"
-                style={{ padding: '12px 24px', borderRadius: 9999, border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Search
-              </button>
-            </form>
-          </div>
-
-          {/* Right — Promo Carousel */}
-          <div className="landing-hero-visual" style={{ position: 'relative', minHeight: 280, maxWidth: 480, margin: '0 auto', width: '100%', paddingBottom: 8 }}>
-            <div
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                backdropFilter: 'blur(12px)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 32,
-                color: '#fff',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}
-            >
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>
-                {activePromo.subtitle}
-              </span>
-              <h3 style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.25, margin: '8px 0 16px', whiteSpace: 'pre-line' }}>
-                {activePromo.title}
-              </h3>
-              {activePromo.description && (
-                <p style={{ fontSize: 15, opacity: 0.9, marginBottom: 24 }}>
-                  {activePromo.description}
-                </p>
-              )}
-              <Link
-                to={finalCtaUrl}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  background: '#fff',
-                  color: ctaColor,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  padding: '12px 24px',
-                  borderRadius: 9999,
-                  textDecoration: 'none',
-                }}
-              >
-                {finalCtaText}
-              </Link>
-            </div>
-            
-            {/* Carousel dots */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 24 }}>
-              {promotions.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActivePromoIndex(i)}
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: i === activePromoIndex ? '#fff' : 'rgba(255,255,255,0.4)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                />
-              ))}
-            </div>
+                key={i}
+                type="button"
+                className={
+                  'landing-klook-hero__dot' + (i === heroIndex ? ' landing-klook-hero__dot--active' : '')
+                }
+                aria-label={`Ảnh ${i + 1}`}
+                aria-selected={i === heroIndex}
+                onClick={() => setHeroIndex(i)}
+              />
+            ))}
           </div>
         </div>
       </section>
