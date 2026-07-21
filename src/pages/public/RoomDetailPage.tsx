@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PublicLayout from '../../layouts/PublicLayout';
 import Alert from '../../components/ui/Alert';
 import ImageGallerySlider from '../../components/ui/ImageGallerySlider';
-import RoomMiniCalendar, { isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
+import RoomMiniCalendar, { isRangeAvailable, isRoomBookingBlocked } from '../../components/ui/RoomMiniCalendar';
 import {
   fetchRoomById,
   fetchRoomCalendar,
@@ -13,6 +13,7 @@ import {
   type RoomReviewInfo,
 } from '../../api/roomsApi';
 import { useAuthStore } from '../../store/authStore';
+import { fixAmenityLabel } from '../../utils/amenities';
 
 const AMENITY_ICONS: Record<string, string> = {
   WiFi: '📶',
@@ -248,10 +249,10 @@ export default function RoomDetailPage() {
       : [{ id: 'fallback', imageUrl: '', sortOrder: 0, isPrimary: true }];
 
   const amenities = room.amenities?.length
-    ? room.amenities
+    ? room.amenities.map((a) => fixAmenityLabel(a))
     : ['WiFi', 'Điều hòa', 'Smart TV', 'Nước nóng'];
 
-  const canBook = room.status === 'AVAILABLE';
+  const canBook = !isRoomBookingBlocked(room.status);
   const displayReviews = reviews.length > 0 ? reviews : room.reviews ?? [];
 
   return (
@@ -386,27 +387,25 @@ export default function RoomDetailPage() {
                 <span className="body-md text-charcoal">/đêm</span>
               </div>
 
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                <div style={{ flex: 1 }}>
+              <div className="room-booking-dates" style={{ marginBottom: 12 }}>
+                <div className="room-booking-date-field">
                   <label className="form-label" style={{ fontSize: 12 }}>Check-in</label>
                   <input
                     type="date"
-                    className="input"
+                    className="input room-booking-date-input"
                     value={checkIn}
                     min={new Date().toISOString().slice(0, 10)}
                     onChange={(e) => { setCheckIn(e.target.value); setBookError(''); }}
-                    style={{ borderRadius: 10, height: 40, fontSize: 14 }}
                   />
                 </div>
-                <div style={{ flex: 1 }}>
+                <div className="room-booking-date-field">
                   <label className="form-label" style={{ fontSize: 12 }}>Check-out</label>
                   <input
                     type="date"
-                    className="input"
+                    className="input room-booking-date-input"
                     value={checkOut}
                     min={checkIn || new Date().toISOString().slice(0, 10)}
                     onChange={(e) => { setCheckOut(e.target.value); setBookError(''); }}
-                    style={{ borderRadius: 10, height: 40, fontSize: 14 }}
                   />
                 </div>
               </div>

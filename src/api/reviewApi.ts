@@ -6,7 +6,7 @@ export interface Review {
   roomNumber: string;
   propertyName: string;
   rating: number;
-  comment: string;
+  comment: string | null;
   status: string;
   createdAt: string;
   roomImageUrl?: string;
@@ -27,7 +27,7 @@ export interface ApiResponse<T = null> {
 }
 
 export const reviewApi = {
-  createReview: async (request: { bookingId: string; rating: number; comment: string }): Promise<ApiResponse<Review>> => {
+  createReview: async (request: { bookingId: string; rating: number; comment?: string | null }): Promise<ApiResponse<Review>> => {
     const res = await api.post('/api/v1/reviews', request);
     return res.data;
   },
@@ -42,7 +42,7 @@ export const reviewApi = {
     return res.data;
   },
 
-  updateReview: async (id: string, request: { rating: number; comment: string }): Promise<ApiResponse<Review>> => {
+  updateReview: async (id: string, request: { rating: number; comment?: string | null }): Promise<ApiResponse<Review>> => {
     const res = await api.put(`/api/v1/reviews/${id}`, request);
     return res.data;
   },

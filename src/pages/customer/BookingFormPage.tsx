@@ -4,6 +4,7 @@ import CustomerLayout from '../../layouts/CustomerLayout';
 import Alert from '../../components/ui/Alert';
 import { bookingApi } from '../../api/bookingApi';
 import { fetchRoomById, type RoomDetail } from '../../api/roomsApi';
+import { isRoomBookingBlocked } from '../../utils/roomCalendar';
 
 function formatVnd(amount: number) {
   return `${amount.toLocaleString('vi-VN')} ₫`;
@@ -63,7 +64,7 @@ export default function BookingFormPage() {
   const pricePerNight = room?.pricePerNight ?? 0;
   const totalAmount = nights * pricePerNight;
   const depositAmount = totalAmount * 0.4;
-  const canBook = room?.status === 'AVAILABLE';
+  const canBook = !!room && !isRoomBookingBlocked(room.status);
   const imageUrl = room ? roomImageUrl(room) : '';
 
   function validate() {

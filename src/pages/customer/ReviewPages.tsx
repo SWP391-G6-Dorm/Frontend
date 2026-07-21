@@ -61,7 +61,7 @@ export function ReviewRatingPage() {
           if (res.success && res.data) {
             setReviewMeta(res.data);
             setRating(res.data.rating);
-            setComment(res.data.comment);
+            setComment(res.data.comment ?? '');
           } else {
             setApiError(res.message || 'Không tải được thông tin đánh giá.');
           }
@@ -98,11 +98,10 @@ export function ReviewRatingPage() {
   function validate() {
     const e: Record<string, string> = {};
     if (rating === 0) e.rating = 'Vui lòng chọn số sao đánh giá (1–5).';
-    if (!comment.trim()) {
-      e.comment = 'Vui lòng chia sẻ trải nghiệm của bạn.';
-    } else if (comment.length < 20) {
+    const normalizedComment = comment.trim();
+    if (normalizedComment && normalizedComment.length < 20) {
       e.comment = 'Bình luận phải có ít nhất 20 ký tự.';
-    } else if (comment.length > 200) {
+    } else if (normalizedComment.length > 200) {
       e.comment = 'Bình luận không được vượt quá 200 ký tự.';
     }
     return e;
@@ -118,10 +117,11 @@ export function ReviewRatingPage() {
     setErrors({});
     setApiError(null);
     setLoadingSubmit(true);
+    const normalizedComment = comment.trim() || null;
 
     try {
       if (isEditMode && reviewId) {
-        const res = await reviewApi.updateReview(reviewId, { rating, comment });
+        const res = await reviewApi.updateReview(reviewId, { rating, comment: normalizedComment });
         if (res.success) {
           navigate('/customer/reviews');
         } else {
@@ -129,7 +129,7 @@ export function ReviewRatingPage() {
           setLoadingSubmit(false);
         }
       } else if (bookingId) {
-        const res = await reviewApi.createReview({ bookingId, rating, comment });
+        const res = await reviewApi.createReview({ bookingId, rating, comment: normalizedComment });
         if (res.success) {
           navigate('/customer/reviews');
         } else {
@@ -248,20 +248,20 @@ export function ReviewRatingPage() {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label className="form-label form-label-required" htmlFor="comment">Nội dung đánh giá (20–200 ký tự)</label>
+            <label className="form-label" htmlFor="comment">Nội dung đánh giá (không bắt buộc)</label>
             <textarea
               id="comment"
               className={`textarea ${errors.comment ? 'input-error' : ''}`}
               rows={5}
-              placeholder="Hãy chia sẻ trải nghiệm của bạn..."
+              placeholder="Chia sẻ trải nghiệm của bạn nếu muốn..."
               value={comment}
               onChange={ev => setComment(ev.target.value)}
               maxLength={200}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               {errors.comment ? <p className="form-error">{errors.comment}</p> : <span />}
-              <span className="form-hint" style={{ color: comment.length < 20 || comment.length > 200 ? 'var(--error)' : 'var(--charcoal)' }}>
-                {comment.length} / 200 (tối thiểu 20)
+              <span className="form-hint" style={{ color: comment.trim() && comment.trim().length < 20 ? 'var(--error)' : 'var(--charcoal)' }}>
+                {comment.length} / 200{comment.trim() ? ' (tối thiểu 20)' : ''}
               </span>
             </div>
           </div>
@@ -273,7 +273,7 @@ export function ReviewRatingPage() {
           )}
 
           <div style={{ display: 'flex', gap: 12 }}>
-            <button type="submit" className="btn-primary" disabled={loadingSubmit}>
+            <button type="submit" className="btn-primary" disabled={loadingSubmit || rating === 0}>
               {loadingSubmit ? 'Đang gửi...' : isEditMode ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}
             </button>
             <Link to={isEditMode ? '/customer/reviews' : '/customer/bookings'} className="btn-ghost">Hủy</Link>
@@ -436,12 +436,14 @@ export function MyReviewsPage() {
                       <StatusBadge status={r.status} />
                     </div>
                   </div>
-                  <p
-                    className="body-md text-body"
-                    style={{ lineHeight: 1.65, wordBreak: 'break-word', whiteSpace: 'pre-wrap', marginBottom: 12 }}
-                  >
-                    {r.comment}
-                  </p>
+                  {r.comment?.trim() && (
+                    <p
+                      className="body-md text-body"
+                      style={{ lineHeight: 1.65, wordBreak: 'break-word', whiteSpace: 'pre-wrap', marginBottom: 12 }}
+                    >
+                      {r.comment}
+                    </p>
+                  )}
                   <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 8 }}>
                     <p className="body-sm text-charcoal" style={{ margin: 0 }}>
                       Đơn đặt phòng:{' '}

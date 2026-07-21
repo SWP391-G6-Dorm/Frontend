@@ -1,22 +1,155 @@
 import { Link, useParams } from 'react-router-dom';
 import ManagerLayout from '../../layouts/ManagerLayout';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { contractApi } from '../../api/contractApi';
-import { useState } from 'react';
 
-function SBadge({ s }: { s: string }) {
-  const m: Record<string, { cls: string; l: string }> = {
-    ACTIVE: { cls: 'badge-success', l: 'Active' },
-    COMPLETED: { cls: 'badge-neutral', l: 'Completed' },
-    CANCELLED: { cls: 'badge-error', l: 'Cancelled' },
-  };
-  const v = m[s] || { cls: 'badge-neutral', l: s };
-  return <span className={`badge ${v.cls}`}>{v.l}</span>;
+import type { ContractDetailResponse } from '../../api/contractApi';
+
+const STATUS_CONFIG: Record<string, { cls: string; label: string }> = {
+  ACTIVE:    { cls: 'badge-success', label: 'Active' },
+  COMPLETED: { cls: 'badge-neutral', label: 'Completed' },
+  CANCELLED: { cls: 'badge-error',   label: 'Cancelled' },
+};
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="card" style={{ padding: 28, marginBottom: 16 }}>
+      <p style={{
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+        textTransform: 'uppercase', color: 'var(--charcoal)',
+        marginBottom: 18,
+      }}>
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function ContractInfoCard({ contract }: { contract: ContractDetailResponse }) {
+  const statusCfg = STATUS_CONFIG[contract.status] ?? { cls: 'badge-neutral', label: contract.status };
+  return (
+    <SectionCard title="Contract Info">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 4 }}>
+            ROOM RENTAL CONTRACT
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, color: 'var(--charcoal)' }}>
+              ID: <span className="code-md">{contract.id.slice(0, 8).toUpperCase()}</span>
+            </span>
+            <span style={{ color: 'var(--hairline-strong)', fontSize: 12 }}>·</span>
+            <span style={{ fontSize: 12, color: 'var(--charcoal)' }}>
+              Booking: <span className="code-md">{contract.bookingId.slice(0, 8).toUpperCase()}</span>
+            </span>
+          </div>
+        </div>
+        <span className={`badge ${statusCfg.cls}`} style={{ flexShrink: 0 }}>{statusCfg.label}</span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <p style={{ fontSize: 11, color: 'var(--ash)', marginBottom: 3 }}>Generated At</p>
+          <p style={{ fontWeight: 600, fontSize: 13 }}>
+            {new Date(contract.generatedAt).toLocaleString('en-US')}
+          </p>
+        </div>
+        <div>
+          <p style={{ fontSize: 11, color: 'var(--ash)', marginBottom: 3 }}>Last Sent Email</p>
+          <p style={{ fontWeight: 600, fontSize: 13 }}>
+            {contract.sentAt
+              ? new Date(contract.sentAt).toLocaleString('en-US')
+              : <span style={{ color: 'var(--ash)', fontWeight: 400 }}>Not sent</span>
+            }
+          </p>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function CustomerInfoCard({ contract }: { contract: ContractDetailResponse }) {
+  return (
+    <SectionCard title="Customer Info">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%',
+          background: 'var(--primary)', color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 700, fontSize: 18, flexShrink: 0,
+        }}>
+          {contract.customerName.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 3 }}>{contract.customerName}</p>
+          <p style={{ fontSize: 13, color: 'var(--charcoal)', marginBottom: 2 }}>{contract.customerEmail}</p>
+          {contract.customerPhone && (
+            <p style={{ fontSize: 13, color: 'var(--charcoal)' }}>{contract.customerPhone}</p>
+          )}
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function RoomInfoCard({ contract }: { contract: ContractDetailResponse }) {
+  const nights = Math.max(1, Math.ceil(
+    (new Date(contract.checkOutDate).getTime() - new Date(contract.checkInDate).getTime()) / 86_400_000
+  ));
+  const pricePerNight = Math.round(contract.totalAmount / nights);
+
+  const rows = [
+    { label: 'Room',          value: contract.roomNumber },
+    { label: 'Property',      value: contract.propertyName },
+    { label: 'Check-in',      value: new Date(contract.checkInDate).toLocaleDateString('en-US') },
+    { label: 'Check-out',     value: new Date(contract.checkOutDate).toLocaleDateString('en-US') },
+    { label: 'Duration',      value: `${nights} nights` },
+    { label: 'Price/night',   value: `₫${pricePerNight.toLocaleString('en-US')}` },
+  ];
+
+  return (
+    <SectionCard title="Stay Info">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
+        {rows.map(r => (
+          <div key={r.label}>
+            <p style={{ fontSize: 11, color: 'var(--ash)', marginBottom: 3 }}>{r.label}</p>
+            <p style={{ fontWeight: 600, fontSize: 13 }}>{r.value}</p>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function PaymentTermsCard({ contract }: { contract: ContractDetailResponse }) {
+  const remaining = contract.totalAmount - contract.depositAmount;
+  return (
+    <SectionCard title="Payment Terms">
+      {[
+        { label: 'Deposit (40%)',     amount: contract.depositAmount },
+        { label: 'Remaining (60%)',   amount: remaining },
+      ].map(r => (
+        <div
+          key={r.label}
+          style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--hairline)' }}
+        >
+          <span style={{ fontSize: 14, color: 'var(--body)' }}>{r.label}</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>₫{r.amount.toLocaleString('en-US')}</span>
+        </div>
+      ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0 0' }}>
+        <span style={{ fontWeight: 700, fontSize: 16 }}>Total</span>
+        <span style={{ fontWeight: 800, fontSize: 20, color: 'var(--primary)' }}>
+          ₫{contract.totalAmount.toLocaleString('en-US')}
+        </span>
+      </div>
+    </SectionCard>
+  );
 }
 
 export default function ContractMgmtDetailPage() {
   const { id } = useParams();
-  const [downloading, setDownloading] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['manager_contract', id],
@@ -24,67 +157,48 @@ export default function ContractMgmtDetailPage() {
     enabled: !!id,
   });
 
-  const handleDownload = async () => {
-    if (!id) return;
-    try {
-      setDownloading(true);
-      await contractApi.downloadContractPdf(id, `Contract_${id}.pdf`);
-    } catch (error) {
-      alert("Failed to download PDF");
-    } finally {
-      setDownloading(false);
-    }
-  };
+  const resendMutation = useMutation({
+    mutationFn: () => contractApi.resendContractEmail(id!),
+    onSuccess: () => alert('Email sent successfully!'),
+    onError: () => alert('Failed to send email.'),
+  });
 
   if (isLoading) return <ManagerLayout><div style={{ padding: 40 }}>Loading contract details...</div></ManagerLayout>;
   if (isError || !data?.data) return <ManagerLayout><div style={{ padding: 40, color: 'var(--error)' }}>Error loading contract or not found.</div></ManagerLayout>;
 
   const c = data.data;
-  const nights = Math.ceil((new Date(c.checkOutDate).getTime() - new Date(c.checkInDate).getTime()) / 86400000);
 
   return (
     <ManagerLayout>
-      <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
-        <Link to="/manager/contracts" className="text-primary" style={{ textDecoration: 'none' }}>Contracts</Link>
-        <span>›</span>
-        <span style={{ fontWeight: 600 }}>#{c.id.substring(0, 8)}...</span>
-      </div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
-        <h1 className="heading-md">Contract Details</h1>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <SBadge s={c.status} />
-          <button 
-            className="btn-outline btn-sm" 
-            onClick={handleDownload}
-            disabled={downloading}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            {downloading ? 'Downloading...' : 'Download PDF'}
-          </button>
-          <Link to={`/manager/contracts/${c.id}/resend`} className="btn-primary btn-sm">Resend Email</Link>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        <div className="flex items-center gap-2 body-sm text-charcoal" style={{ marginBottom: 20 }}>
+          <Link to="/manager/contracts" className="text-primary" style={{ textDecoration: 'none' }}>Contracts</Link>
+          <span>›</span>
+          <span style={{ fontWeight: 600 }}>#{c.id.substring(0, 8)}...</span>
         </div>
-      </div>
+        
+        <div className="flex items-center justify-between" style={{ marginBottom: 24 }}>
+          <h1 className="heading-md">Contract Details</h1>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button 
+              className="btn-primary btn-sm"
+              onClick={() => {
+                if (window.confirm(`Resend contract to ${c.customerEmail}?`)) {
+                  resendMutation.mutate();
+                }
+              }}
+              disabled={resendMutation.isPending}
+            >
+              {resendMutation.isPending ? 'Sending...' : 'Resend Email'}
+            </button>
+          </div>
+        </div>
 
-      <div className="card-lg" style={{ padding: 32, maxWidth: 700 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-          {[
-            { l: 'Contract ID', v: c.id },
-            { l: 'Booking ID', v: c.bookingId },
-            { l: 'Customer', v: c.customerName },
-            { l: 'Email', v: c.customerEmail },
-            { l: 'Phone', v: c.customerPhone || 'N/A' },
-            { l: 'Property', v: c.propertyName },
-            { l: 'Room', v: c.roomNumber },
-            { l: 'Check-in', v: c.checkInDate },
-            { l: 'Check-out', v: c.checkOutDate },
-            { l: 'Duration', v: `${nights} nights` },
-            { l: 'Deposit Amount', v: `₫${c.depositAmount.toLocaleString()}` },
-            { l: 'Total Amount', v: `₫${c.totalAmount.toLocaleString()}` },
-            { l: 'Generated At', v: new Date(c.generatedAt).toLocaleString('en-US') },
-            { l: 'Last Sent At', v: c.sentAt ? new Date(c.sentAt).toLocaleString('en-US') : 'Not sent yet' },
-          ].map(row => (
-            <div key={row.l}><p className="body-sm text-charcoal">{row.l}</p><p style={{ fontWeight: 600, marginTop: 4, wordBreak: 'break-all' }}>{row.v}</p></div>
-          ))}
+        <div>
+          <ContractInfoCard contract={c} />
+          <CustomerInfoCard contract={c} />
+          <RoomInfoCard contract={c} />
+          <PaymentTermsCard contract={c} />
         </div>
       </div>
     </ManagerLayout>

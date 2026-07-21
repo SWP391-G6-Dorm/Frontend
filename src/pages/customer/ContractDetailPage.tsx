@@ -1,4 +1,4 @@
-// SCR-26 — Contract Detail (Customer Portal)
+// SCR-21 — Contract Detail (Customer Portal) — `/customer/contracts/:id`
 // Layout: 2-col (Left: 4 section cards | Right: PDF preview panel)
 import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -203,7 +203,7 @@ function PdfPreviewPanel({
     setError(false);
     setBlobUrl(null);
 
-    api.get(`/api/contracts/${contractId}/pdf`, { responseType: 'blob' })
+    api.get(`/api/v1/contracts/${contractId}/pdf`, { responseType: 'blob' })
       .then(res => {
         const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
         blobRef.current = url;
@@ -317,7 +317,7 @@ export default function ContractDetailPage() {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['contract_detail', id],
-    queryFn: () => contractApi.getContractDetail(id!),
+    queryFn: () => contractApi.getMyContractDetail(id!),
     enabled: !!id,
   });
 
