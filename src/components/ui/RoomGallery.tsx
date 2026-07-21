@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useMemo, useState } from 'react';
+import SafeImage from './SafeImage';
 import ImageGallerySlider from './ImageGallerySlider';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
@@ -9,140 +9,130 @@ interface RoomGalleryProps {
 }
 
 export default function RoomGallery({ images, alt }: RoomGalleryProps) {
-  const slides = useMemo(
-    () =>
-      images
-        .slice()
-        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-        .map((img) => ({ ...img, imageUrl: resolveMediaUrl(img.imageUrl) })),
-    [images],
-  );
+  const slides = useMemo(() => {
+    return images
+      .slice()
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((img) => ({ ...img, url: resolveMediaUrl(img.imageUrl) }));
+  }, [images]);
 
-  const imageCount = slides.length;
-  const [index, setIndex] = useState(0);
+  const urls = slides.length > 0 ? slides.map((s) => s.url) : [resolveMediaUrl(null)];
+  const [mainIndex, setMainIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const lightboxRef = useRef<HTMLDivElement>(null);
-  const slidesKey = useMemo(
-    () => slides.map((s) => s.id ?? s.imageUrl).join('|'),
-    [slides],
-  );
 
-  useEffect(() => {
-    setIndex(0);
-  }, [slidesKey]);
-
-  const navigate = useCallback(
-    (delta: number) => {
-      if (imageCount <= 1) return;
-      setIndex((i) => (i + delta + imageCount) % imageCount);
-    },
-    [imageCount],
-  );
-
-  function closeLightbox() {
-    setLightboxOpen(false);
-  }
-
-  useEffect(() => {
-    if (!lightboxOpen) return;
-
-    const prevFocus = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = 'hidden';
-
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        navigate(-1);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        navigate(1);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        closeLightbox();
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown, true);
-    requestAnimationFrame(() => lightboxRef.current?.focus());
-
-    return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-      document.body.style.overflow = '';
-      prevFocus?.focus?.();
-    };
-  }, [lightboxOpen, navigate]);
-
-  if (imageCount <= 1) {
-    return (
-      <div className="room-gallery">
-        <ImageGallerySlider images={slides} alt={alt} />
-      </div>
-    );
-  }
-
-  const lightbox = lightboxOpen
-    ? createPortal(
-        <div
-          ref={lightboxRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Thư viện ảnh"
-          tabIndex={0}
-          className="room-gallery-lightbox"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeLightbox();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowLeft') {
-              e.preventDefault();
-              navigate(-1);
-            } else if (e.key === 'ArrowRight') {
-              e.preventDefault();
-              navigate(1);
-            } else if (e.key === 'Escape') {
-              e.preventDefault();
-              closeLightbox();
-            }
-          }}
-        >
-          <div className="room-gallery-lightbox-header">
-            <button type="button" className="room-gallery-lightbox-close" onClick={closeLightbox}>
-              Đóng ✕
-            </button>
-          </div>
-          <div className="room-gallery-lightbox-body">
-            <ImageGallerySlider
-              images={slides}
-              alt={alt}
-              currentIndex={index}
-              onIndexChange={setIndex}
-            />
-          </div>
-        </div>,
-        document.body,
-      )
-    : null;
+  const thumbs = urls.slice(0, 5);
+  const sideThumbs = thumbs.filter((_, i) => i !== mainIndex).slice(0, 4);
 
   return (
     <>
-      <div className="room-gallery">
-        <div className="room-gallery-inline">
-          <ImageGallerySlider
-            images={slides}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: urls.length > 1 ? '1.5fr 1fr' : '1fr',
+          gap: 8,
+          borderRadius: 12,
+          overflow: 'hidden',
+          minHeight: 320,
+        }}
+      >
+        <div style={{ position: 'relative', minHeight: 280 }}>
+          <SafeImage
+            src={urls[mainIndex]}
             alt={alt}
-            currentIndex={index}
-            onIndexChange={setIndex}
-          />
-          <button
-            type="button"
-            className="room-gallery-view-all"
+            style={{ width: '100%', height: '100%', minHeight: 280, objectFit: 'cover', display: 'block', cursor: 'pointer' }}
             onClick={() => setLightboxOpen(true)}
-          >
-            Xem tất cả ảnh ({imageCount})
-          </button>
+          />
+          {urls.length > 1 && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setLightboxOpen(true)}
+              style={{
+                position: 'absolute',
+                bottom: 12,
+                right: 12,
+                background: 'rgba(255,255,255,0.92)',
+                borderRadius: 9999,
+                padding: '8px 14px',
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              Xem tất cả ảnh ({urls.length})
+            </button>
+          )}
         </div>
+
+        {urls.length > 1 && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gridTemplateRows: '1fr 1fr',
+              gap: 8,
+              minHeight: 280,
+            }}
+          >
+            {sideThumbs.map((url) => {
+              const idx = urls.indexOf(url);
+              return (
+                <button
+                  key={url + idx}
+                  type="button"
+                  onClick={() => setMainIndex(idx)}
+                  style={{
+                    border: mainIndex === idx ? '2px solid var(--primary)' : 'none',
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    padding: 0,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <SafeImage src={url} alt="" style={{ width: '100%', height: '100%', minHeight: 130, objectFit: 'cover' }} />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
-      {lightbox}
+
+      {lightboxOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: 24,
+          }}
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(false)}
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                color: '#fff',
+                borderRadius: 8,
+                padding: '8px 16px',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              Đóng ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, maxWidth: 960, margin: '0 auto', width: '100%' }} onClick={(e) => e.stopPropagation()}>
+            <ImageGallerySlider images={slides} alt={alt} />
+          </div>
+        </div>
+      )}
     </>
   );
 }

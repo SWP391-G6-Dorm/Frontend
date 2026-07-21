@@ -5,15 +5,12 @@ export interface ContractSummaryResponse {
   bookingId: string;
   customerName: string;
   customerEmail: string;
-  /** SCR-21 api-spec */
-  roomName?: string;
   roomNumber: string;
   propertyName: string;
   checkInDate: string;
   checkOutDate: string;
   depositAmount: number;
   totalAmount: number;
-  pdfUrl?: string | null;
   status: string;
   generatedAt: string;
   sentAt: string | null;
@@ -39,10 +36,8 @@ export interface ContractDetailResponse {
 
 export interface PageResponse<T> {
   content: T[];
-  page?: number;
-  size?: number;
-  pageNumber?: number;
-  pageSize?: number;
+  pageNumber: number;
+  pageSize: number;
   totalElements: number;
   totalPages: number;
 }
@@ -53,7 +48,7 @@ export const contractApi = {
     return res.data;
   },
 
-  // SCR-21 — CUSTOMER: GET /api/v1/customers/me/contracts
+  // Dành cho CUSTOMER: lấy hợp đồng của chính mình (filter theo JWT)
   getMyContracts: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
     const res = await api.get('/api/v1/customers/me/contracts', { params });
     return res.data;
@@ -70,12 +65,12 @@ export const contractApi = {
   },
 
   getContractPdfBlob: async (id: string): Promise<Blob> => {
-    const res = await api.get(`/api/contracts/${id}/pdf`, { responseType: 'blob' });
+    const res = await api.get(`/api/v1/contracts/${id}/pdf`, { responseType: 'blob' });
     return res.data;
   },
 
   downloadContractPdf: async (id: string, filename: string = 'contract.pdf') => {
-    const res = await api.get(`/api/contracts/${id}/pdf`, { responseType: 'blob' });
+    const res = await api.get(`/api/v1/contracts/${id}/pdf`, { responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');
     link.href = url;

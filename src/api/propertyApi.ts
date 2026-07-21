@@ -95,7 +95,7 @@ export interface PropertyStructure {
 
 export const propertyApi = {
 
-  /** SCR-33: Paginated list with optional search + status filter */
+  /** FR-06: Paginated list of assigned properties (Manager, read-only) */
   getAll: async (params: {
     page?: number;
     size?: number;
@@ -106,33 +106,39 @@ export const propertyApi = {
     return res.data;
   },
 
-  /** SCR-34: Full property detail */
+  /** Property summary by id */
   getById: async (id: string): Promise<{ success: boolean; data: PropertySummary }> => {
     const res = await api.get(`/api/properties/${id}`);
     return res.data;
   },
 
-  /** SCR-34: Rich property detail (stats + floors) — MANAGER only */
+  /** FR-06: Rich property detail (stats + floors) — Manager assigned only */
   getDetail: async (id: string): Promise<{ success: boolean; data: PropertyDetail }> => {
     const res = await api.get(`/api/properties/${id}/detail`);
     return res.data;
   },
 
-  /** SCR-35: Create new property */
+  /** @deprecated Manager write removed (FR-06). Use Admin property APIs. */
   create: async (payload: CreatePropertyPayload): Promise<{ success: boolean; data: PropertySummary }> => {
     const res = await api.post('/api/properties', payload);
     return res.data;
   },
 
-  /** Update property (not SCR-36 — SCR-36 is Payment Management) */
+  /** @deprecated Manager write removed (FR-06). Use Admin property APIs. */
   update: async (id: string, payload: UpdatePropertyPayload): Promise<{ success: boolean; data: PropertySummary }> => {
     const res = await api.put(`/api/properties/${id}`, payload);
     return res.data;
   },
 
-  /** Delete property (MANAGER only) */
+  /** @deprecated Manager write removed (FR-06). Use Admin property APIs. */
   delete: async (id: string): Promise<{ success: boolean }> => {
     const res = await api.delete(`/api/properties/${id}`);
+    return res.data;
+  },
+
+  /** @deprecated SCR-28 — dùng getStructureTree thay thế */
+  getStructure: async (id: string): Promise<{ success: boolean; data: PropertyStructure }> => {
+    const res = await api.get(`/api/properties/${id}/structure`);
     return res.data;
   },
 

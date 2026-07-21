@@ -51,27 +51,11 @@ export interface BookingDetailResponse {
   totalAmount: number;
   depositAmount: number;
   remainingAmount: number;
-  damageFeeAmount?: number;
-  /** True when DAMAGE_FEE payment is PAID (booking may still be PENDING_DAMAGE_PAYMENT until check-out). */
-  damageFeePaid?: boolean;
-  /** ISO datetime — deposit hold window (SCR-20 countdown) */
-  holdExpiresAt?: string | null;
-  cancelReason?: string | null;
   status: string;
   specialRequests: string;
   createdAt: string;
   isReviewed?: boolean;
   payments?: BookingPaymentInfo[];
-}
-
-/** POST /api/v1/bookings (SCR-16) — may return slim or full booking shape */
-export interface CreateBookingResponse {
-  id?: string;
-  bookingId?: string;
-  totalAmount: number;
-  depositAmount: number;
-  status: string;
-  holdExpiresAt?: string | null;
 }
 
 export interface PageResponse<T> {
@@ -103,9 +87,7 @@ export const bookingApi = {
     const res = await api.get('/api/bookings/my-active');
     return res.data;
   },
-  createBooking: async (
-    payload: CreateBookingPayload,
-  ): Promise<{ success: boolean; message: string; data: CreateBookingResponse & Partial<BookingDetailResponse> }> => {
+  createBooking: async (payload: CreateBookingPayload): Promise<{ success: boolean; message: string; data: BookingDetailResponse }> => {
     const res = await api.post('/api/v1/bookings', payload);
     return res.data;
   },
@@ -113,8 +95,32 @@ export const bookingApi = {
     const res = await api.get('/api/v1/bookings/me', { params });
     return res.data;
   },
+  /** @deprecated Use fetchManagerBookingsV1 for manager list (SCR-34) */
+  getAllBookings: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<BookingSummaryResponse> }> => {
+    const res = await api.get('/api/bookings', { params });
+    return res.data;
+  },
+  /** @deprecated Use fetchManagerBookingV1 for manager detail (SCR-35) */
+  getBookingDetail: async (id: string): Promise<{ success: boolean; data: BookingDetailResponse }> => {
+    const res = await api.get(`/api/bookings/${id}`);
+    return res.data;
+  },
   getMyBookingDetail: async (id: string): Promise<{ success: boolean; data: BookingDetailResponse; message?: string }> => {
     const res = await api.get(`/api/v1/bookings/me/${id}`);
+    return res.data;
+  },
+  /** @deprecated Use checkInBookingV1 for manager (SCR-35) */
+  markCheckedIn: async (id: string): Promise<{ success: boolean }> => {
+    const res = await api.patch(`/api/bookings/${id}/check-in`);
+    return res.data;
+  },
+  /** @deprecated Use checkOutBookingV1 for manager (SCR-35) */
+  markCheckedOut: async (id: string): Promise<{ success: boolean }> => {
+    const res = await api.patch(`/api/bookings/${id}/check-out`);
+    return res.data;
+  },
+  cancelBooking: async (id: string): Promise<{ success: boolean }> => {
+    const res = await api.patch(`/api/bookings/${id}/cancel`);
     return res.data;
   },
   getCancellationPreview: async (id: string): Promise<{ success: boolean; data: CancellationPreview }> => {
@@ -147,7 +153,6 @@ export async function fetchManagerBookingsV1(
 
 export interface ManagerBookingDetail extends BookingDetailResponse {
   damageFeeAmount?: number;
-  damageFeePaid?: boolean;
   canCheckIn?: boolean;
   canCheckOut?: boolean;
   checkOutBlockedReason?: string | null;
@@ -158,45 +163,43 @@ export async function fetchManagerBookingV1(id: string): Promise<ManagerBookingD
   return res.data.data;
 }
 
-/** SCR-37 — multipart check-in (idCardFront, idCardBack, depositCollected). */
 export async function checkInBookingV1(
   id: string,
-  payload: ManagerCheckInForm,
-): Promise<{ status: string }> {
-  const formData = new FormData();
-  formData.append('idCardFront', payload.idCardFront);
-  formData.append('idCardBack', payload.idCardBack);
-  formData.append('depositCollected', String(payload.depositCollected));
-  formData.append('keyHandedOver', String(payload.keyHandedOver));
-  if (payload.note?.trim()) {
-    formData.append('note', payload.note.trim());
-  }
-  // Prefer docs path; singular alias also registered on BE after restart
-  const res = await api.post(`/api/v1/manager/bookings/${id}/check-in`, formData);
+  payload: ManagerCheckInPayload,
+): Promise<ManagerBookingDetail> {
+  const res = await api.patch(`/api/v1/manager/bookings/${id}/check-in`, payload);
   return res.data.data;
 }
 
-/** SCR-37 — check-out with depositRefunded + keyReturned. */
 export async function checkOutBookingV1(
   id: string,
   payload: ManagerCheckOutPayload,
-): Promise<{ status: string }> {
-  const res = await api.post(`/api/v1/manager/bookings/${id}/check-out`, payload);
+): Promise<ManagerBookingDetail> {
+  const res = await api.patch(`/api/v1/manager/bookings/${id}/check-out`, payload);
   return res.data.data;
 }
 
-export interface ManagerCheckInForm {
-  idCardFront: File;
-  idCardBack: File;
-  depositCollected: boolean;
+export interface ManagerCheckInPayload {
+  idDocumentUrls: string[];
   keyHandedOver: boolean;
+  remainingCollected?: boolean;
   note?: string;
 }
 
 export interface ManagerCheckOutPayload {
-  depositRefunded?: boolean;
-  /** true = thu phí thiệt hại CASH tại quầy; BE ghi Payment DAMAGE_FEE = PAID */
-  damageFeeCollected?: boolean;
   keyReturned: boolean;
   note?: string;
+}
+
+export async function uploadBookingIdDocumentsV1(
+  bookingId: string,
+  files: File[],
+): Promise<string[]> {
+  const formData = new FormData();
+  files.forEach(f => formData.append('files', f));
+  const res = await api.post(
+    `/api/v1/manager/bookings/${bookingId}/id-documents`,
+    formData,
+  );
+  return res.data.data ?? [];
 }

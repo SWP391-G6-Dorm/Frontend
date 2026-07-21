@@ -15,7 +15,7 @@ export interface Column<T> {
 }
 
 export interface Action<T> {
-  label: string;
+  label: React.ReactNode;
   onClick: (row: T) => void;
   className?: string;
 }
@@ -28,10 +28,20 @@ interface DataTableProps<T> {
   className?: string;
   footer?: React.ReactNode;
   getRowClassName?: (row: T) => string;
+  /** Click row body (not actions cell) — e.g. open Detail */
   onRowClick?: (row: T) => void;
 }
 
-export function DataTable<T>({ columns, data, keyExtractor, actions, className = '', footer, getRowClassName, onRowClick }: DataTableProps<T>) {
+export function DataTable<T>({
+  columns,
+  data,
+  keyExtractor,
+  actions,
+  className = '',
+  footer,
+  getRowClassName,
+  onRowClick,
+}: DataTableProps<T>) {
   const [openDropdownId, setOpenDropdownId] = useState<string | number | null>(null);
 
   const toggleDropdown = (id: string | number) => {
@@ -46,9 +56,7 @@ export function DataTable<T>({ columns, data, keyExtractor, actions, className =
             {columns.map((col, idx) => (
               <th 
                 key={idx}
-                className={`px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0] ${
-                  col.className ?? 'text-left'
-                }`}
+                className="text-left px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0]"
               >
                 {col.header}
               </th>
@@ -67,7 +75,7 @@ export function DataTable<T>({ columns, data, keyExtractor, actions, className =
               <tr
                 key={rowKey}
                 className={`group transition-colors duration-150 bg-white hover:bg-[#F8FAFC] ${onRowClick ? 'cursor-pointer' : ''} ${getRowClassName?.(row) ?? ''}`}
-                onClick={() => onRowClick?.(row)}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
               >
                 {columns.map((col, idx) => (
                   <td key={idx} className={`px-4 py-3 text-sm text-[#334155] border-b border-[#F1F5F9] group-last:border-none ${col.className || ''}`}>
@@ -90,7 +98,7 @@ export function DataTable<T>({ columns, data, keyExtractor, actions, className =
                     </button>
                     
                     {openDropdownId === rowKey && (
-                      <div className="absolute right-8 top-10 w-40 bg-white border border-[#E2E8F0] rounded-md shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] z-10 py-1">
+                      <div className="absolute right-8 top-10 w-44 bg-white border border-[#E2E8F0] rounded-md shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] z-10 py-1">
                         {actions.map((action, actIdx) => (
                           <button
                             key={actIdx}

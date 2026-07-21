@@ -1,4 +1,22 @@
 import React from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import AdminLayout from '../../layouts/AdminLayout';
+import {
+  getAdminProperties, createAdminProperty, updateAdminProperty,
+  assignManagerToProperty,
+  getManagers, getCustomers, updateAdminUser,
+  getPaymentReconciliation,
+  getEscalatedDamageReports, coApproveDamageReport,
+  getAdminComplaints, resolveComplaint,
+  getGlobalRevenueReport,
+  getSystemSettings, updateSystemSettings,
+  getAdminPromotions, createPromotion, updatePromotion, deletePromotion,
+  type AdminUser, type AdminProperty, type AdminDamageReport,
+  type AdminComplaint, type PaymentReconciliationItem,
+  type Promotion, type SystemSettings, type MonthlyRevenue,
+} from '../../api/adminApi';
+import { DataTable, StatusBadge as UIStatusBadge } from '../../components/ui';
 
 // ── Shared Helpers ─────────────────────────────────────────────────────────────
 
@@ -73,12 +91,14 @@ function Drawer({ open, onClose, title, children }: {
 }) {
   return (
     <>
+      {/* Backdrop */}
       {open && (
         <div
           onClick={onClose}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', zIndex: 998 }}
         />
       )}
+      {/* Panel */}
       <div style={{
         position: 'fixed', top: 0, right: 0, height: '100%',
         width: 480, maxWidth: '92vw',
@@ -90,6 +110,7 @@ function Drawer({ open, onClose, title, children }: {
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
       }}>
+        {/* Header */}
         <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>{title}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--charcoal)', padding: 4 }}>
@@ -98,6 +119,7 @@ function Drawer({ open, onClose, title, children }: {
             </svg>
           </button>
         </div>
+        {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
           {children}
         </div>
@@ -135,5 +157,6 @@ function Pagination({ page, totalPages, onPage }: { page: number; totalPages: nu
     </div>
   );
 }
+
 
 export { fmtVnd, fmtDate, extractApiError, Spinner, ErrorBanner, SuccessBanner, StatusBadge, Drawer, ConfirmModal, Pagination };

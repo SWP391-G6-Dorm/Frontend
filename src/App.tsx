@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 
 // ── Route Guards ─────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/ProtectedRoute';
@@ -38,7 +38,6 @@ import ContractDetailPage from './pages/customer/ContractDetailPage';
 // Payments (SCR-21, 22, 23, 24)
 import DepositPaymentPage from './pages/customer/DepositPaymentPage';
 import RemainingPaymentPage from './pages/customer/RemainingPaymentPage';
-import DamageFeePaymentPage from './pages/customer/DamageFeePaymentPage';
 import PaymentHistoryPage from './pages/customer/PaymentHistoryPage';
 import VNPayResultPage from './pages/customer/VNPayResultPage';
 // Maintenance (SCR-27, 28, 29)
@@ -54,18 +53,13 @@ import { CustomerComplaintListPage, CreateComplaintPage }
 
 // ── Manager Portal ────────────────────────────────────────────────────────────
 import ManagerDashboardPage from './pages/manager/ManagerDashboardPage';
-import PropertyListPage from './pages/manager/PropertyListPage';
 import PropertyDetailPage from './pages/manager/PropertyDetailPage';
-import AddPropertyPage from './pages/manager/AddPropertyPage';
-import EditPropertyPage from './pages/manager/EditPropertyPage';
 import StructureTreePage from './pages/manager/StructureTreePage';
 import FloorManagementPage from './pages/manager/FloorManagementPage';
 import RoomListPage from './pages/manager/RoomListPage';
 import RoomDetailMgmtPage from './pages/manager/RoomDetailMgmtPage';
 import AddRoomPage from './pages/manager/AddRoomPage';
 import EditRoomPage from './pages/manager/EditRoomPage';
-import RoomGalleryPage from './pages/manager/RoomGalleryPage';
-import RoomStatusPage from './pages/manager/RoomStatusPage';
 import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
 import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
 import BookingCheckInOutPage from './pages/manager/BookingCheckInOutPage';
@@ -103,8 +97,7 @@ import { EditPropertyAdminPage } from './pages/admin/EditPropertyAdminPage';
 import { ManagerAssignmentPage } from './pages/admin/ManagerAssignmentPage';
 import { ManagerDirectoryPage } from './pages/admin/ManagerDirectoryPage';
 import { CustomerDirectoryPage } from './pages/admin/CustomerDirectoryPage';
-// SCR-52 deferred (demo mock VNPay — no real discrepancy). Keep page file + backend API.
-// import { PaymentReconciliationPage } from './pages/admin/PaymentReconciliationPage';
+import { PaymentReconciliationPage } from './pages/admin/PaymentReconciliationPage';
 import { DamageEscalationPage } from './pages/admin/DamageEscalationPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { GlobalReportsPage } from './pages/admin/GlobalReportsPage';
@@ -129,6 +122,12 @@ function CatchAllRedirect() {
   if (role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
   if (role === 'EMPLOYEE') return <Navigate to="/employee/dashboard" replace />;
   return <Navigate to="/" replace />;
+}
+
+/** Legacy SCR-32/33 dedicated pages → SCR-31 tabs */
+function LegacyRoomTabRedirect({ tab }: { tab: 'gallery' | 'status' }) {
+  const { id } = useParams();
+  return <Navigate to={`/manager/rooms/${id}/edit?tab=${tab}`} replace />;
 }
 
 function App() {
@@ -197,8 +196,6 @@ function App() {
           element={<ProtectedRoute role="CUSTOMER"><DepositPaymentPage /></ProtectedRoute>} />
         <Route path="/customer/payments/:id/remaining"
           element={<ProtectedRoute role="CUSTOMER"><RemainingPaymentPage /></ProtectedRoute>} />
-        <Route path="/customer/payments/:id/damage"
-          element={<ProtectedRoute role="CUSTOMER"><DamageFeePaymentPage /></ProtectedRoute>} />
         <Route path="/customer/payments/vnpay-result"
           element={<ProtectedRoute role="CUSTOMER"><VNPayResultPage /></ProtectedRoute>} />
 
@@ -242,15 +239,11 @@ function App() {
         <Route path="/manager/notifications/:id"
           element={<ProtectedRoute role="MANAGER"><NotificationDetailPage /></ProtectedRoute>} />
 
-        {/* Properties (SCR-33,34,35,36) */}
+        {/* Property (FR-06 read-only detail + selector khi nhiều property) */}
         <Route path="/manager/properties"
-          element={<ProtectedRoute role="MANAGER"><PropertyListPage /></ProtectedRoute>} />
-        <Route path="/manager/properties/add"
-          element={<ProtectedRoute role="MANAGER"><AddPropertyPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><PropertyDetailPage /></ProtectedRoute>} />
         <Route path="/manager/properties/:id"
           element={<ProtectedRoute role="MANAGER"><PropertyDetailPage /></ProtectedRoute>} />
-        <Route path="/manager/properties/:id/edit"
-          element={<ProtectedRoute role="MANAGER"><EditPropertyPage /></ProtectedRoute>} />
 
         {/* Structure (SCR-37,38) */}
         <Route path="/manager/structure"
@@ -267,10 +260,11 @@ function App() {
           element={<ProtectedRoute role="MANAGER"><RoomDetailMgmtPage /></ProtectedRoute>} />
         <Route path="/manager/rooms/:id/edit"
           element={<ProtectedRoute role="MANAGER"><EditRoomPage /></ProtectedRoute>} />
+        {/* Legacy SCR-32/33 → SCR-31 tabs */}
         <Route path="/manager/rooms/:id/gallery"
-          element={<ProtectedRoute role="MANAGER"><RoomGalleryPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><LegacyRoomTabRedirect tab="gallery" /></ProtectedRoute>} />
         <Route path="/manager/rooms/:id/status"
-          element={<ProtectedRoute role="MANAGER"><RoomStatusPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="MANAGER"><LegacyRoomTabRedirect tab="status" /></ProtectedRoute>} />
 
         {/* Bookings (SCR-45,46) */}
         <Route path="/manager/bookings"
@@ -291,7 +285,7 @@ function App() {
         <Route path="/manager/employees"
           element={<ProtectedRoute role="MANAGER"><EmployeeMgmtPage /></ProtectedRoute>} />
 
-        {/* Payments (SCR-36) */}
+        {/* Payments (SCR-47,48,49) */}
         <Route path="/manager/payments"
           element={<ProtectedRoute role="MANAGER"><PaymentMgmtListPage /></ProtectedRoute>} />
         <Route path="/manager/payments/:id/verify"
@@ -397,10 +391,9 @@ function App() {
         <Route path="/admin/customers"
           element={<ProtectedRoute role="ADMIN"><CustomerDirectoryPage /></ProtectedRoute>} />
 
-        {/* Finance — SCR-52 Payment Reconciliation deferred (mock VNPay demo).
+        {/* Finance */}
         <Route path="/admin/payments/reconciliation"
           element={<ProtectedRoute role="ADMIN"><PaymentReconciliationPage /></ProtectedRoute>} />
-        */}
 
         {/* Operations */}
         <Route path="/admin/damage-escalation"

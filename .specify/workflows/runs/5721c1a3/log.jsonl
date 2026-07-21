@@ -1,4 +1,0 @@
-{"event": "step_started", "step_id": "specify", "type": "command", "timestamp": "2026-06-28T01:41:38.185232+00:00"}
-{"event": "step_completed", "step_id": "specify", "status": "failed", "timestamp": "2026-06-28T01:41:38.196542+00:00"}
-{"event": "step_failed", "step_id": "specify", "error": "Cannot dispatch command 'speckit.specify': integration 'antigravity' CLI not found or not installed. Install the CLI tool or check 'specify integration list'.", "timestamp": "2026-06-28T01:41:38.198194+00:00"}
-{"event": "workflow_finished", "status": "failed", "timestamp": "2026-06-28T01:41:38.201569+00:00"}
