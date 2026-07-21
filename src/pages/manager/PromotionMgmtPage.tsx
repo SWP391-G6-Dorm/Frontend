@@ -24,6 +24,7 @@ const EMPTY: PromotionPayload = {
   description: '',
   ctaText: 'Đặt ngay →',
   ctaUrl: '/search',
+  imageUrl: '',
   colorTheme: 'red',
   isActive: true,
   sortOrder: 0,
@@ -32,6 +33,7 @@ const EMPTY: PromotionPayload = {
 // ── Preview Card ─────────────────────────────────────────────────────────
 
 function BannerPreview({ form }: { form: PromotionPayload }) {
+  const hasImage = !!form.imageUrl?.trim();
   return (
     <div
       style={{
@@ -46,18 +48,31 @@ function BannerPreview({ form }: { form: PromotionPayload }) {
         minHeight: 180,
       }}
     >
+      {hasImage && (
+        <>
+          <img
+            src={form.imageUrl}
+            alt=""
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.25), rgba(15,23,42,0.55))' }} />
+        </>
+      )}
       <div style={{ position: 'absolute', top: -16, right: -16, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase' }}>
+      <span style={{ position: 'relative', zIndex: 2, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase' }}>
         {form.subtitle || 'Subtitle'}
       </span>
-      <h3 style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: 0, whiteSpace: 'pre-line' }}>
+      <h3 style={{ position: 'relative', zIndex: 2, fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.25, margin: 0, whiteSpace: 'pre-line' }}>
         {form.title || 'Tiêu đề banner'}
       </h3>
       {form.description && (
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0 }}>{form.description}</p>
+        <p style={{ position: 'relative', zIndex: 2, fontSize: 12, color: 'rgba(255,255,255,0.85)', margin: 0 }}>{form.description}</p>
       )}
       <span
         style={{
+          position: 'relative',
+          zIndex: 2,
           marginTop: 4,
           display: 'inline-block',
           background: '#fff',
@@ -89,8 +104,47 @@ function BannerFormModal({
   saving: boolean;
 }) {
   const [form, setForm] = useState<PromotionPayload>(initial);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const set = (k: keyof PromotionPayload, v: string | number | boolean) =>
     setForm((p) => ({ ...p, [k]: v }));
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Chỉ chọn file ảnh (JPEG, PNG, WebP, GIF).');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setUploadError('Ảnh tối đa 50MB.');
+      return;
+    }
+
+    setUploadError('');
+    setUploading(true);
+    try {
+      const imageUrl = await promotionApi.uploadImage(file);
+      set('imageUrl', imageUrl);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      const status = axiosErr.response?.status;
+      const serverMsg = axiosErr.response?.data?.message;
+      if (status === 401 || status === 403) {
+        setUploadError('Không đủ quyền. Đăng nhập lại bằng tài khoản Manager.');
+      } else if (status === 404) {
+        setUploadError('API upload chưa có trên server. Hãy restart backend rồi thử lại.');
+      } else if (serverMsg) {
+        setUploadError(serverMsg);
+      } else {
+        setUploadError(axiosErr.message || 'Upload thất bại. Thử lại.');
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <div
@@ -100,7 +154,7 @@ function BannerFormModal({
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
       }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && !uploading && onClose()}
     >
       <div
         style={{
@@ -118,7 +172,14 @@ function BannerFormModal({
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
             {initial.subtitle ? 'Chỉnh sửa banner' : 'Tạo banner mới'}
           </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#666' }}>×</button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={uploading}
+            style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#666' }}
+          >
+            ×
+          </button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -160,6 +221,61 @@ function BannerFormModal({
                 <input className="input" value={form.ctaUrl} onChange={(e) => set('ctaUrl', e.target.value)} placeholder="/search" />
               </div>
             </div>
+
+            <div>
+              <label className="form-label">
+                Ảnh nền banner
+                <span style={{ fontWeight: 400, fontSize: 11, color: '#888' }}> (slideshow trang chủ)</span>
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                <label
+                  className="btn-outline"
+                  style={{
+                    height: 40,
+                    padding: '0 14px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    cursor: uploading || saving ? 'not-allowed' : 'pointer',
+                    opacity: uploading || saving ? 0.6 : 1,
+                    margin: 0,
+                  }}
+                >
+                  {uploading ? 'Đang upload…' : 'Chọn ảnh từ máy'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    style={{ display: 'none' }}
+                    disabled={uploading || saving}
+                    onChange={handleFileChange}
+                  />
+                </label>
+                {form.imageUrl?.trim() && (
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    style={{ height: 40, padding: '0 14px', color: 'var(--error)' }}
+                    disabled={uploading || saving}
+                    onClick={() => set('imageUrl', '')}
+                  >
+                    Xóa ảnh
+                  </button>
+                )}
+              </div>
+              <input
+                className="input"
+                value={form.imageUrl ?? ''}
+                onChange={(e) => set('imageUrl', e.target.value)}
+                placeholder="Hoặc dán URL: https://... /uploads/..."
+                disabled={uploading}
+              />
+              {uploadError && (
+                <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--error)' }}>{uploadError}</p>
+              )}
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#888' }}>
+                JPEG/PNG/WebP/GIF · tối đa 50MB
+              </p>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
                 <label className="form-label">Thứ tự hiển thị</label>
@@ -206,10 +322,10 @@ function BannerFormModal({
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
-          <button className="btn-outline" onClick={onClose} disabled={saving}>Hủy</button>
+          <button className="btn-outline" onClick={onClose} disabled={saving || uploading}>Hủy</button>
           <button
             className="btn-primary"
-            disabled={saving || !form.subtitle || !form.title || !form.ctaText || !form.ctaUrl}
+            disabled={saving || uploading || !form.subtitle || !form.title || !form.ctaText || !form.ctaUrl}
             onClick={() => onSave(form)}
           >
             {saving ? 'Đang lưu...' : 'Lưu banner'}
@@ -286,7 +402,7 @@ export default function PromotionMgmtPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Quản lý Banner khuyến mãi</h1>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Quản lý Banner</h1>
             <p style={{ margin: '4px 0 0', color: '#666', fontSize: 14 }}>
               Tạo, chỉnh sửa hoặc ẩn/hiện các banner trên trang chủ
             </p>
@@ -327,11 +443,22 @@ export default function PromotionMgmtPage() {
                 >
                   {/* Preview */}
                   <div style={{ height: 160, background: getGradient(b.colorTheme), padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', overflow: 'hidden' }}>
+                    {b.imageUrl?.trim() && (
+                      <>
+                        <img
+                          src={b.imageUrl}
+                          alt=""
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.25), rgba(15,23,42,0.55))' }} />
+                      </>
+                    )}
                     <div style={{ position: 'absolute', top: -12, right: -12, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>{b.subtitle}</span>
-                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3, whiteSpace: 'pre-line' }}>{b.title}</h3>
-                    {b.description && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{b.description}</p>}
-                    <span style={{ display: 'inline-block', background: '#fff', fontWeight: 700, fontSize: 11, padding: '4px 12px', borderRadius: 9999, width: 'fit-content', color: '#333' }}>
+                    <span style={{ position: 'relative', zIndex: 2, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>{b.subtitle}</span>
+                    <h3 style={{ position: 'relative', zIndex: 2, margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3, whiteSpace: 'pre-line' }}>{b.title}</h3>
+                    {b.description && <p style={{ position: 'relative', zIndex: 2, margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{b.description}</p>}
+                    <span style={{ position: 'relative', zIndex: 2, display: 'inline-block', background: '#fff', fontWeight: 700, fontSize: 11, padding: '4px 12px', borderRadius: 9999, width: 'fit-content', color: '#333' }}>
                       {b.ctaText}
                     </span>
                   </div>
@@ -387,6 +514,7 @@ export default function PromotionMgmtPage() {
             description: editing.description ?? '',
             ctaText: editing.ctaText,
             ctaUrl: editing.ctaUrl,
+            imageUrl: editing.imageUrl ?? '',
             colorTheme: editing.colorTheme,
             isActive: editing.isActive,
             sortOrder: editing.sortOrder,
