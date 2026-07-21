@@ -57,7 +57,7 @@ export default function PropertyRoomListPage() {
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '16px', maxWidth: 640, margin: '0 auto' }} className="animate-fade-in">
+      <div className="animate-fade-in">
         <div style={{ marginBottom: 16 }}>
           <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>🚪 Room List</h1>
           <p className="body-sm text-charcoal">SCR-65 — {rooms.length} phòng</p>

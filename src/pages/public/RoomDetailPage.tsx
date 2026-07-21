@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PublicLayout from '../../layouts/PublicLayout';
 import Alert from '../../components/ui/Alert';
 import ImageGallerySlider from '../../components/ui/ImageGallerySlider';
-import RoomMiniCalendar, { isRangeAvailable } from '../../components/ui/RoomMiniCalendar';
+import RoomMiniCalendar, { isRangeAvailable, isRoomBookingBlocked } from '../../components/ui/RoomMiniCalendar';
 import {
   fetchRoomById,
   fetchRoomCalendar,
@@ -252,7 +252,7 @@ export default function RoomDetailPage() {
     ? room.amenities.map((a) => fixAmenityLabel(a))
     : ['WiFi', 'Điều hòa', 'Smart TV', 'Nước nóng'];
 
-  const canBook = room.status === 'AVAILABLE';
+  const canBook = !isRoomBookingBlocked(room.status);
   const displayReviews = reviews.length > 0 ? reviews : room.reviews ?? [];
 
   return (

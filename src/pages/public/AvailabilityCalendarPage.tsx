@@ -11,7 +11,7 @@ import {
   type RoomDetail,
 } from '../../api/roomsApi';
 import { useAuthStore } from '../../store/authStore';
-import { addMonths, dateKey, isRangeAvailable, MONTH_NAMES_VI } from '../../utils/roomCalendar';
+import { addMonths, dateKey, isRangeAvailable, isRoomBookingBlocked, MONTH_NAMES_VI } from '../../utils/roomCalendar';
 
 function monthBounds(year: number, month: number) {
   const lastDay = new Date(year, month + 1, 0).getDate();
@@ -162,7 +162,7 @@ export default function AvailabilityCalendarPage() {
   const pricePerNight = room?.pricePerNight ?? 0;
   const totalAmount = nights * pricePerNight;
   const depositAmount = Math.round(totalAmount * 0.4);
-  const canBookRoom = roomStatus === 'AVAILABLE';
+  const canBookRoom = !isRoomBookingBlocked(roomStatus);
   const hasValidRange = nights > 0 && !rangeError;
 
   function buildQuery() {

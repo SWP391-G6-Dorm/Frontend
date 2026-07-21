@@ -63,6 +63,7 @@ import EditRoomPage from './pages/manager/EditRoomPage';
 import BookingMgmtListPage from './pages/manager/BookingMgmtListPage';
 import BookingMgmtDetailPage from './pages/manager/BookingMgmtDetailPage';
 import BookingCheckInOutPage from './pages/manager/BookingCheckInOutPage';
+import BookingMgmtCancelPage from './pages/manager/BookingMgmtCancelPage';
 import HousekeepingSchedulePage from './pages/manager/HousekeepingSchedulePage';
 import HousekeepingTasksPage from './pages/manager/HousekeepingTasksPage';
 import MaintenanceTasksPage from './pages/manager/MaintenanceTasksPage';
@@ -75,7 +76,6 @@ import PaymentMgmtVerificationPage from './pages/manager/PaymentMgmtVerification
 import PaymentMgmtDetailPage from './pages/manager/PaymentMgmtDetailPage';
 import ContractMgmtListPage from './pages/manager/ContractMgmtListPage';
 import ContractMgmtDetailPage from './pages/manager/ContractMgmtDetailPage';
-import ResendContractPage from './pages/manager/ResendContractPage';
 import { CustomerListPage } from './pages/manager/CustomerListPage';
 import { CustomerDetailPage } from './pages/manager/CustomerDetailPage';
 import { ComplaintListPage } from './pages/manager/ComplaintListPage';
@@ -273,6 +273,8 @@ function App() {
           element={<ProtectedRoute role="MANAGER"><BookingCheckInOutPage /></ProtectedRoute>} />
         <Route path="/manager/bookings/:id/check-out"
           element={<ProtectedRoute role="MANAGER"><BookingCheckInOutPage /></ProtectedRoute>} />
+        <Route path="/manager/bookings/:id/cancel"
+          element={<ProtectedRoute role="MANAGER"><BookingMgmtCancelPage /></ProtectedRoute>} />
         <Route path="/manager/bookings/:id"
           element={<ProtectedRoute role="MANAGER"><BookingMgmtDetailPage /></ProtectedRoute>} />
 
@@ -298,8 +300,6 @@ function App() {
           element={<ProtectedRoute role="MANAGER"><ContractMgmtListPage /></ProtectedRoute>} />
         <Route path="/manager/contracts/:id"
           element={<ProtectedRoute role="MANAGER"><ContractMgmtDetailPage /></ProtectedRoute>} />
-        <Route path="/manager/contracts/:id/resend"
-          element={<ProtectedRoute role="MANAGER"><ResendContractPage /></ProtectedRoute>} />
 
         {/* Customers (SCR-53,54) */}
         <Route path="/manager/customers"
