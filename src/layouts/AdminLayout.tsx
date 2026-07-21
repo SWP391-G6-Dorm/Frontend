@@ -13,7 +13,7 @@ const NAV_SECTIONS = [
   {
     label: 'PROPERTIES & USERS',
     items: [
-      { label: 'Properties',       path: '/admin/properties',       icon: IconProperty },
+      { label: 'Danh sách Property', path: '/admin/properties',     icon: IconProperty },
       { label: 'Managers',         path: '/admin/managers',         icon: IconManagers },
       { label: 'Customers',        path: '/admin/customers',        icon: IconCustomers },
     ],

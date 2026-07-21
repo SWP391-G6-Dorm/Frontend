@@ -130,8 +130,15 @@ export async function getGlobalKpis(): Promise<{ success: boolean; data: GlobalK
 
 // ── SCR-46: Property List ──────────────────────────────────────────────────────
 
-/** GET /api/admin/properties */
-export async function getAdminProperties(params?: { page?: number; size?: number; status?: string }): Promise<{ success: boolean; data: PageResponse<AdminProperty> }> {
+/** GET /api/admin/properties — SCR-46 list (keyword, status, managerId, sort) */
+export async function getAdminProperties(params?: {
+  page?: number;
+  size?: number;
+  keyword?: string;
+  status?: string;
+  managerId?: string;
+  sort?: string;
+}): Promise<{ success: boolean; data: PageResponse<AdminProperty> }> {
   const res = await api.get('/api/admin/properties', { params });
   return res.data;
 }
