@@ -57,7 +57,7 @@ const NAV_SECTIONS = [
   {
     label: 'MARKETING',
     items: [
-      { label: 'Banner', path: '/manager/promotions', icon: IconPromotion },
+      { label: 'Banner khuyến mãi', path: '/manager/promotions', icon: IconPromotion },
     ],
   },
 ];

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import SafeImage from './SafeImage';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
@@ -16,13 +16,11 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
     return urls.length > 0 ? urls : [resolveMediaUrl(null)];
   }, [images]);
 
-  const slideKey = slides.join('|');
   const [index, setIndex] = useState(0);
-  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     setIndex(0);
-  }, [slideKey]);
+  }, [slides]);
 
   const go = useCallback(
     (delta: number) => {
@@ -33,19 +31,6 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
 
   const hasMultiple = slides.length > 1;
 
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0]?.clientX ?? null;
-  }
-
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current == null || !hasMultiple) return;
-    const delta = (e.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(delta) < 40) return;
-    if (delta > 0) go(-1);
-    else go(1);
-  }
-
   return (
     <div>
       <div
@@ -55,14 +40,9 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
           overflow: 'hidden',
           background: 'var(--surface-bone)',
           marginBottom: 10,
-          touchAction: 'pan-y',
-          userSelect: 'none',
         }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
       >
         <SafeImage
-          key={slides[index]}
           src={slides[index]}
           alt={alt}
           style={{ width: '100%', height: 'clamp(260px, 50vw, 480px)', objectFit: 'cover', display: 'block' }}
@@ -73,10 +53,7 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
             <button
               type="button"
               aria-label="Previous photo"
-              onClick={(e) => {
-                e.stopPropagation();
-                go(-1);
-              }}
+              onClick={() => go(-1)}
               style={{
                 position: 'absolute',
                 left: 12,
@@ -91,7 +68,6 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 fontSize: 20,
                 lineHeight: 1,
-                zIndex: 2,
               }}
             >
               ‹
@@ -99,10 +75,7 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
             <button
               type="button"
               aria-label="Next photo"
-              onClick={(e) => {
-                e.stopPropagation();
-                go(1);
-              }}
+              onClick={() => go(1)}
               style={{
                 position: 'absolute',
                 right: 12,
@@ -117,7 +90,6 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 fontSize: 20,
                 lineHeight: 1,
-                zIndex: 2,
               }}
             >
               ›
@@ -133,8 +105,6 @@ export default function ImageGallerySlider({ images, alt }: ImageGallerySliderPr
                 borderRadius: 9999,
                 fontSize: 13,
                 fontWeight: 600,
-                zIndex: 2,
-                pointerEvents: 'none',
               }}
             >
               {index + 1} / {slides.length}

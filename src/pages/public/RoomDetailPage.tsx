@@ -387,25 +387,27 @@ export default function RoomDetailPage() {
                 <span className="body-md text-charcoal">/đêm</span>
               </div>
 
-              <div className="room-booking-dates" style={{ marginBottom: 12 }}>
-                <div className="room-booking-date-field">
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
                   <label className="form-label" style={{ fontSize: 12 }}>Check-in</label>
                   <input
                     type="date"
-                    className="input room-booking-date-input"
+                    className="input"
                     value={checkIn}
                     min={new Date().toISOString().slice(0, 10)}
                     onChange={(e) => { setCheckIn(e.target.value); setBookError(''); }}
+                    style={{ borderRadius: 10, height: 40, fontSize: 14 }}
                   />
                 </div>
-                <div className="room-booking-date-field">
+                <div style={{ flex: 1 }}>
                   <label className="form-label" style={{ fontSize: 12 }}>Check-out</label>
                   <input
                     type="date"
-                    className="input room-booking-date-input"
+                    className="input"
                     value={checkOut}
                     min={checkIn || new Date().toISOString().slice(0, 10)}
                     onChange={(e) => { setCheckOut(e.target.value); setBookError(''); }}
+                    style={{ borderRadius: 10, height: 40, fontSize: 14 }}
                   />
                 </div>
               </div>
