@@ -69,11 +69,11 @@ export default function RoomSearchCard({ room, querySuffix = '' }: RoomSearchCar
         </div>
       </div>
       <div style={{ padding: 16 }}>
-        <p className="body-sm text-charcoal" style={{ marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <p className="body-sm text-charcoal" style={{ marginBottom: 3 }}>
           {room.propertyName}
           {room.floorNumber != null && ` · Tầng ${room.floorNumber}`}
         </p>
-        <h3 className="heading-sm font-display" style={{ marginBottom: 6, fontSize: 17, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <h3 className="heading-sm font-display" style={{ marginBottom: 6, fontSize: 17 }}>
           {room.roomNumber} — {room.roomType}
         </h3>
         <div className="flex gap-3 body-sm text-charcoal" style={{ marginBottom: 8 }}>
@@ -86,22 +86,15 @@ export default function RoomSearchCard({ room, querySuffix = '' }: RoomSearchCar
             <span className="body-sm text-charcoal">({reviews})</span>
           </div>
         )}
-        <div
-          style={{
-            marginTop: 12,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 8,
-            minWidth: 0,
-          }}
-        >
-          <div style={{ whiteSpace: 'nowrap' }}>
+        <div className="flex items-center justify-between" style={{ marginTop: 12, gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
             <span className="heading-sm text-primary">₫{Number(room.pricePerNight).toLocaleString('vi-VN')}</span>
             <span className="body-sm text-charcoal">/đêm</span>
           </div>
-          <span className="btn-outline btn-sm" style={{ borderRadius: 9999, pointerEvents: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <span
+            className="btn-outline btn-sm"
+            style={{ borderRadius: 9999, pointerEvents: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
+          >
             Xem chi tiết
           </span>
         </div>

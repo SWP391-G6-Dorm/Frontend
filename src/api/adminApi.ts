@@ -16,6 +16,12 @@ export interface AdminUser {
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  /** SCR-50 — ACTIVE property assignments (managers only) */
+  propertiesAssigned?: number | null;
+  /** SCR-51 — booking count (customers only) */
+  totalBookings?: number | null;
+  /** SCR-51 — paid spend (customers only) */
+  totalSpend?: number | null;
 }
 
 export interface PageResponse<T> {
@@ -30,6 +36,7 @@ export interface AdminProperty {
   id: string;
   name: string;
   location: string;
+  description?: string | null;
   status: 'ACTIVE' | 'INACTIVE';
   managerId?: string;
   managerName?: string;
@@ -145,16 +152,35 @@ export async function getAdminProperties(params?: {
 
 // ── SCR-47: Create Property ────────────────────────────────────────────────────
 
-/** POST /api/admin/properties */
-export async function createAdminProperty(payload: { name: string; location: string }): Promise<{ success: boolean; data: AdminProperty }> {
+/** POST /api/admin/properties — SCR-47 create */
+export async function createAdminProperty(payload: {
+  name: string;
+  address: string;
+  description?: string;
+  status?: 'ACTIVE' | 'INACTIVE';
+}): Promise<{ success: boolean; data: AdminProperty }> {
   const res = await api.post('/api/admin/properties', payload);
   return res.data;
 }
 
 // ── SCR-48: Edit Property ──────────────────────────────────────────────────────
 
-/** PUT /api/admin/properties/{id} */
-export async function updateAdminProperty(id: string, payload: { name?: string; status?: 'ACTIVE' | 'INACTIVE' }): Promise<{ success: boolean; data: AdminProperty }> {
+/** GET /api/admin/properties/{id} — SCR-48 pre-fill */
+export async function getAdminProperty(id: string): Promise<{ success: boolean; data: AdminProperty }> {
+  const res = await api.get(`/api/admin/properties/${id}`);
+  return res.data;
+}
+
+/** PUT /api/admin/properties/{id} — SCR-48 update */
+export async function updateAdminProperty(
+  id: string,
+  payload: {
+    name?: string;
+    address?: string;
+    description?: string | null;
+    status?: 'ACTIVE' | 'INACTIVE';
+  },
+): Promise<{ success: boolean; data: AdminProperty }> {
   const res = await api.put(`/api/admin/properties/${id}`, payload);
   return res.data;
 }
@@ -172,6 +198,32 @@ export async function assignManagerToProperty(propertyId: string, managerId: str
 /** GET /api/admin/users?role=MANAGER */
 export async function getManagers(params?: { page?: number; size?: number; keyword?: string; status?: string }): Promise<{ success: boolean; data: PageResponse<AdminUser> }> {
   const res = await api.get('/api/admin/users', { params: { role: 'MANAGER', ...params } });
+  return res.data;
+}
+
+/** POST /api/admin/users/managers — SCR-50 Create Manager */
+export async function createManager(payload: {
+  fullName: string;
+  email: string;
+  phone?: string;
+  password: string;
+}): Promise<{ success: boolean; message?: string; data: AdminUser }> {
+  const res = await api.post('/api/admin/users/managers', payload);
+  return res.data;
+}
+
+/** PUT /api/admin/users/managers/{id} — SCR-50 Edit Manager */
+export async function updateManager(
+  id: string,
+  payload: {
+    fullName: string;
+    email: string;
+    phone?: string;
+    password?: string;
+    status?: string;
+  },
+): Promise<{ success: boolean; message?: string; data: AdminUser }> {
+  const res = await api.put(`/api/admin/users/managers/${id}`, payload);
   return res.data;
 }
 
