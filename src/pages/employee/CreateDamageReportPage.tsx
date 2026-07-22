@@ -1,25 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
 import {
-  getEmployeeKpis, type EmployeeKpis,
-  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
-  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
-  getEmployeeInspections, passInspection, failInspection,
-  type InspectionChecklist, type InspectionSummary,
-  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
+  createDamageReport, type DamageItem,
   getEmployeeRooms, type EmployeeRoom,
 } from '../../api/employeeApi';
-import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
+import { TOUCH, fmtVnd, extractErr, ErrBanner } from './EmployeeShared';
 
 interface DamageItemRow extends DamageItem {
   _key: string;
 }
 
+interface InspectionNavState {
+  roomId?: string;
+  inspectionId?: string;
+  fromInspection?: boolean;
+}
+
 export default function CreateDamageReportPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = (location.state as InspectionNavState | null) ?? null;
+
   const [rooms, setRooms] = useState<EmployeeRoom[]>([]);
-  const [roomId, setRoomId] = useState('');
+  const [roomId, setRoomId] = useState(navState?.roomId ?? '');
+  const [inspectionId] = useState(navState?.inspectionId ?? '');
   const [items, setItems] = useState<DamageItemRow[]>([
     { _key: crypto.randomUUID(), name: '', estimatedCost: 0 },
   ]);
@@ -38,12 +43,17 @@ export default function CreateDamageReportPage() {
       setLoadingRooms(true);
       try {
         const res = await getEmployeeRooms({ size: 100 });
-        if (res.success) setRooms(res.data.content);
+        if (res.success) {
+          setRooms(res.data.content);
+          if (navState?.roomId && res.data.content.some(r => r.id === navState.roomId)) {
+            setRoomId(navState.roomId);
+          }
+        }
       } catch { /* silent */ }
       finally { setLoadingRooms(false); }
     }
     loadRooms();
-  }, []);
+  }, [navState?.roomId]);
 
   const totalCost = items.reduce((sum, i) => sum + (Number(i.estimatedCost) || 0), 0);
 
@@ -65,7 +75,6 @@ export default function CreateDamageReportPage() {
     files.forEach(file => {
       const url = URL.createObjectURL(file);
       setPhotoPreviews(prev => [...prev, url]);
-      // In real app: upload to server and get URL. Here we use object URL as placeholder.
       setPhotoUrls(prev => [...prev, url]);
     });
     e.target.value = '';
@@ -98,6 +107,7 @@ export default function CreateDamageReportPage() {
     try {
       const res = await createDamageReport({
         roomId,
+        inspectionId: inspectionId || undefined,
         items: items.map(i => ({ name: i.name.trim(), estimatedCost: Number(i.estimatedCost) })),
         attachments: photoUrls.map(url => ({ url, type: 'IMAGE' })),
         notes: notes.trim() || undefined,
@@ -110,21 +120,23 @@ export default function CreateDamageReportPage() {
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '16px', maxWidth: 560, margin: '0 auto' }} className="animate-fade-in">
+      <div style={{ maxWidth: 640, margin: '0 auto' }} className="animate-fade-in">
         <div style={{ marginBottom: 20 }}>
           <Link to="/employee/damage" className="body-sm text-primary" style={{ textDecoration: 'none' }}>← My Reports</Link>
           <h1 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginTop: 8, marginBottom: 2 }}>📝 Create Damage Report</h1>
           <p className="body-sm text-charcoal">SCR-64 — Ghi nhận hư hại</p>
+          {navState?.fromInspection && (
+            <p className="body-sm text-charcoal" style={{ marginTop: 6 }}>Từ Room Inspection (SCR-62) — Fail</p>
+          )}
         </div>
         {error && <ErrBanner msg={error} />}
 
-        {/* Summary Preview */}
         {showSummary && (
           <div className="card" style={{ padding: 20, marginBottom: 16, border: '2px solid var(--primary)' }}>
             <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 14, color: 'var(--ink)' }}>📄 Xác nhận nộp báo cáo</p>
             <div style={{ marginBottom: 12 }}>
               {[
-                { label: 'Phòng', value: rooms.find(r => r.id === roomId)?.name || roomId },
+                { label: 'Phòng', value: rooms.find(r => r.id === roomId)?.name || rooms.find(r => r.id === roomId)?.roomNumber || roomId },
                 { label: 'Số mục hư hại', value: `${items.length} mục` },
                 { label: 'Tổng phí ước tính', value: fmtVnd(totalCost) },
                 { label: 'Ảnh đính kèm', value: `${photoUrls.length} ảnh` },
@@ -153,12 +165,12 @@ export default function CreateDamageReportPage() {
 
         {!showSummary && (
           <form onSubmit={handlePreview}>
-            {/* Room picker */}
             <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
               <label className="form-label form-label-required" htmlFor="damage-room">Phòng bị hư hại</label>
               {loadingRooms ? <div style={{ height: 44, background: 'var(--surface-bone)', borderRadius: 8 }} /> : (
                 <select id="damage-room" className="input" style={{ ...TOUCH }}
-                  value={roomId} onChange={e => setRoomId(e.target.value)}>
+                  value={roomId} onChange={e => setRoomId(e.target.value)}
+                  disabled={!!navState?.roomId}>
                   <option value="">— Chọn phòng —</option>
                   {rooms.map(r => (
                     <option key={r.id} value={r.id}>{r.name || r.roomNumber}</option>
@@ -168,7 +180,6 @@ export default function CreateDamageReportPage() {
               {formErrors.roomId && <p className="form-error">{formErrors.roomId}</p>}
             </div>
 
-            {/* Damage Items */}
             <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>🔨 Danh sách hư hại</p>
@@ -209,7 +220,6 @@ export default function CreateDamageReportPage() {
               </button>
             </div>
 
-            {/* Photo Upload */}
             <div className="card" style={{ padding: '16px 18px', marginBottom: 14 }}>
               <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 12 }}>📷 Ảnh hư hại</p>
               <input
@@ -243,7 +253,6 @@ export default function CreateDamageReportPage() {
               )}
             </div>
 
-            {/* Notes */}
             <div className="card" style={{ padding: '16px 18px', marginBottom: 16 }}>
               <label className="form-label" htmlFor="damage-notes">Ghi chú</label>
               <textarea id="damage-notes" className="textarea" rows={3}
@@ -251,7 +260,6 @@ export default function CreateDamageReportPage() {
                 value={notes} onChange={e => setNotes(e.target.value)} />
             </div>
 
-            {/* Total summary bar */}
             {totalCost > 0 && (
               <div style={{ background: totalCost > 5_000_000 ? 'rgba(220,38,38,0.08)' : 'rgba(15,118,110,0.08)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 600, fontSize: 14 }}>Tổng ước tính:</span>
@@ -274,6 +282,3 @@ export default function CreateDamageReportPage() {
     </EmployeeLayout>
   );
 }
-
-// ── SCR-65: Property Room List ─────────────────────────────────────────────────
-

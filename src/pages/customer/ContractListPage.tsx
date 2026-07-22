@@ -1,10 +1,9 @@
 // SCR-21 — My Contract List
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import CustomerLayout from '../../layouts/CustomerLayout';
 import Alert from '../../components/ui/Alert';
-import { Drawer } from '../../components/ui/Drawer';
 import { contractApi, ContractSummaryResponse } from '../../api/contractApi';
 
 const STATUS_CONFIG: Record<string, { cls: string; label: string }> = {
@@ -58,118 +57,11 @@ function TableSkeleton() {
   );
 }
 
-function ContractPdfDrawer({
-  contract,
-  onClose,
-}: {
-  contract: ContractSummaryResponse;
-  onClose: () => void;
-}) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
-  const blobRef = useRef<string | null>(null);
-
-  const shortId = contract.id.slice(0, 8).toUpperCase();
-  const filename = `contract-${shortId}.pdf`;
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setBlobUrl(null);
-
-    contractApi.getContractPdfBlob(contract.id)
-      .then(blob => {
-        if (cancelled) return;
-        const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-        blobRef.current = url;
-        setBlobUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setError('Không thể tải PDF. Vui lòng tải xuống trực tiếp.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-      if (blobRef.current) {
-        URL.revokeObjectURL(blobRef.current);
-        blobRef.current = null;
-      }
-    };
-  }, [contract.id]);
-
-  const handleDownload = async () => {
-    setDownloading(true);
-    try {
-      await contractApi.downloadContractPdf(contract.id, filename);
-    } catch {
-      setError('Tải xuống thất bại. Vui lòng thử lại.');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  return (
-    <Drawer
-      isOpen
-      onClose={onClose}
-      title={`Hợp đồng ${shortId}`}
-      width="max-w-3xl lg:max-w-4xl max-w-full"
-      footer={
-        <div className="flex gap-3 justify-end">
-          <button type="button" className="btn-ghost" onClick={onClose}>
-            Đóng
-          </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={handleDownload}
-            disabled={downloading}
-          >
-            {downloading ? 'Đang tải...' : 'Tải xuống'}
-          </button>
-        </div>
-      }
-    >
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-16 text-charcoal body-md">
-          <div className="w-10 h-10 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mb-4" />
-          Đang tải PDF...
-        </div>
-      )}
-
-      {error && !loading && (
-        <div className="space-y-4">
-          <Alert variant="error" message={error} />
-          <button type="button" className="btn-outline" onClick={handleDownload} disabled={downloading}>
-            Tải PDF
-          </button>
-        </div>
-      )}
-
-      {blobUrl && !loading && !error && (
-        <iframe
-          src={blobUrl}
-          title={`Hợp đồng ${shortId}`}
-          className="w-full border-0 rounded-lg"
-          style={{ minHeight: '70vh' }}
-        />
-      )}
-    </Drawer>
-  );
-}
-
 export default function ContractListPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedContract, setSelectedContract] = useState<ContractSummaryResponse | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -206,11 +98,6 @@ export default function ContractListPage() {
     setPage(0);
   };
 
-  const openPdfDrawer = (contract: ContractSummaryResponse, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setSelectedContract(contract);
-  };
-
   return (
     <CustomerLayout>
       <div className="mb-5">
@@ -232,7 +119,7 @@ export default function ContractListPage() {
           <input
             id="contract-search"
             type="text"
-            placeholder="Tìm theo tên phòng, cơ sở..."
+            placeholder="Tìm theo mã đặt phòng, phòng, cơ sở..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             className="w-full py-2 pl-9 pr-9 text-sm border border-[var(--hairline)] rounded-lg bg-[var(--surface-card)] text-[var(--ink)] outline-none focus:border-[var(--primary)]"
@@ -319,8 +206,7 @@ export default function ContractListPage() {
                 {contracts.map(contract => (
                   <tr
                     key={contract.id}
-                    className="cursor-pointer hover:bg-[var(--surface-bone)]"
-                    onClick={() => openPdfDrawer(contract)}
+                    className="hover:bg-[var(--surface-bone)]"
                   >
                     <td>
                       <span className="code-md font-semibold">
@@ -346,13 +232,14 @@ export default function ContractListPage() {
                       <StatusBadge status={contract.status} />
                     </td>
                     <td onClick={e => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        className="btn-outline btn-sm"
-                        onClick={e => openPdfDrawer(contract, e)}
-                      >
-                        Xem PDF
-                      </button>
+                      <div className="flex gap-2 flex-wrap">
+                        <Link
+                          to={`/customer/contracts/${contract.id}`}
+                          className="btn-ghost btn-sm"
+                        >
+                          Chi tiết
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -386,13 +273,6 @@ export default function ContractListPage() {
             </div>
           )}
         </>
-      )}
-
-      {selectedContract && (
-        <ContractPdfDrawer
-          contract={selectedContract}
-          onClose={() => setSelectedContract(null)}
-        />
       )}
     </CustomerLayout>
   );

@@ -188,3 +188,59 @@ export async function cancelHousekeepingTaskV1(
 
 }
 
+
+
+/** SCR-60 — Employee assigned housekeeping task */
+
+export interface EmployeeHousekeepingTask {
+
+  id: string;
+
+  roomId?: string;
+
+  roomNumber?: string;
+
+  floorName?: string;
+
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+  note?: string | null;
+
+  createdAt?: string;
+
+  startedAt?: string | null;
+
+  completedAt?: string | null;
+
+}
+
+
+
+export async function fetchEmployeeHousekeepingTasks(
+
+  params?: { page?: number; size?: number; status?: string },
+
+): Promise<PageResponse<EmployeeHousekeepingTask>> {
+
+  const res = await api.get('/api/v1/employees/housekeeping', { params });
+
+  return res.data.data;
+
+}
+
+
+
+export async function startEmployeeHousekeepingTask(taskId: string): Promise<void> {
+
+  await api.post(`/api/v1/employees/housekeeping/${taskId}/start`);
+
+}
+
+
+
+export async function finishEmployeeHousekeepingTask(taskId: string): Promise<void> {
+
+  await api.post(`/api/v1/employees/housekeeping/${taskId}/finish`);
+
+}
+

@@ -186,7 +186,7 @@ export default function EmployeeDashboardPage() {
 
   return (
     <EmployeeLayout>
-      <div style={{ padding: '24px 20px', maxWidth: 720, margin: '0 auto' }} className="animate-fade-in">
+      <div className="animate-fade-in">
         
         {/* Header section with Greeting and Tab Switcher */}
         <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 }}>

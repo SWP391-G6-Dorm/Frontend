@@ -61,16 +61,24 @@ export async function createEmployeeV1(payload: {
 
 export async function updateEmployeeV1(
   id: string,
+  propertyId: string,
   payload: { fullName: string; phone?: string },
 ): Promise<EmployeeSummary> {
-  const res = await api.put(`/api/v1/manager/employees/${id}`, payload);
+  const res = await api.put(`/api/v1/manager/employees/${id}`, payload, {
+    params: { propertyId },
+  });
   return res.data.data;
 }
 
 export async function updateEmployeeStatusV1(
   id: string,
+  propertyId: string,
   status: 'ACTIVE' | 'SUSPENDED',
 ): Promise<EmployeeSummary> {
-  const res = await api.patch(`/api/v1/manager/employees/${id}/status`, { status });
+  const res = await api.patch(
+    `/api/v1/manager/employees/${id}/status`,
+    { status },
+    { params: { propertyId } },
+  );
   return res.data.data;
 }

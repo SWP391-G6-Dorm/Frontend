@@ -34,24 +34,35 @@ export function dateKey(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+/**
+ * Trạng thái vận hành chặn đặt phòng — khớp BOOKING_BLOCKED_ROOM_STATUSES phía backend.
+ * RESERVED/OCCUPIED KHÔNG chặn: tồn kho tính theo khoảng ngày (Spec FR-04).
+ */
+export const BOOKING_BLOCKED_ROOM_STATUSES = [
+  'MAINTENANCE',
+  'OUT_OF_SERVICE',
+  'PENDING_CLEANING',
+  'CLEANING_IN_PROGRESS',
+] as const;
+
+export function isRoomBookingBlocked(roomStatus: string): boolean {
+  return (BOOKING_BLOCKED_ROOM_STATUSES as readonly string[]).includes(roomStatus);
+}
+
 export function statusForDay(dateKeyStr: string, ranges: BookedRange[], roomStatus: string): DayStatus {
   const day = parseLocalDate(dateKeyStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   if (day < today) return 'past';
-  if (
-    roomStatus === 'MAINTENANCE' ||
-    roomStatus === 'OUT_OF_SERVICE' ||
-    roomStatus === 'PENDING_CLEANING' ||
-    roomStatus === 'CLEANING_IN_PROGRESS'
-  ) {
+  if (isRoomBookingBlocked(roomStatus)) {
     return 'maintenance';
   }
 
   for (const range of ranges) {
     const start = parseLocalDate(range.checkIn);
     const end = parseLocalDate(range.checkOut);
-    if (day >= start && day < end) {
+    // Backend chặn cả ngày check-out (buffer dọn phòng, inclusive) — xem RoomRepository.existsOverlapBooking
+    if (day >= start && day <= end) {
       const st = range.bookingStatus?.toUpperCase() ?? '';
       if (st === 'PENDING_DEPOSIT') return 'pending';
       if (st === 'CHECKED_IN') return 'occupied';
@@ -77,7 +88,8 @@ export function isRangeAvailable(
   if (!checkIn || !checkOut || checkOut <= checkIn) return false;
   const start = parseLocalDate(checkIn);
   const end = parseLocalDate(checkOut);
-  for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+  // Quét inclusive cả ngày check-out để khớp rule overlap của backend
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const key = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
     if (statusForDay(key, ranges, roomStatus) !== 'available') return false;
   }

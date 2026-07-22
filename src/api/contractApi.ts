@@ -5,12 +5,14 @@ export interface ContractSummaryResponse {
   bookingId: string;
   customerName: string;
   customerEmail: string;
+  roomName?: string;
   roomNumber: string;
   propertyName: string;
   checkInDate: string;
   checkOutDate: string;
   depositAmount: number;
   totalAmount: number;
+  pdfUrl?: string;
   status: string;
   generatedAt: string;
   sentAt: string | null;
@@ -45,19 +47,52 @@ export interface PageResponse<T> {
 }
 
 export const contractApi = {
-  getAllContracts: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
-    const res = await api.get('/api/contracts', { params });
+  /** @deprecated Prefer getManagerContracts (SCR-38 v1). Kept as alias. */
+  getAllContracts: async (params: {
+    page?: number;
+    size?: number;
+    status?: string;
+    search?: string;
+    sort?: string;
+    propertyId?: string;
+  }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
+    const res = await api.get('/api/v1/managers/contracts', { params });
     return res.data;
   },
 
-  /** SCR-21 — Customer my contracts (api-spec: GET /api/v1/customers/me/contracts) */
-  getMyContracts: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
+  /** SCR-38 — Manager property-scoped contracts */
+  getManagerContracts: async (params: {
+    page?: number;
+    size?: number;
+    status?: string;
+    search?: string;
+    sort?: string;
+    propertyId?: string;
+  }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
+    const res = await api.get('/api/v1/managers/contracts', { params });
+    return res.data;
+  },
+
+  /** SCR-21 — Customer my contracts */
+  getMyContracts: async (params: {
+    page?: number;
+    size?: number;
+    status?: string;
+    search?: string;
+    sort?: string;
+  }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
     const res = await api.get('/api/v1/customers/me/contracts', { params });
     return res.data;
   },
 
   getContractDetail: async (id: string): Promise<{ success: boolean; data: ContractDetailResponse }> => {
-    const res = await api.get(`/api/contracts/${id}`);
+    const res = await api.get(`/api/v1/contracts/${id}`);
+    return res.data;
+  },
+
+  /** SCR-21 — Customer-owned detail alias */
+  getMyContractDetail: async (id: string): Promise<{ success: boolean; data: ContractDetailResponse }> => {
+    const res = await api.get(`/api/v1/customers/me/contracts/${id}`);
     return res.data;
   },
 
@@ -83,8 +118,9 @@ export const contractApi = {
     window.URL.revokeObjectURL(url);
   },
 
+  /** SCR-38 — Manager resend contract email */
   resendContractEmail: async (id: string, email?: string): Promise<{ success: boolean; message: string }> => {
-    const res = await api.post(`/api/contracts/${id}/resend`, { email });
+    const res = await api.post(`/api/v1/contracts/${id}/resend`, email ? { email } : {});
     return res.data;
-  }
+  },
 };
