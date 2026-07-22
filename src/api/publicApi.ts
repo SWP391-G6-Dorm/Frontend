@@ -80,3 +80,51 @@ export async function fetchPromotions(): Promise<Promotion[]> {
   const res = await api.get('/api/v1/promotions/active');
   return res.data.data ?? [];
 }
+
+export interface AboutStat {
+  value: string;
+  label: string;
+}
+
+export interface AboutValue {
+  num: string;
+  title: string;
+  desc: string;
+}
+
+export interface AboutContent {
+  id: string;
+  heroBrand: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroImageUrl?: string;
+  ctaPrimaryText: string;
+  ctaPrimaryUrl: string;
+  ctaSecondaryText?: string;
+  storyEyebrow: string;
+  storyTitle: string;
+  storyBody1: string;
+  storyBody2: string;
+  storyImage1Url?: string;
+  storyImage2Url?: string;
+  storyImage3Url?: string;
+  storyCtaText?: string;
+  storyCtaUrl?: string;
+  valuesEyebrow: string;
+  valuesTitle: string;
+  contactEyebrow: string;
+  contactTitle: string;
+  contactIntro: string;
+  address: string;
+  email: string;
+  phone: string;
+  workingHours: string;
+  stats: AboutStat[];
+  values: AboutValue[];
+  updatedAt: string;
+}
+
+export async function fetchAboutContent(): Promise<AboutContent> {
+  const res = await api.get('/api/public/about');
+  return res.data.data;
+}

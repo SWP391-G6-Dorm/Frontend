@@ -54,12 +54,7 @@ const NAV_SECTIONS = [
       { label: 'Revenue Trend',    path: '/manager/reports/revenue-trend', icon: IconTrend },
     ],
   },
-  {
-    label: 'MARKETING',
-    items: [
-      { label: 'Banner', path: '/manager/promotions', icon: IconPromotion },
-    ],
-  },
+  // Banner / About CMS moved to Admin portal (/admin/promotions, /admin/about)
 ];
 
 function IconDashboard()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>; }
@@ -79,7 +74,6 @@ function IconComplaint()   { return <svg width="16" height="16" viewBox="0 0 24 
 function IconRevenue()     { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>; }
 function IconOccupancy()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16,8 20,8 23,11 23,16 16,16 16,8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>; }
 function IconTrend()       { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>; }
-function IconPromotion()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>; }
 
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();

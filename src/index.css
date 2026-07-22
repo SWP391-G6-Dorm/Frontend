@@ -1091,6 +1091,8 @@
     display: flex;
     gap: 8px;
     margin-top: 22px;
+    justify-content: center;
+    width: 100%;
   }
 
   .landing-klook-hero__dot {

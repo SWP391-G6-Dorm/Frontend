@@ -46,6 +46,12 @@ export function SearchResultsContent({ variant = 'search' }: { variant?: SearchR
     ROOM_TYPES,
   } = s;
 
+  const todayIso = new Date().toISOString().slice(0, 10);
+  // Check-out tối thiểu = check-in + 1 đêm (không cho trùng ngày)
+  const minCheckOut = draft.checkIn
+    ? new Date(new Date(draft.checkIn + 'T00:00:00').getTime() + 86400000).toISOString().slice(0, 10)
+    : todayIso;
+
   const summary = buildSearchSummary(urlLocation, urlCheckIn, urlCheckOut, urlGuests, hasActiveFilters);
 
   const breadcrumbCurrent = variant === 'rooms' ? 'Danh sách phòng' : 'Kết quả tìm kiếm';
@@ -211,7 +217,16 @@ export function SearchResultsContent({ variant = 'search' }: { variant?: SearchR
                 type="date"
                 className="input search-filter-input-compact search-filter-date-input"
                 value={draft.checkIn}
-                onChange={(e) => setDraft((p) => ({ ...p, checkIn: e.target.value }))}
+                min={todayIso}
+                onChange={(e) => {
+                  const checkIn = e.target.value;
+                  setDraft((p) => ({
+                    ...p,
+                    checkIn,
+                    // check-out cũ trước ngày check-in mới → xóa để user chọn lại
+                    checkOut: p.checkOut && checkIn && p.checkOut <= checkIn ? '' : p.checkOut,
+                  }));
+                }}
               />
             </div>
             <div className="search-filter-date-field">
@@ -220,7 +235,7 @@ export function SearchResultsContent({ variant = 'search' }: { variant?: SearchR
                 type="date"
                 className="input search-filter-input-compact search-filter-date-input"
                 value={draft.checkOut}
-                min={draft.checkIn || undefined}
+                min={minCheckOut}
                 onChange={(e) => setDraft((p) => ({ ...p, checkOut: e.target.value }))}
               />
             </div>
