@@ -62,13 +62,18 @@ export function statusForDay(dateKeyStr: string, ranges: BookedRange[], roomStat
   return 'available';
 }
 
+/** True when room status itself blocks new bookings (independent of date ranges). */
+export function isRoomBookingBlocked(roomStatus: string): boolean {
+  return roomStatus !== 'AVAILABLE';
+}
+
 export function isRangeAvailable(
   checkIn: string,
   checkOut: string,
   ranges: BookedRange[],
   roomStatus: string,
 ): boolean {
-  if (roomStatus !== 'AVAILABLE') return false;
+  if (isRoomBookingBlocked(roomStatus)) return false;
   if (!checkIn || !checkOut || checkOut <= checkIn) return false;
   const start = parseLocalDate(checkIn);
   const end = parseLocalDate(checkOut);
