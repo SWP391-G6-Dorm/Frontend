@@ -23,8 +23,8 @@ const STATUS_VI: Record<string, { label: string; variant: StatusVariant }> = {
 };
 
 const STATUS_FILTERS = [
-  { value: '', label: 'Tất cả' },
   { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
+  { value: '', label: 'Tất cả' },
   { value: 'APPROVED', label: 'Đã duyệt' },
   { value: 'DISPUTED', label: 'Khiếu nại' },
   { value: 'PAID', label: 'Đã thanh toán' },
@@ -51,7 +51,16 @@ function shortId(id: string): string {
   return `BK-${id.slice(0, 8).toUpperCase()}`;
 }
 
-function badge(status: string) {
+function badge(status: string, requiresAdminEscalation?: boolean, approvedByName?: string | null) {
+  if (status === 'PENDING_APPROVAL' && requiresAdminEscalation) {
+    const escalated = !!approvedByName;
+    return (
+      <StatusBadge
+        status={escalated ? 'Chờ Admin' : 'Cần escalate'}
+        variant="info"
+      />
+    );
+  }
   const cfg = STATUS_VI[status] ?? { label: status, variant: 'neutral' as StatusVariant };
   return <StatusBadge status={cfg.label} variant={cfg.variant} />;
 }
@@ -59,7 +68,7 @@ function badge(status: string) {
 export default function DamageReportsPage() {
   const [properties, setProperties] = useState<AssignedProperty[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('PENDING_APPROVAL');
   const [escalatedOnly, setEscalatedOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -75,6 +84,7 @@ export default function DamageReportsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [drawerSubmitting, setDrawerSubmitting] = useState(false);
   const [drawerError, setDrawerError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     managerApi.getMyAssignedProperties()
@@ -180,8 +190,11 @@ export default function DamageReportsPage() {
     }
   }
 
-  const canAct = detail?.status === 'PENDING_APPROVAL';
+  const alreadyEscalated =
+    !!detail?.requiresAdminEscalation && !!detail?.approvedByName && detail.status === 'PENDING_APPROVAL';
+  const canAct = detail?.status === 'PENDING_APPROVAL' && !alreadyEscalated;
   const isEmpty = !loading && reports.length === 0;
+  const evidenceImages = (detail?.attachments ?? []).filter(a => a.type === 'IMAGE' && a.url);
 
   return (
     <ManagerLayout>
@@ -213,13 +226,13 @@ export default function DamageReportsPage() {
             </select>
           </div>
           <div className="min-w-[180px] flex-1 sm:max-w-xs">
-            <label className="block text-sm font-medium text-[#334155] mb-1">Tìm theo số phòng</label>
+            <label className="block text-sm font-medium text-[#334155] mb-1">Tìm phòng / booking</label>
             <input
               type="text"
               className="input-field w-full"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Nhập số phòng..."
+              placeholder="Số phòng hoặc mã booking..."
             />
           </div>
           <div className="flex gap-2 flex-wrap items-center">
@@ -259,7 +272,9 @@ export default function DamageReportsPage() {
           <div className="h-64 bg-[#F1F5F9] rounded-xl animate-pulse" />
         ) : isEmpty ? (
           <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0] text-[#64748B]">
-            Không có báo cáo hư hại phù hợp.
+            {statusFilter === 'PENDING_APPROVAL' && !escalatedOnly && !debouncedSearch
+              ? 'Không có báo cáo hư hại chờ duyệt.'
+              : 'Không có báo cáo hư hại phù hợp.'}
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden">
@@ -297,7 +312,9 @@ export default function DamageReportsPage() {
                       <td className="px-4 py-3 text-[#64748B] whitespace-nowrap">
                         {row.inspectorName || '—'}
                       </td>
-                      <td className="px-4 py-3">{badge(row.status)}</td>
+                      <td className="px-4 py-3">
+                        {badge(row.status, row.requiresAdminEscalation, row.approvedByName)}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <button
                           type="button"
@@ -318,7 +335,11 @@ export default function DamageReportsPage() {
 
       <Drawer
         isOpen={!!detail || detailLoading}
-        onClose={() => { setDetail(null); setDetailLoading(false); }}
+        onClose={() => {
+          setDetail(null);
+          setDetailLoading(false);
+          setPreviewUrl(null);
+        }}
         title={detail ? `Phòng ${detail.roomNumber} — Hư hại` : 'Chi tiết báo cáo'}
         footer={
           detail && canAct ? (
@@ -351,10 +372,17 @@ export default function DamageReportsPage() {
           <div className="space-y-4">
             {drawerError && <Alert variant="error" message={drawerError} />}
 
+            {alreadyEscalated && (
+              <Alert
+                variant="info"
+                message="Báo cáo đã chuyển Admin đồng phê duyệt. Không thể duyệt/từ chối thêm tại đây."
+              />
+            )}
+
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Trạng thái</span>
-                {badge(detail.status)}
+                {badge(detail.status, detail.requiresAdminEscalation, detail.approvedByName)}
               </div>
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Booking</span>
@@ -384,6 +412,12 @@ export default function DamageReportsPage() {
                   <span className="text-[#2563EB] font-medium">Có (&gt; 5M)</span>
                 </div>
               )}
+              {detail.approvedByName && (
+                <div className="flex justify-between">
+                  <span className="text-[#64748B]">Manager xử lý</span>
+                  <span className="font-medium">{detail.approvedByName}</span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -407,6 +441,30 @@ export default function DamageReportsPage() {
               </div>
             </div>
 
+            <div>
+              <span className="text-[#64748B] text-sm">Ảnh minh chứng</span>
+              {evidenceImages.length === 0 ? (
+                <p className="text-sm text-[#94A3B8] m-0 mt-2">Chưa có ảnh đính kèm.</p>
+              ) : (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {evidenceImages.map((att, i) => (
+                    <button
+                      key={`${att.url}-${i}`}
+                      type="button"
+                      className="p-0 border border-[#E2E8F0] rounded-lg overflow-hidden bg-[#F8FAFC]"
+                      onClick={() => setPreviewUrl(att.url)}
+                    >
+                      <img
+                        src={att.url}
+                        alt={`Hư hại ${i + 1}`}
+                        className="w-full aspect-[4/3] object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {detail.note && (
               <div>
                 <span className="text-[#64748B] text-sm">Ghi chú</span>
@@ -416,19 +474,21 @@ export default function DamageReportsPage() {
 
             {canAct && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-[#334155] mb-1">
-                    Số tiền duyệt (₫)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="input-field w-full"
-                    value={approvedAmount}
-                    onChange={e => setApprovedAmount(e.target.value)}
-                    placeholder="Mặc định theo tổng chi phí ước tính"
-                  />
-                </div>
+                {!detail.requiresAdminEscalation && (
+                  <div>
+                    <label className="block text-sm font-medium text-[#334155] mb-1">
+                      Số tiền duyệt (₫)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input-field w-full"
+                      value={approvedAmount}
+                      onChange={e => setApprovedAmount(e.target.value)}
+                      placeholder="Mặc định theo tổng chi phí ước tính"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-[#334155] mb-1">
                     Lý do từ chối (nếu từ chối)
@@ -447,6 +507,21 @@ export default function DamageReportsPage() {
           <p className="text-sm text-[#64748B]">Không có dữ liệu.</p>
         )}
       </Drawer>
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setPreviewUrl(null)}
+          role="presentation"
+        >
+          <img
+            src={previewUrl}
+            alt="Xem ảnh hư hại"
+            className="max-w-full max-h-[90vh] rounded-lg object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
     </ManagerLayout>
   );
 }
