@@ -1,16 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import EmployeeLayout from '../../layouts/EmployeeLayout';
-import {
-  getEmployeeKpis, type EmployeeKpis,
-  getHousekeepingTasks, updateHousekeepingTaskStatus, type HousekeepingTask,
-  getEmployeeMaintenanceTickets, updateMaintenanceTicketStatus, type MaintenanceTicket,
-  getEmployeeInspections, passInspection, failInspection,
-  type InspectionChecklist, type InspectionSummary,
-  getEmployeeDamageReports, createDamageReport, type DamageReport, type DamageItem,
-  getEmployeeRooms, type EmployeeRoom,
-} from '../../api/employeeApi';
-import { TOUCH, fmtVnd, fmtDate, extractErr, Spinner, ErrBanner, OkBanner, StatusBadge, Drawer, FAB } from './EmployeeShared';
+import { getEmployeeRooms, type EmployeeRoom } from '../../api/employeeApi';
+import { TOUCH, extractErr, Spinner, ErrBanner, StatusBadge } from './EmployeeShared';
 
 
 export default function PropertyRoomListPage() {

@@ -1,22 +1,6 @@
 // ─── _sharedAdminData.tsx — Shared mock data & UI atoms for Admin pages ────────
 
 // ─── Mock data ─────────────────────────────────────────────────────────────────
-export const CUSTOMERS = [
-  { id: 'U001', fullName: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phone: '0901 234 567', status: 'ACTIVE', bookingCount: 3, createdAt: '2025-01-15' },
-  { id: 'U002', fullName: 'Trần Thị Lan', email: 'lan.tran@email.com', phone: '0912 345 678', status: 'ACTIVE', bookingCount: 1, createdAt: '2025-06-01' },
-  { id: 'U003', fullName: 'Lê Minh Hoàng', email: 'hoang.le@email.com', phone: '0923 456 789', status: 'SUSPENDED', bookingCount: 2, createdAt: '2025-03-10' },
-];
-
-export const COMPLAINTS = [
-  { id: 'CP001', customerId: 'U001', customer: 'Nguyễn Văn An', bookingId: 'B001', title: 'Room not clean on arrival', description: 'The room was not properly cleaned when we arrived. Sheets were not changed.', status: 'OPEN', createdAt: '2026-06-13T09:00:00' },
-  { id: 'CP002', customerId: 'U002', customer: 'Trần Thị Lan', bookingId: 'B002', title: 'Noise disturbance at night', description: 'There was excessive noise from neighboring room every night.', status: 'RESOLVED', createdAt: '2026-06-10T14:00:00' },
-];
-
-export const MGMT_TICKETS = [
-  { id: 'M001', bookingId: 'B001', customer: 'Nguyễn Văn An', room: 'Villa 01', property: 'Sunset Resort', title: 'AC not working', status: 'IN_PROGRESS', createdAt: '2026-06-13T09:00:00' },
-  { id: 'M002', bookingId: 'B003', customer: 'Lê Minh Hoàng', room: 'Suite 03', property: 'Hội An Garden', title: 'Tap leaking', status: 'RESOLVED', createdAt: '2026-04-06T14:00:00' },
-];
-
 export const REVIEWS = [
   { id: 'R001', bookingId: 'B003', customer: 'Lê Minh Hoàng', roomNumber: 'Suite 03', propertyName: 'Hội An Garden Villa', rating: 5, comment: 'Absolutely stunning villa! Perfect for our family getaway.', createdAt: '2026-04-10', visible: true },
   { id: 'R002', bookingId: 'B001', customer: 'Nguyễn Văn An', roomNumber: 'Villa 01', propertyName: 'Sunset Resort', rating: 2, comment: 'Several issues with the AC and cleanliness. Very disappointed.', createdAt: '2026-07-14', visible: true },
