@@ -113,11 +113,28 @@ function PaymentTable({ payments }: { payments: BookingPaymentInfo[] }) {
         </thead>
         <tbody>
           {payments.map(p => (
-            <tr key={p.id} className="border-b border-[#F1F5F9]">
+            <tr key={p.id} className="border-b border-[#F1F5F9] align-top">
               <td className="py-2.5 pr-3">{PAYMENT_TYPE_VI[p.type] ?? p.type}</td>
               <td className="py-2.5 pr-3 font-medium">{formatVnd(p.amount)}</td>
               <td className="py-2.5 pr-3">{p.method}</td>
-              <td className="py-2.5">{PAYMENT_STATUS_VI[p.status] ?? p.status}</td>
+              <td className="py-2.5">
+                <span
+                  className={
+                    p.status === 'REFUNDED'
+                      ? 'text-[#0369A1] font-medium'
+                      : p.status === 'FAILED'
+                        ? 'text-red-600 font-medium'
+                        : ''
+                  }
+                >
+                  {PAYMENT_STATUS_VI[p.status] ?? p.status}
+                </span>
+                {p.verificationNote && (
+                  <p className="text-xs text-[#64748B] mt-1 max-w-[280px] whitespace-normal">
+                    {p.verificationNote}
+                  </p>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
