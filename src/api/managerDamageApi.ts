@@ -25,6 +25,7 @@ export interface DamageItem {
 
 export interface DamageReportDetail extends DamageReportSummary {
   items: DamageItem[];
+  attachments?: { url: string; type: string }[];
 }
 
 export interface PageResponse<T> {

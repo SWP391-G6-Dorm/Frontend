@@ -25,21 +25,10 @@ const DEFAULT_HERO_IMAGES = [
   'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2000&q=80',
 ];
 
-/** Same palette as admin banner page — fallback background when banner has no image */
-const THEME_GRADIENTS: Record<string, string> = {
-  red:    'linear-gradient(135deg, #0F766E 0%, #0D9488 100%)',
-  blue:   'linear-gradient(135deg, #1a3c5e 0%, #2d6a9f 100%)',
-  green:  'linear-gradient(135deg, #1a5c3a 0%, #2e9c5e 100%)',
-  purple: 'linear-gradient(135deg, #4c1d8f 0%, #7c3aed 100%)',
-  orange: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)',
-};
-
 interface HeroSlide {
-  image?: string;
-  gradient?: string;
+  image: string;
   subtitle?: string;
   title?: string;
-  description?: string;
   ctaText?: string;
   ctaUrl?: string;
 }
@@ -132,15 +121,15 @@ export default function LandingPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [heroIndex, setHeroIndex] = useState(0);
 
-  const promoSlides: HeroSlide[] = promotions.map((p) => ({
-    image: p.imageUrl?.trim() ? resolveMediaUrl(p.imageUrl) : undefined,
-    gradient: THEME_GRADIENTS[p.colorTheme] ?? THEME_GRADIENTS.red,
-    subtitle: p.subtitle,
-    title: p.title,
-    description: p.description,
-    ctaText: p.ctaText,
-    ctaUrl: p.ctaUrl,
-  }));
+  const promoSlides: HeroSlide[] = promotions
+    .filter((p) => p.imageUrl && p.imageUrl.trim())
+    .map((p) => ({
+      image: resolveMediaUrl(p.imageUrl),
+      subtitle: p.subtitle,
+      title: p.title,
+      ctaText: p.ctaText,
+      ctaUrl: p.ctaUrl,
+    }));
 
   const heroSlides: HeroSlide[] =
     promoSlides.length > 0 ? promoSlides : DEFAULT_HERO_IMAGES.map((image) => ({ image }));
@@ -233,10 +222,6 @@ export default function LandingPage() {
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  // Check-out tối thiểu = check-in + 1 đêm (không cho trùng ngày)
-  const minCheckOut = search.checkIn
-    ? new Date(new Date(search.checkIn + 'T00:00:00').getTime() + 86400000).toISOString().slice(0, 10)
-    : today;
 
   const statItems = stats
     ? [
@@ -258,48 +243,33 @@ export default function LandingPage() {
       <section className="landing-klook-hero" aria-label="Hero">
         <div className="landing-klook-hero__media" aria-hidden="true">
           {heroSlides.map((slide, i) => (
-            slide.image ? (
-              <img
-                key={(slide.image ?? '') + i}
-                src={slide.image}
-                alt=""
-                className={
-                  'landing-klook-hero__img' + (i === heroIndex ? ' landing-klook-hero__img--active' : '')
-                }
-              />
-            ) : (
-              <div
-                key={'gradient-' + i}
-                className={
-                  'landing-klook-hero__img' + (i === heroIndex ? ' landing-klook-hero__img--active' : '')
-                }
-                style={{ background: slide.gradient ?? THEME_GRADIENTS.red }}
-              />
-            )
+            <img
+              key={slide.image + i}
+              src={slide.image}
+              alt=""
+              className={
+                'landing-klook-hero__img' + (i === heroIndex ? ' landing-klook-hero__img--active' : '')
+              }
+            />
           ))}
           <div className="landing-klook-hero__shade" />
         </div>
 
-        {/* Decorative accents — only when slide has no photo (gradient / default) */}
-        {!activeSlide?.image && (
-          <>
-            <svg className="landing-klook-hero__blob landing-klook-hero__blob--tl" viewBox="0 0 200 160" aria-hidden="true">
-              <path fill="#F5C518" d="M40 20c40-30 110-10 140 40 20 35-10 90-55 100-50 12-100-20-110-60C5 70 10 40 40 20z" />
-            </svg>
-            <svg className="landing-klook-hero__blob landing-klook-hero__blob--br" viewBox="0 0 220 180" aria-hidden="true">
-              <path fill="#FF5B00" d="M10 100c20-60 90-90 150-60 45 22 60 80 30 120-28 38-95 40-140 10C15 150-5 130 10 100z" />
-            </svg>
-            <svg className="landing-klook-hero__squiggle" viewBox="0 0 120 40" aria-hidden="true">
-              <path
-                d="M4 28c18-22 36 10 54-12 18-22 36 10 54-12"
-                fill="none"
-                stroke="#2DD4BF"
-                strokeWidth="6"
-                strokeLinecap="round"
-              />
-            </svg>
-          </>
-        )}
+        <svg className="landing-klook-hero__blob landing-klook-hero__blob--tl" viewBox="0 0 200 160" aria-hidden="true">
+          <path fill="#F5C518" d="M40 20c40-30 110-10 140 40 20 35-10 90-55 100-50 12-100-20-110-60C5 70 10 40 40 20z" />
+        </svg>
+        <svg className="landing-klook-hero__blob landing-klook-hero__blob--br" viewBox="0 0 220 180" aria-hidden="true">
+          <path fill="#FF5B00" d="M10 100c20-60 90-90 150-60 45 22 60 80 30 120-28 38-95 40-140 10C15 150-5 130 10 100z" />
+        </svg>
+        <svg className="landing-klook-hero__squiggle" viewBox="0 0 120 40" aria-hidden="true">
+          <path
+            d="M4 28c18-22 36 10 54-12 18-22 36 10 54-12"
+            fill="none"
+            stroke="#2DD4BF"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+        </svg>
 
         <div className="landing-klook-hero__content">
           {activeSlide?.subtitle ? (
@@ -313,9 +283,7 @@ export default function LandingPage() {
             {activeSlide?.title ? activeSlide.title : 'Find Your Zen'}
           </h1>
           <p className="landing-klook-hero__sub">
-            {activeSlide?.description?.trim()
-              ? activeSlide.description
-              : 'Homestay & resort giữa thiên nhiên — đặt phòng nhẹ nhàng, minh bạch giá.'}
+            Homestay &amp; resort giữa thiên nhiên — đặt phòng nhẹ nhàng, minh bạch giá.
           </p>
 
           {activeSlide?.ctaText && activeSlide.ctaUrl && (
@@ -348,14 +316,7 @@ export default function LandingPage() {
                 aria-label="Ngày nhận phòng"
                 value={search.checkIn}
                 min={today}
-                onChange={(e) => {
-                  const checkIn = e.target.value;
-                  setSearch((p) => ({
-                    ...p,
-                    checkIn,
-                    checkOut: p.checkOut && checkIn && p.checkOut <= checkIn ? '' : p.checkOut,
-                  }));
-                }}
+                onChange={(e) => setSearch((p) => ({ ...p, checkIn: e.target.value }))}
               />
             </div>
 
@@ -366,7 +327,7 @@ export default function LandingPage() {
                 type="date"
                 aria-label="Ngày trả phòng"
                 value={search.checkOut}
-                min={minCheckOut}
+                min={search.checkIn || today}
                 onChange={(e) => setSearch((p) => ({ ...p, checkOut: e.target.value }))}
               />
             </div>

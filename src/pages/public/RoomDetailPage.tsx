@@ -395,13 +395,7 @@ export default function RoomDetailPage() {
                     className="input room-booking-date-input"
                     value={checkIn}
                     min={new Date().toISOString().slice(0, 10)}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setCheckIn(value);
-                      // check-out cũ ≤ check-in mới → xóa (check-out phải sau ít nhất 1 đêm)
-                      if (checkOut && value && checkOut <= value) setCheckOut('');
-                      setBookError('');
-                    }}
+                    onChange={(e) => { setCheckIn(e.target.value); setBookError(''); }}
                   />
                 </div>
                 <div className="room-booking-date-field">
@@ -410,9 +404,7 @@ export default function RoomDetailPage() {
                     type="date"
                     className="input room-booking-date-input"
                     value={checkOut}
-                    min={checkIn
-                      ? new Date(new Date(checkIn + 'T00:00:00').getTime() + 86400000).toISOString().slice(0, 10)
-                      : new Date().toISOString().slice(0, 10)}
+                    min={checkIn || new Date().toISOString().slice(0, 10)}
                     onChange={(e) => { setCheckOut(e.target.value); setBookError(''); }}
                   />
                 </div>

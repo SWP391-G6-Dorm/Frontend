@@ -64,13 +64,11 @@ export function sortToApi(sort: string): string {
 /** SCR-07 — public room search (api-spec: GET /api/v1/rooms/search) */
 export async function fetchRooms(params: FetchRoomsParams): Promise<RoomsPageResponse> {
   const { capacity, status, ...rest } = params;
-  // Không mặc định status=AVAILABLE ở đây: khi có checkIn/checkOut backend
-  // lọc theo lịch đặt (date-range), ép AVAILABLE sẽ loại oan phòng trống trong khoảng ngày.
   const res = await api.get('/api/v1/rooms/search', {
     params: {
       ...rest,
       guests: capacity,
-      status,
+      status: status ?? 'AVAILABLE',
     },
   });
   return res.data.data;

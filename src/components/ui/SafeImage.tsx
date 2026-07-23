@@ -15,11 +15,6 @@ export default function SafeImage({ src, alt, onError, ...props }: SafeImageProp
     setUrl(resolved);
   }, [resolved]);
 
-  // Sync when src prop changes (e.g. gallery slider) — state init runs only once
-  useEffect(() => {
-    setUrl(resolveMediaUrl(src));
-  }, [src]);
-
   return (
     <img
       {...props}

@@ -39,9 +39,6 @@ export interface PaymentDetailResponse {
   receiptUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  orderRef?: string | null;
-  gatewayTransactionId?: string | null;
-  gatewayResponseCode?: string | null;
 }
 
 export interface PageResponse<T> {
