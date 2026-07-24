@@ -101,9 +101,6 @@ import { DamageEscalationPage } from './pages/admin/DamageEscalationPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { GlobalReportsPage } from './pages/admin/GlobalReportsPage';
 import { SystemAdminPage } from './pages/admin/SystemAdminPage';
-import { PromotionAdminListPage } from './pages/admin/PromotionAdminListPage';
-import { AddEditPromotionPage } from './pages/admin/AddEditPromotionPage';
-
 // ── Employee Portal (SCR-59 → SCR-65) ────────────────────────────────────────
 import EmployeeDashboardPage from './pages/employee/EmployeeDashboardPage';
 import HousekeepingWorkspacePage from './pages/employee/HousekeepingWorkspacePage';
@@ -402,11 +399,11 @@ function App() {
 
         {/* Marketing */}
         <Route path="/admin/promotions"
-          element={<ProtectedRoute role="ADMIN"><PromotionAdminListPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="ADMIN"><PromotionMgmtPage /></ProtectedRoute>} />
         <Route path="/admin/promotions/create"
-          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+          element={<Navigate to="/admin/promotions" replace />} />
         <Route path="/admin/promotions/:id/edit"
-          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+          element={<Navigate to="/admin/promotions" replace />} />
 
         {/* System */}
         <Route path="/admin/settings"
