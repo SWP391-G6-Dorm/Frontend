@@ -68,12 +68,6 @@ export async function fetchManagerPaymentsV1(
 }
 
 export const paymentApi = {
-  /** @deprecated Use fetchManagerPaymentsV1 for manager list (SCR-36) */
-  getAllPayments: async (params: { page?: number; size?: number; status?: string; search?: string; sort?: string }): Promise<{ success: boolean; data: PageResponse<PaymentSummaryResponse> }> => {
-    const res = await api.get('/api/manager/payments', { params });
-    return res.data;
-  },
-
   getPaymentDetail: async (id: string): Promise<{ success: boolean; data: PaymentDetailResponse }> => {
     const res = await api.get(`/api/manager/payments/${id}`);
     return res.data;

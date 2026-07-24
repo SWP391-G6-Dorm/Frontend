@@ -34,6 +34,7 @@ export interface BookingPaymentInfo {
   method: string;
   status: string;
   paidAt: string | null;
+  verificationNote?: string | null;
 }
 
 export interface BookingDetailResponse {
@@ -107,16 +108,6 @@ export const bookingApi = {
   },
   getMyBookingDetail: async (id: string): Promise<{ success: boolean; data: BookingDetailResponse; message?: string }> => {
     const res = await api.get(`/api/v1/bookings/me/${id}`);
-    return res.data;
-  },
-  /** @deprecated Use checkInBookingV1 for manager (SCR-35) */
-  markCheckedIn: async (id: string): Promise<{ success: boolean }> => {
-    const res = await api.patch(`/api/bookings/${id}/check-in`);
-    return res.data;
-  },
-  /** @deprecated Use checkOutBookingV1 for manager (SCR-35) */
-  markCheckedOut: async (id: string): Promise<{ success: boolean }> => {
-    const res = await api.patch(`/api/bookings/${id}/check-out`);
     return res.data;
   },
   /** Prefer cancelMyBooking — customer cancel must use v1 path. */

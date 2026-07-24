@@ -97,14 +97,10 @@ import { EditPropertyAdminPage } from './pages/admin/EditPropertyAdminPage';
 import { ManagerAssignmentPage } from './pages/admin/ManagerAssignmentPage';
 import { ManagerDirectoryPage } from './pages/admin/ManagerDirectoryPage';
 import { CustomerDirectoryPage } from './pages/admin/CustomerDirectoryPage';
-import { PaymentReconciliationPage } from './pages/admin/PaymentReconciliationPage';
 import { DamageEscalationPage } from './pages/admin/DamageEscalationPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { GlobalReportsPage } from './pages/admin/GlobalReportsPage';
 import { SystemAdminPage } from './pages/admin/SystemAdminPage';
-import { PromotionAdminListPage } from './pages/admin/PromotionAdminListPage';
-import { AddEditPromotionPage } from './pages/admin/AddEditPromotionPage';
-
 // ── Employee Portal (SCR-59 → SCR-65) ────────────────────────────────────────
 import EmployeeDashboardPage from './pages/employee/EmployeeDashboardPage';
 import HousekeepingWorkspacePage from './pages/employee/HousekeepingWorkspacePage';
@@ -391,10 +387,6 @@ function App() {
         <Route path="/admin/customers"
           element={<ProtectedRoute role="ADMIN"><CustomerDirectoryPage /></ProtectedRoute>} />
 
-        {/* Finance */}
-        <Route path="/admin/payments/reconciliation"
-          element={<ProtectedRoute role="ADMIN"><PaymentReconciliationPage /></ProtectedRoute>} />
-
         {/* Operations */}
         <Route path="/admin/damage-escalation"
           element={<ProtectedRoute role="ADMIN"><DamageEscalationPage /></ProtectedRoute>} />
@@ -407,11 +399,11 @@ function App() {
 
         {/* Marketing */}
         <Route path="/admin/promotions"
-          element={<ProtectedRoute role="ADMIN"><PromotionAdminListPage /></ProtectedRoute>} />
+          element={<ProtectedRoute role="ADMIN"><PromotionMgmtPage /></ProtectedRoute>} />
         <Route path="/admin/promotions/create"
-          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+          element={<Navigate to="/admin/promotions" replace />} />
         <Route path="/admin/promotions/:id/edit"
-          element={<ProtectedRoute role="ADMIN"><AddEditPromotionPage /></ProtectedRoute>} />
+          element={<Navigate to="/admin/promotions" replace />} />
 
         {/* System */}
         <Route path="/admin/settings"

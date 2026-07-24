@@ -47,19 +47,6 @@ export interface PageResponse<T> {
 }
 
 export const contractApi = {
-  /** @deprecated Prefer getManagerContracts (SCR-38 v1). Kept as alias. */
-  getAllContracts: async (params: {
-    page?: number;
-    size?: number;
-    status?: string;
-    search?: string;
-    sort?: string;
-    propertyId?: string;
-  }): Promise<{ success: boolean; data: PageResponse<ContractSummaryResponse> }> => {
-    const res = await api.get('/api/v1/managers/contracts', { params });
-    return res.data;
-  },
-
   /** SCR-38 — Manager property-scoped contracts */
   getManagerContracts: async (params: {
     page?: number;

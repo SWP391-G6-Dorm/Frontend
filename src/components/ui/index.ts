@@ -10,5 +10,4 @@ export { default as Select } from './Select';
 export { StatusBadge } from './StatusBadge';
 export { DataTable } from './DataTable';
 export { Drawer } from './Drawer';
-export { TreeView } from './TreeView';
 export { KpiCard } from './KpiCard';
